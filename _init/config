@@ -1,0 +1,6 @@
+; KSF FA DataIntegrity — module configuration for FA 2.3+
+name=KSF Data Integrity
+version=1.0.0
+description=Cross-references purchase and sales chains to find orphaned records, quantity counter drift, and allocation mismatches.
+path=ksf_FA_DataIntegrity
+; security_areas defined in hooks.php via hook_db_install

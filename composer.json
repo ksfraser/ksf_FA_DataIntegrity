@@ -1,0 +1,21 @@
+{
+    "name": "ksfraser/ksf_fa_dataintegrity",
+    "description": "FrontAccounting Data Integrity Checker — finds orphaned GRNs, invoice/GRN quantity mismatches, allocation drift, and broken purchase/sales chains",
+    "type": "library",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "KSFraser",
+            "email": "dev@ksfraser.com"
+        }
+    ],
+    "require": {
+        "php": ">=5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ksfraser\\FA\\DataIntegrity\\": "src/Ksfraser/FA/DataIntegrity/"
+        }
+    },
+    "minimum-stability": "stable"
+}
