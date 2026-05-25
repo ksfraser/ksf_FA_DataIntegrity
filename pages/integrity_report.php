@@ -27,9 +27,11 @@ include_once($path_to_root . "/includes/ui.inc");
 include_once($module_root . "/includes/integrity_ui.inc");
 
 // ---- Collect all data before rendering ----
-$counts  = count_all_integrity_issues();
-$labels  = get_check_labels();
-$fixes   = get_fix_functions();
+$counts      = count_all_integrity_issues();
+$labels      = get_check_labels();
+$fixes       = get_fix_functions();
+$pu_pipeline = get_purchase_pipeline_counts();
+$sa_pipeline = get_sales_pipeline_counts();
 
 $total_issues = 0;
 foreach ($counts as $n) {
@@ -133,6 +135,24 @@ h3          { font-size: 12px; margin-top: 16px; }
         ?>
     </tbody>
 </table>
+
+<!-- ================================================================ -->
+<!-- PIPELINE HEALTH                                                   -->
+<!-- ================================================================ -->
+<h2><?php echo _('Pipeline Health'); ?></h2>
+<p><?php echo _('Transaction counts at each stage of the purchase and sales chains.'); ?></p>
+<?php
+integ_render_pipeline_summary(
+    $pu_pipeline,
+    _('Purchase Chain (PO → GRN → Invoice → Payment)'),
+    integ_purchase_pipeline_rows()
+);
+integ_render_pipeline_summary(
+    $sa_pipeline,
+    _('Sales Chain (SO → Delivery → Invoice → Payment)'),
+    integ_sales_pipeline_rows()
+);
+?>
 
 <?php if (count($checks_with_issues) === 0): ?>
 <p class="ok"><?php echo _('All checks passed. No issues found.'); ?></p>

@@ -928,6 +928,289 @@ function check_alloc_orphaned_customer_allocs()
 }
 
 // ===========================================================================
+// PIPELINE / FUNNEL ANALYSIS
+// ===========================================================================
+
+/**
+ * Classify every purchase order by how far it has progressed through the
+ * purchase chain (PO → GRN → Supplier Invoice → Payment) and whether any
+ * counter values disagree.
+ *
+ * Categories (mutually exclusive, collectively exhaustive):
+ *   open_po                     — PO exists, no GRN, no invoice, no payment
+ *   received_not_invoiced       — GRN exists, no invoice (includes the
+ *                                  Direct-Invoice-timeout bug scenario)
+ *   invoiced_not_paid_clean     — invoice exists, no payment, counters OK
+ *   invoiced_not_paid_corrupted — invoice exists, no payment, counter drift
+ *   complete_clean              — invoice + payment exist, counters OK
+ *   complete_corrupted          — invoice + payment exist, counter drift
+ *   anomalous                   — payment exists but no invoice (data error)
+ *   total                       — sum of all categories
+ *
+ * "Has GRN"     — at least one grn_batch row references this PO.
+ * "Has invoice" — at least one non-voided supp_trans (type 20) is linked to
+ *                 a purch_order_details line for this PO.
+ * "Has payment" — at least one supp_allocations row references an invoice
+ *                 on this PO (partially or fully paid).
+ * "Has mismatch"— any P1/P2/P3-style counter drift detected on this PO.
+ *
+ * PHP 5.6 / MySQL 5.5 compatible (no CTEs — uses derived-table UNION).
+ *
+ * @return array  Associative array of integer counts keyed as above.
+ * @since  1.0.0
+ */
+function get_purchase_pipeline_counts()
+{
+    $d = INTEG_DELTA;
+
+    $sql = "
+        SELECT
+            COUNT(*)                                                                            AS total,
+            SUM(CASE WHEN has_grn=0 AND has_invoice=0 AND has_payment=0 THEN 1 ELSE 0 END)     AS open_po,
+            SUM(CASE WHEN has_grn=1 AND has_invoice=0 AND has_payment=0 THEN 1 ELSE 0 END)     AS received_not_invoiced,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=0 AND has_mismatch=0 THEN 1 ELSE 0 END) AS invoiced_not_paid_clean,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=0 AND has_mismatch=1 THEN 1 ELSE 0 END) AS invoiced_not_paid_corrupted,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=1 AND has_mismatch=0 THEN 1 ELSE 0 END) AS complete_clean,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=1 AND has_mismatch=1 THEN 1 ELSE 0 END) AS complete_corrupted,
+            SUM(CASE WHEN has_payment=1 AND has_invoice=0              THEN 1 ELSE 0 END)       AS anomalous
+        FROM (
+            SELECT
+                po.order_no,
+                CASE WHEN grn_e.order_no  IS NOT NULL THEN 1 ELSE 0 END AS has_grn,
+                CASE WHEN inv_e.order_no  IS NOT NULL THEN 1 ELSE 0 END AS has_invoice,
+                CASE WHEN pay_e.order_no  IS NOT NULL THEN 1 ELSE 0 END AS has_payment,
+                CASE WHEN bad_e.order_no  IS NOT NULL THEN 1 ELSE 0 END AS has_mismatch
+            FROM {TB_PREF}purch_orders po
+
+            /* ---- Stage 1: any GRN? ---- */
+            LEFT JOIN (
+                SELECT DISTINCT purch_order_no AS order_no
+                FROM {TB_PREF}grn_batch
+            ) grn_e ON grn_e.order_no = po.order_no
+
+            /* ---- Stage 2: any non-voided invoice linked via pod? ---- */
+            LEFT JOIN (
+                SELECT DISTINCT pod.order_no
+                FROM {TB_PREF}purch_order_details pod
+                JOIN {TB_PREF}supp_invoice_items sii
+                    ON sii.po_detail_item_id = pod.po_detail_item
+                JOIN {TB_PREF}supp_trans st
+                    ON st.trans_no = sii.supp_trans_no
+                   AND st.type = 20
+                   AND st.ov_amount != 0
+            ) inv_e ON inv_e.order_no = po.order_no
+
+            /* ---- Stage 3: any allocation against an invoice on this PO? ---- */
+            LEFT JOIN (
+                SELECT DISTINCT pod2.order_no
+                FROM {TB_PREF}purch_order_details pod2
+                JOIN {TB_PREF}supp_invoice_items sii2
+                    ON sii2.po_detail_item_id = pod2.po_detail_item
+                JOIN {TB_PREF}supp_trans inv2
+                    ON inv2.trans_no = sii2.supp_trans_no
+                   AND inv2.type = 20
+                JOIN {TB_PREF}supp_allocations sa
+                    ON sa.trans_no_to   = inv2.trans_no
+                   AND sa.trans_type_to = 20
+            ) pay_e ON pay_e.order_no = po.order_no
+
+            /* ---- Counter mismatch: P1 OR P2 OR P3 drift on this PO ---- */
+            LEFT JOIN (
+                SELECT DISTINCT bad.order_no
+                FROM (
+                    /* P1-style: grn_items.quantity_inv drift */
+                    SELECT gb.purch_order_no AS order_no
+                    FROM {TB_PREF}grn_batch gb
+                    JOIN {TB_PREF}grn_items gi ON gi.grn_batch_id = gb.id
+                    LEFT JOIN (
+                        SELECT sii3.grn_item_id, SUM(sii3.quantity) AS qty_inv
+                        FROM {TB_PREF}supp_invoice_items sii3
+                        JOIN {TB_PREF}supp_trans st3
+                            ON st3.trans_no = sii3.supp_trans_no
+                           AND st3.type = 20
+                           AND st3.ov_amount != 0
+                        GROUP BY sii3.grn_item_id
+                    ) inv_g ON inv_g.grn_item_id = gi.id
+                    WHERE ABS(gi.quantity_inv - COALESCE(inv_g.qty_inv, 0)) > $d
+
+                    UNION
+
+                    /* P2-style: purch_order_details.qty_invoiced drift */
+                    SELECT pod3.order_no
+                    FROM {TB_PREF}purch_order_details pod3
+                    LEFT JOIN (
+                        SELECT sii4.po_detail_item_id, SUM(sii4.quantity) AS qty_inv
+                        FROM {TB_PREF}supp_invoice_items sii4
+                        JOIN {TB_PREF}supp_trans st4
+                            ON st4.trans_no = sii4.supp_trans_no
+                           AND st4.type = 20
+                           AND st4.ov_amount != 0
+                        GROUP BY sii4.po_detail_item_id
+                    ) inv_p ON inv_p.po_detail_item_id = pod3.po_detail_item
+                    WHERE ABS(pod3.qty_invoiced - COALESCE(inv_p.qty_inv, 0)) > $d
+
+                    UNION
+
+                    /* P3-style: purch_order_details.quantity_received drift */
+                    SELECT pod4.order_no
+                    FROM {TB_PREF}purch_order_details pod4
+                    LEFT JOIN (
+                        SELECT gi2.po_detail_item, SUM(gi2.qty_recd) AS qty_recv
+                        FROM {TB_PREF}grn_items gi2
+                        GROUP BY gi2.po_detail_item
+                    ) grn_s ON grn_s.po_detail_item = pod4.po_detail_item
+                    WHERE ABS(pod4.quantity_received - COALESCE(grn_s.qty_recv, 0)) > $d
+                ) bad
+            ) bad_e ON bad_e.order_no = po.order_no
+        ) pipeline";
+
+    $result = db_query($sql, 'Get purchase pipeline counts');
+    $row    = db_fetch($result);
+    db_free_result($result);
+
+    if (!$row) {
+        return array(
+            'total' => 0, 'open_po' => 0, 'received_not_invoiced' => 0,
+            'invoiced_not_paid_clean' => 0, 'invoiced_not_paid_corrupted' => 0,
+            'complete_clean' => 0, 'complete_corrupted' => 0, 'anomalous' => 0,
+        );
+    }
+    return $row;
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Classify every sales order by how far it has progressed through the
+ * sales chain (SO → Delivery → Customer Invoice → Customer Payment) and
+ * whether any counter values disagree.
+ *
+ * Categories mirror get_purchase_pipeline_counts() with:
+ *   open_order              → SO, no delivery, no invoice, no payment
+ *   delivered_not_invoiced  → delivery exists, no invoice
+ *   (plus the same invoiced/complete/corrupted/anomalous buckets)
+ *
+ * "Has delivery" — any debtor_trans type 13 with order_ = so.order_no.
+ * "Has invoice"  — any debtor_trans type 10 with order_ = so.order_no.
+ * "Has payment"  — any cust_allocations row referencing an invoice on this SO.
+ * "Has mismatch" — S1 (sod.qty_sent drift) or S2 (sod.invoiced drift).
+ *
+ * @return array
+ * @since  1.0.0
+ */
+function get_sales_pipeline_counts()
+{
+    $d = INTEG_DELTA;
+
+    $sql = "
+        SELECT
+            COUNT(*)                                                                             AS total,
+            SUM(CASE WHEN has_del=0 AND has_invoice=0 AND has_payment=0 THEN 1 ELSE 0 END)      AS open_order,
+            SUM(CASE WHEN has_del=1 AND has_invoice=0 AND has_payment=0 THEN 1 ELSE 0 END)      AS delivered_not_invoiced,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=0 AND has_mismatch=0 THEN 1 ELSE 0 END) AS invoiced_not_paid_clean,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=0 AND has_mismatch=1 THEN 1 ELSE 0 END) AS invoiced_not_paid_corrupted,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=1 AND has_mismatch=0 THEN 1 ELSE 0 END) AS complete_clean,
+            SUM(CASE WHEN has_invoice=1 AND has_payment=1 AND has_mismatch=1 THEN 1 ELSE 0 END) AS complete_corrupted,
+            SUM(CASE WHEN has_payment=1 AND has_invoice=0              THEN 1 ELSE 0 END)        AS anomalous
+        FROM (
+            SELECT
+                so.order_no,
+                CASE WHEN del_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_del,
+                CASE WHEN inv_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_invoice,
+                CASE WHEN pay_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_payment,
+                CASE WHEN bad_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_mismatch
+            FROM {TB_PREF}sales_orders so
+            WHERE so.trans_type = 30
+
+            /* ---- Stage 1: any delivery note? ---- */
+            LEFT JOIN (
+                SELECT DISTINCT order_ AS order_no
+                FROM {TB_PREF}debtor_trans
+                WHERE type = 13
+                  AND ov_amount != 0
+            ) del_e ON del_e.order_no = so.order_no
+
+            /* ---- Stage 2: any customer invoice? ---- */
+            LEFT JOIN (
+                SELECT DISTINCT order_ AS order_no
+                FROM {TB_PREF}debtor_trans
+                WHERE type = 10
+                  AND ov_amount != 0
+            ) inv_e ON inv_e.order_no = so.order_no
+
+            /* ---- Stage 3: any allocation against a customer invoice? ---- */
+            LEFT JOIN (
+                SELECT DISTINCT dt.order_ AS order_no
+                FROM {TB_PREF}debtor_trans dt
+                JOIN {TB_PREF}cust_allocations ca
+                    ON ca.trans_no_to   = dt.trans_no
+                   AND ca.trans_type_to = 10
+                WHERE dt.type = 10
+                  AND dt.ov_amount != 0
+            ) pay_e ON pay_e.order_no = so.order_no
+
+            /* ---- Counter mismatch: S1 OR S2 drift on this SO ---- */
+            LEFT JOIN (
+                SELECT DISTINCT bad.order_no
+                FROM (
+                    /* S1-style: sales_order_details.qty_sent drift */
+                    SELECT sod.order_no
+                    FROM {TB_PREF}sales_order_details sod
+                    JOIN {TB_PREF}sales_orders so2
+                        ON so2.order_no   = sod.order_no
+                       AND so2.trans_type = sod.trans_type
+                    LEFT JOIN (
+                        SELECT dtd.src_id, SUM(dtd.qty_done) AS qty_sent
+                        FROM {TB_PREF}debtor_trans_details dtd
+                        JOIN {TB_PREF}debtor_trans dt
+                            ON dt.trans_no = dtd.debtor_trans_no
+                           AND dt.type     = dtd.debtor_trans_type
+                        WHERE dtd.debtor_trans_type = 13
+                          AND dt.ov_amount != 0
+                        GROUP BY dtd.src_id
+                    ) del_s ON del_s.src_id = sod.id
+                    WHERE so2.trans_type = 30
+                      AND ABS(sod.qty_sent - COALESCE(del_s.qty_sent, 0)) > $d
+
+                    UNION
+
+                    /* S2-style: sales_order_details.invoiced drift */
+                    SELECT sod2.order_no
+                    FROM {TB_PREF}sales_order_details sod2
+                    JOIN {TB_PREF}sales_orders so3
+                        ON so3.order_no   = sod2.order_no
+                       AND so3.trans_type = sod2.trans_type
+                    LEFT JOIN (
+                        SELECT dtd2.src_id, SUM(dtd2.quantity) AS qty_inv
+                        FROM {TB_PREF}debtor_trans_details dtd2
+                        JOIN {TB_PREF}debtor_trans dt2
+                            ON dt2.trans_no = dtd2.debtor_trans_no
+                           AND dt2.type     = dtd2.debtor_trans_type
+                        WHERE dtd2.debtor_trans_type = 10
+                          AND dt2.ov_amount != 0
+                        GROUP BY dtd2.src_id
+                    ) inv_s ON inv_s.src_id = sod2.id
+                    WHERE so3.trans_type = 30
+                      AND ABS(sod2.invoiced - COALESCE(inv_s.qty_inv, 0)) > $d
+                ) bad
+            ) bad_e ON bad_e.order_no = so.order_no
+        ) pipeline";
+
+    $result = db_query($sql, 'Get sales pipeline counts');
+    $row    = db_fetch($result);
+    db_free_result($result);
+
+    if (!$row) {
+        return array(
+            'total' => 0, 'open_order' => 0, 'delivered_not_invoiced' => 0,
+            'invoiced_not_paid_clean' => 0, 'invoiced_not_paid_corrupted' => 0,
+            'complete_clean' => 0, 'complete_corrupted' => 0, 'anomalous' => 0,
+        );
+    }
+    return $row;
+}
+
+// ===========================================================================
 // DASHBOARD SUMMARY COUNTS
 // ===========================================================================
 

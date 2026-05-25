@@ -2,9 +2,15 @@
 /**
  * integrity_dashboard.php — Data Integrity overview dashboard
  *
- * Runs all 17 integrity checks and displays a summary table with colour-coded
- * counts (green = 0 issues, red = issues found) and links to the detail pages
- * for each group.
+ * Two sections:
+ *
+ * 1. PIPELINE HEALTH — How many POs/SOs are at each stage of the chain, and
+ *    of those that have all stages, how many have clean vs corrupted counters.
+ *    Gives the business-level view: "of 100 POs, 50 complete & clean, 28 have
+ *    data issues, 12 received but not yet invoiced ..."
+ *
+ * 2. INTEGRITY CHECKS — Per-check row counts (P1–P7, S1–S5, A1–A5) with
+ *    colour-coded counts and links to detail/fix pages.
  *
  * PHP 5.6+ compatible.
  *
@@ -22,16 +28,53 @@ $module_root = dirname(dirname(__FILE__));
 include_once($module_root . "/includes/integrity_db.inc");
 include_once($module_root . "/includes/integrity_ui.inc");
 
-// ---- inline styles (injected via $js parameter to page()) ----
 $css = "<style>
 .integ-ok   { color:#080; font-weight:bold; }
 .integ-fail { color:#c00; font-weight:bold; }
 .integ-group-header td { background:#e8e8e8; font-weight:bold; padding:4px 6px; }
+.integ-section-title { font-size:1.1em; font-weight:bold; margin:14px 0 4px 0;
+                        border-bottom:1px solid #aaa; padding-bottom:3px; }
 </style>";
 
 page(_('Data Integrity Dashboard'), false, false, '', $css);
 
-// Run all checks — this may take a moment on large databases
+// =========================================================================
+// SECTION 1 — Pipeline / funnel health
+// =========================================================================
+
+echo "<p class='integ-section-title'>" . _('Pipeline Health') . "</p>\n";
+echo "<p style='color:#555;font-size:0.9em'>"
+    . _('How many transactions are at each stage of the chain, and of those that span all stages, how many have clean counter values versus data drift.')
+    . "</p>\n";
+
+// Run pipeline queries (heavier — single-pass aggregation per chain)
+$pu_pipeline = get_purchase_pipeline_counts();
+$sa_pipeline = get_sales_pipeline_counts();
+
+integ_render_pipeline_summary(
+    $pu_pipeline,
+    _('Purchase Chain  (PO → GRN → Supplier Invoice → Supplier Payment)'),
+    integ_purchase_pipeline_rows()
+);
+
+integ_render_pipeline_summary(
+    $sa_pipeline,
+    _('Sales Chain  (Sales Order → Delivery → Customer Invoice → Customer Payment)'),
+    integ_sales_pipeline_rows()
+);
+
+br();
+
+// =========================================================================
+// SECTION 2 — Individual integrity check counts
+// =========================================================================
+
+echo "<p class='integ-section-title'>" . _('Integrity Check Details') . "</p>\n";
+echo "<p style='color:#555;font-size:0.9em'>"
+    . _('Row-level counts for each of the 17 checks.  Green = no issues.  Red = issues found.  Click Details to view affected rows and apply available fixes.')
+    . "</p>\n";
+
+// Run all 17 checks
 $counts = count_all_integrity_issues();
 $labels = get_check_labels();
 $fixes  = get_fix_functions();
@@ -41,20 +84,20 @@ foreach ($counts as $n) {
     $total_issues += (int)$n;
 }
 
-// ---- summary banner ----
 if ($total_issues === 0) {
-    display_notification(_('All integrity checks passed. No issues found.'));
+    display_notification(_('All 17 integrity checks passed. No row-level issues found.'));
 } else {
+    $failing = count(array_filter($counts, function ($n) { return (int)$n > 0; }));
     display_warning(sprintf(
-        _('Found %d issue(s) across %d check(s).  See detail pages for fix options.'),
+        _('Found %d issue(s) across %d of 17 checks.  See detail pages for fix options.'),
         $total_issues,
-        count(array_filter($counts, function ($n) { return (int)$n > 0; }))
+        $failing
     ));
 }
 
 br();
 
-start_table(TABLESTYLE, "width='80%'");
+start_table(TABLESTYLE, "width='85%'");
 table_header(array(_('Check'), _('Description'), _('Issues'), _('Auto-fix?'), _('Detail Page')));
 
 // Purchase chain group
@@ -111,7 +154,7 @@ foreach ($alloc_checks as $id) {
 
 end_table(2);
 
-// Quick links to full report
+// Quick links
 start_table(TABLESTYLE_NOBORDER);
 start_row();
 label_cell('<a href="integrity_report.php">' . _('Printable Report (all checks)') . '</a>');

@@ -241,6 +241,184 @@ function integ_render_check_result($check_id, $result)
 }
 
 // ---------------------------------------------------------------------------
+// Pipeline / funnel summary renderer
+// ---------------------------------------------------------------------------
+
+/**
+ * Render a pipeline health summary table for one chain (purchase or sales).
+ *
+ * The $rows parameter is an ordered array of display rows, each describing
+ * one pipeline stage bucket.  Each element is an associative array with:
+ *   'key'     — key into $data (from get_purchase/sales_pipeline_counts())
+ *   'label'   — human-readable stage description
+ *   'style'   — 'good' | 'warn' | 'bad' | 'normal' | 'anomalous'
+ *   'note'    — optional short tooltip / parenthetical
+ *
+ * Percentage columns are computed relative to $data['total'].
+ *
+ * @param  array  $data   Return value from get_purchase_pipeline_counts() etc.
+ * @param  string $title  Section heading text
+ * @param  array  $rows   Row descriptor array (see above)
+ * @return void
+ * @since  1.0.0
+ */
+function integ_render_pipeline_summary($data, $title, $rows)
+{
+    $total = (int)$data['total'];
+
+    echo "<h3 style='margin-top:14px;margin-bottom:4px'>" . htmlspecialchars($title) . "</h3>\n";
+
+    // colour mapping
+    $colours = array(
+        'good'      => '#060',   // dark green
+        'warn'      => '#996600',// amber
+        'bad'       => '#c00',   // red
+        'normal'    => '#333',   // neutral (open / in-progress)
+        'anomalous' => '#800080',// purple — should never happen
+    );
+
+    start_table(TABLESTYLE, "width='70%'");
+    table_header(array(_('Pipeline Stage'), _('Count'), _('% of Total'), _('Note')));
+
+    $k = 0;
+    foreach ($rows as $row) {
+        $count  = isset($data[$row['key']]) ? (int)$data[$row['key']] : 0;
+        $pct    = $total > 0 ? round($count / $total * 100, 1) : 0;
+        $colour = isset($colours[$row['style']]) ? $colours[$row['style']] : '#333';
+        $note   = isset($row['note']) ? htmlspecialchars($row['note']) : '';
+
+        alt_table_row_color($k);
+        label_cell(htmlspecialchars($row['label']));
+        label_cell(
+            '<span style="font-weight:bold;color:' . $colour . '">' . $count . '</span>'
+        );
+        label_cell($pct . '%');
+        label_cell('<em style="color:#666;font-size:0.95em">' . $note . '</em>');
+        end_row();
+    }
+
+    // Totals row
+    start_row("style='border-top:2px solid #999;font-weight:bold'");
+    label_cell(_('TOTAL'));
+    label_cell($total);
+    label_cell('100%');
+    label_cell('');
+    end_row();
+
+    end_table(1);
+}
+
+/**
+ * Build the purchase chain pipeline row descriptors for
+ * integ_render_pipeline_summary().
+ *
+ * @return array
+ * @since  1.0.0
+ */
+function integ_purchase_pipeline_rows()
+{
+    return array(
+        array(
+            'key'   => 'complete_clean',
+            'label' => _('Complete & clean (PO → GRN → Invoice → Payment, counters agree)'),
+            'style' => 'good',
+            'note'  => _('All stages present, all counter values verified'),
+        ),
+        array(
+            'key'   => 'complete_corrupted',
+            'label' => _('Complete with data issues (all stages present, counter drift detected)'),
+            'style' => 'bad',
+            'note'  => _('Run fixes on P1/P2/P3 tabs to recalculate counters'),
+        ),
+        array(
+            'key'   => 'invoiced_not_paid_clean',
+            'label' => _('Invoiced, awaiting payment (counters OK)'),
+            'style' => 'normal',
+            'note'  => _('Normal in-progress state'),
+        ),
+        array(
+            'key'   => 'invoiced_not_paid_corrupted',
+            'label' => _('Invoiced, awaiting payment (counter drift detected)'),
+            'style' => 'bad',
+            'note'  => _('Run P1/P2/P3 fixes; may cause duplicate display on invoice entry screen'),
+        ),
+        array(
+            'key'   => 'received_not_invoiced',
+            'label' => _('GRN received, not yet invoiced'),
+            'style' => 'warn',
+            'note'  => _('May include Direct Invoice timeout failures — check P1 tab'),
+        ),
+        array(
+            'key'   => 'open_po',
+            'label' => _('Open PO (not yet received)'),
+            'style' => 'normal',
+            'note'  => _('Normal outstanding purchase orders'),
+        ),
+        array(
+            'key'   => 'anomalous',
+            'label' => _('Anomalous (payment exists but no invoice traced)'),
+            'style' => 'anomalous',
+            'note'  => _('Should be 0 — investigate immediately'),
+        ),
+    );
+}
+
+/**
+ * Build the sales chain pipeline row descriptors for
+ * integ_render_pipeline_summary().
+ *
+ * @return array
+ * @since  1.0.0
+ */
+function integ_sales_pipeline_rows()
+{
+    return array(
+        array(
+            'key'   => 'complete_clean',
+            'label' => _('Complete & clean (SO → Delivery → Invoice → Payment, counters agree)'),
+            'style' => 'good',
+            'note'  => _('All stages present, all counter values verified'),
+        ),
+        array(
+            'key'   => 'complete_corrupted',
+            'label' => _('Complete with data issues (all stages present, counter drift detected)'),
+            'style' => 'bad',
+            'note'  => _('Run fixes on S1/S2 tabs to recalculate counters'),
+        ),
+        array(
+            'key'   => 'invoiced_not_paid_clean',
+            'label' => _('Invoiced, awaiting payment (counters OK)'),
+            'style' => 'normal',
+            'note'  => _('Normal in-progress state'),
+        ),
+        array(
+            'key'   => 'invoiced_not_paid_corrupted',
+            'label' => _('Invoiced, awaiting payment (counter drift detected)'),
+            'style' => 'bad',
+            'note'  => _('Run S1/S2 fixes'),
+        ),
+        array(
+            'key'   => 'delivered_not_invoiced',
+            'label' => _('Delivered, not yet invoiced'),
+            'style' => 'warn',
+            'note'  => _('Normal if delivery precedes invoicing; investigate if old'),
+        ),
+        array(
+            'key'   => 'open_order',
+            'label' => _('Open sales order (not yet delivered)'),
+            'style' => 'normal',
+            'note'  => _('Normal outstanding sales orders'),
+        ),
+        array(
+            'key'   => 'anomalous',
+            'label' => _('Anomalous (payment exists but no invoice traced)'),
+            'style' => 'anomalous',
+            'note'  => _('Should be 0 — investigate immediately'),
+        ),
+    );
+}
+
+// ---------------------------------------------------------------------------
 // Per-check render functions — PURCHASE
 // ---------------------------------------------------------------------------
 
