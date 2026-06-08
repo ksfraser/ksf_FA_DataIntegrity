@@ -19,6 +19,13 @@
  * @since    1.0.0
  */
 
+// Bootstrap Composer autoloader so that namespaced classes (e.g. FAModuleMenu)
+// are available inside the hooks file.  FA does not load a global autoloader;
+// each module manages its own.
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+}
+
 define('SS_ksf_FA_DataIntegrity', 144 << 8);
 
 class hooks_ksf_FA_DataIntegrity extends hooks
@@ -27,7 +34,7 @@ class hooks_ksf_FA_DataIntegrity extends hooks
     var $module_name = 'ksf_FA_DataIntegrity';
 
     /** @var string Module version */
-    var $version = '1.0.0';
+    var $version = '2.4.3';
 
     /**
      * Register the Data Integrity application tab in FA's main menu.
