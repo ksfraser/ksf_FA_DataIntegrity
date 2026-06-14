@@ -109,3 +109,30 @@ page(_("Data Integrity Dashboard"));
 - FrontAccounting 2.4.3
 - PHP 7.4 (no PHP 8+ syntax)
 - No Composer dependencies at runtime (no vendor/ in hooks.php load path)
+
+## Development Workflow
+
+All development is done in the **devel tree** (`~/Documents/ksf_FA_DataIntegrity`). Do **not** edit files in the UAT bind point directly.
+
+### Workflow Steps
+1. **Develop** in this repo (feature branches preferred)
+2. **Test**: run repo-appropriate tests
+3. **Lint**: `php -l` on modified PHP files (no syntax errors)
+4. **Commit** and **Push** branch to GitHub
+5. **Merge** to `master` when ready
+6. **Push** `master` to GitHub
+7. **Deploy** to UAT by pulling in the Infrastructure bind point:
+
+   ```
+   cd ~/ksf_Infrastructure/fa_modules/ksf_FA_DataIntegrity
+   git stash -u
+   git pull origin master
+   git stash pop
+   ```
+
+### UAT Bind Point
+| Path | Purpose |
+|------|---------|
+| `~/Documents/ksf_FA_DataIntegrity` | Devel tree — all development, testing, commits |
+| `~/ksf_Infrastructure/fa_modules/ksf_FA_DataIntegrity` | UAT bind point — deployment target, integration testing (if mirrored) |
+
