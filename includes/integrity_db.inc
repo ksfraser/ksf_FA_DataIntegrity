@@ -1065,6 +1065,13 @@ function get_purchase_pipeline_counts()
         ) pipeline";
 
     $result = db_query($sql, 'Get purchase pipeline counts');
+    if (!$result) {
+        return array(
+            'total' => 0, 'open_po' => 0, 'received_not_invoiced' => 0,
+            'invoiced_not_paid_clean' => 0, 'invoiced_not_paid_corrupted' => 0,
+            'complete_clean' => 0, 'complete_corrupted' => 0, 'anomalous' => 0,
+        );
+    }
     $row    = db_fetch($result);
     db_free_result($result);
 
@@ -1197,6 +1204,13 @@ function get_sales_pipeline_counts()
         ) pipeline";
 
     $result = db_query($sql, 'Get sales pipeline counts');
+    if (!$result) {
+        return array(
+            'total' => 0, 'open_order' => 0, 'delivered_not_invoiced' => 0,
+            'invoiced_not_paid_clean' => 0, 'invoiced_not_paid_corrupted' => 0,
+            'complete_clean' => 0, 'complete_corrupted' => 0, 'anomalous' => 0,
+        );
+    }
     $row    = db_fetch($result);
     db_free_result($result);
 
@@ -1245,9 +1259,13 @@ function count_all_integrity_issues()
     );
 
     foreach ($checks as $id => $func) {
-        $result      = call_user_func($func);
-        $counts[$id] = db_num_rows($result);
-        db_free_result($result);
+        $result = call_user_func($func);
+        if ($result) {
+            $counts[$id] = db_num_rows($result);
+            db_free_result($result);
+        } else {
+            $counts[$id] = 0;
+        }
     }
 
     return $counts;
