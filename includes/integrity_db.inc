@@ -4,7 +4,7 @@
  *
  * Each public function runs a SQL check and returns a db result set (or
  * an integer count when $count_only=true).  All queries use FA's standard
- * {TB_PREF} placeholder and db_query() / db_fetch() layer so they work
+ * 0_ placeholder and db_query() / db_fetch() layer so they work
  * across both MySQL and MariaDB and respect the multi-company table prefix.
  *
  * Naming convention:
@@ -53,13 +53,13 @@ function check_purchase_grn_qty_inv_mismatch()
             g.quantity_inv                  AS qty_inv_stored,
             COALESCE(inv_sum.qty_invoiced, 0) AS qty_inv_actual,
             g.quantity_inv - COALESCE(inv_sum.qty_invoiced, 0) AS discrepancy
-        FROM {TB_PREF}grn_items g
-        JOIN {TB_PREF}grn_batch gb   ON g.grn_batch_id = gb.id
-        JOIN {TB_PREF}suppliers s    ON gb.supplier_id  = s.supplier_id
+        FROM 0_grn_items g
+        JOIN 0_grn_batch gb   ON g.grn_batch_id = gb.id
+        JOIN 0_suppliers s    ON gb.supplier_id  = s.supplier_id
         LEFT JOIN (
             SELECT si.grn_item_id, SUM(si.quantity) AS qty_invoiced
-            FROM {TB_PREF}supp_invoice_items si
-            JOIN {TB_PREF}supp_trans st
+            FROM 0_supp_invoice_items si
+            JOIN 0_supp_trans st
                 ON st.trans_no = si.supp_trans_no
                AND st.type     = si.supp_trans_type
             WHERE si.supp_trans_type = 20
@@ -84,11 +84,11 @@ function check_purchase_grn_qty_inv_mismatch()
 function fix_purchase_grn_qty_inv()
 {
     $sql = "
-        UPDATE {TB_PREF}grn_items g
+        UPDATE 0_grn_items g
         LEFT JOIN (
             SELECT si.grn_item_id, SUM(si.quantity) AS qty_invoiced
-            FROM {TB_PREF}supp_invoice_items si
-            JOIN {TB_PREF}supp_trans st
+            FROM 0_supp_invoice_items si
+            JOIN 0_supp_trans st
                 ON st.trans_no = si.supp_trans_no
                AND st.type     = si.supp_trans_type
             WHERE si.supp_trans_type = 20
@@ -128,13 +128,13 @@ function check_purchase_pod_qty_invoiced_mismatch()
             pod.qty_invoiced                 AS qty_inv_stored,
             COALESCE(inv_sum.qty_invoiced, 0) AS qty_inv_actual,
             pod.qty_invoiced - COALESCE(inv_sum.qty_invoiced, 0) AS discrepancy
-        FROM {TB_PREF}purch_order_details pod
-        JOIN {TB_PREF}purch_orders po  ON pod.order_no = po.order_no
-        JOIN {TB_PREF}suppliers s      ON po.supplier_id = s.supplier_id
+        FROM 0_purch_order_details pod
+        JOIN 0_purch_orders po  ON pod.order_no = po.order_no
+        JOIN 0_suppliers s      ON po.supplier_id = s.supplier_id
         LEFT JOIN (
             SELECT si.po_detail_item_id, SUM(si.quantity) AS qty_invoiced
-            FROM {TB_PREF}supp_invoice_items si
-            JOIN {TB_PREF}supp_trans st
+            FROM 0_supp_invoice_items si
+            JOIN 0_supp_trans st
                 ON st.trans_no = si.supp_trans_no
                AND st.type     = si.supp_trans_type
             WHERE si.supp_trans_type = 20
@@ -155,11 +155,11 @@ function check_purchase_pod_qty_invoiced_mismatch()
 function fix_purchase_pod_qty_invoiced()
 {
     $sql = "
-        UPDATE {TB_PREF}purch_order_details pod
+        UPDATE 0_purch_order_details pod
         LEFT JOIN (
             SELECT si.po_detail_item_id, SUM(si.quantity) AS qty_invoiced
-            FROM {TB_PREF}supp_invoice_items si
-            JOIN {TB_PREF}supp_trans st
+            FROM 0_supp_invoice_items si
+            JOIN 0_supp_trans st
                 ON st.trans_no = si.supp_trans_no
                AND st.type     = si.supp_trans_type
             WHERE si.supp_trans_type = 20
@@ -195,12 +195,12 @@ function check_purchase_pod_qty_received_mismatch()
             pod.quantity_received             AS qty_recv_stored,
             COALESCE(grn_sum.qty_recd, 0)     AS qty_recv_actual,
             pod.quantity_received - COALESCE(grn_sum.qty_recd, 0) AS discrepancy
-        FROM {TB_PREF}purch_order_details pod
-        JOIN {TB_PREF}purch_orders po  ON pod.order_no = po.order_no
-        JOIN {TB_PREF}suppliers s      ON po.supplier_id = s.supplier_id
+        FROM 0_purch_order_details pod
+        JOIN 0_purch_orders po  ON pod.order_no = po.order_no
+        JOIN 0_suppliers s      ON po.supplier_id = s.supplier_id
         LEFT JOIN (
             SELECT po_detail_item, SUM(qty_recd) AS qty_recd
-            FROM {TB_PREF}grn_items
+            FROM 0_grn_items
             GROUP BY po_detail_item
         ) grn_sum ON grn_sum.po_detail_item = pod.po_detail_item
         WHERE ABS(pod.quantity_received - COALESCE(grn_sum.qty_recd, 0)) > " . INTEG_DELTA . "
@@ -217,10 +217,10 @@ function check_purchase_pod_qty_received_mismatch()
 function fix_purchase_pod_qty_received()
 {
     $sql = "
-        UPDATE {TB_PREF}purch_order_details pod
+        UPDATE 0_purch_order_details pod
         LEFT JOIN (
             SELECT po_detail_item, SUM(qty_recd) AS qty_recd
-            FROM {TB_PREF}grn_items
+            FROM 0_grn_items
             GROUP BY po_detail_item
         ) grn_sum ON grn_sum.po_detail_item = pod.po_detail_item
         SET pod.quantity_received = COALESCE(grn_sum.qty_recd, 0)
@@ -254,9 +254,9 @@ function check_purchase_grn_over_invoiced()
             g.qty_recd,
             g.quantity_inv  AS qty_invoiced,
             g.quantity_inv - g.qty_recd AS over_by
-        FROM {TB_PREF}grn_items g
-        JOIN {TB_PREF}grn_batch gb  ON g.grn_batch_id = gb.id
-        JOIN {TB_PREF}suppliers s   ON gb.supplier_id  = s.supplier_id
+        FROM 0_grn_items g
+        JOIN 0_grn_batch gb  ON g.grn_batch_id = gb.id
+        JOIN 0_suppliers s   ON gb.supplier_id  = s.supplier_id
         WHERE g.quantity_inv > g.qty_recd + " . INTEG_DELTA . "
         ORDER BY s.supp_name, gb.delivery_date";
 
@@ -288,12 +288,12 @@ function check_purchase_orphaned_invoice_items()
             st.supp_reference,
             s.supplier_id,
             s.supp_name
-        FROM {TB_PREF}supp_invoice_items si
-        JOIN {TB_PREF}supp_trans st
+        FROM 0_supp_invoice_items si
+        JOIN 0_supp_trans st
             ON st.trans_no = si.supp_trans_no
            AND st.type     = si.supp_trans_type
-        JOIN {TB_PREF}suppliers s ON st.supplier_id = s.supplier_id
-        LEFT JOIN {TB_PREF}grn_items g ON g.id = si.grn_item_id
+        JOIN 0_suppliers s ON st.supplier_id = s.supplier_id
+        LEFT JOIN 0_grn_items g ON g.id = si.grn_item_id
         WHERE si.grn_item_id IS NOT NULL
           AND si.grn_item_id != 0
           AND g.id IS NULL
@@ -322,10 +322,10 @@ function check_purchase_orphaned_grn_batches()
             s.supp_name,
             COUNT(gi.id)    AS line_count,
             SUM(gi.qty_recd) AS total_qty_recd
-        FROM {TB_PREF}grn_batch gb
-        JOIN {TB_PREF}suppliers s   ON gb.supplier_id = s.supplier_id
-        LEFT JOIN {TB_PREF}purch_orders po ON po.order_no = gb.purch_order_no
-        LEFT JOIN {TB_PREF}grn_items gi    ON gi.grn_batch_id = gb.id
+        FROM 0_grn_batch gb
+        JOIN 0_suppliers s   ON gb.supplier_id = s.supplier_id
+        LEFT JOIN 0_purch_orders po ON po.order_no = gb.purch_order_no
+        LEFT JOIN 0_grn_items gi    ON gi.grn_batch_id = gb.id
         WHERE gb.purch_order_no IS NOT NULL
           AND po.order_no IS NULL
         GROUP BY gb.id, gb.delivery_date, gb.reference, gb.purch_order_no,
@@ -359,9 +359,9 @@ function check_purchase_ghost_invoices()
             st.alloc,
             s.supplier_id,
             s.supp_name
-        FROM {TB_PREF}supp_trans st
-        JOIN {TB_PREF}suppliers s ON st.supplier_id = s.supplier_id
-        LEFT JOIN {TB_PREF}supp_invoice_items si
+        FROM 0_supp_trans st
+        JOIN 0_suppliers s ON st.supplier_id = s.supplier_id
+        LEFT JOIN 0_supp_invoice_items si
             ON si.supp_trans_no   = st.trans_no
            AND si.supp_trans_type = st.type
         WHERE st.type = 20
@@ -399,15 +399,15 @@ function check_sales_sod_qty_sent_mismatch()
             sod.qty_sent        AS qty_sent_stored,
             COALESCE(del_sum.qty_sent, 0) AS qty_sent_actual,
             sod.qty_sent - COALESCE(del_sum.qty_sent, 0) AS discrepancy
-        FROM {TB_PREF}sales_order_details sod
-        JOIN {TB_PREF}sales_orders so
+        FROM 0_sales_order_details sod
+        JOIN 0_sales_orders so
             ON so.order_no   = sod.order_no
            AND so.trans_type = sod.trans_type
-        JOIN {TB_PREF}debtors_master dm ON dm.debtor_no = so.debtor_no
+        JOIN 0_debtors_master dm ON dm.debtor_no = so.debtor_no
         LEFT JOIN (
             SELECT dtd.src_id, SUM(dtd.qty_done) AS qty_sent
-            FROM {TB_PREF}debtor_trans_details dtd
-            JOIN {TB_PREF}debtor_trans dt
+            FROM 0_debtor_trans_details dtd
+            JOIN 0_debtor_trans dt
                 ON dt.trans_no = dtd.debtor_trans_no
                AND dt.type     = dtd.debtor_trans_type
             WHERE dtd.debtor_trans_type = 13
@@ -429,11 +429,11 @@ function check_sales_sod_qty_sent_mismatch()
 function fix_sales_sod_qty_sent()
 {
     $sql = "
-        UPDATE {TB_PREF}sales_order_details sod
+        UPDATE 0_sales_order_details sod
         LEFT JOIN (
             SELECT dtd.src_id, SUM(dtd.qty_done) AS qty_sent
-            FROM {TB_PREF}debtor_trans_details dtd
-            JOIN {TB_PREF}debtor_trans dt
+            FROM 0_debtor_trans_details dtd
+            JOIN 0_debtor_trans dt
                 ON dt.trans_no = dtd.debtor_trans_no
                AND dt.type     = dtd.debtor_trans_type
             WHERE dtd.debtor_trans_type = 13
@@ -472,15 +472,15 @@ function check_sales_sod_invoiced_mismatch()
             sod.invoiced        AS qty_inv_stored,
             COALESCE(inv_sum.qty_invoiced, 0) AS qty_inv_actual,
             sod.invoiced - COALESCE(inv_sum.qty_invoiced, 0) AS discrepancy
-        FROM {TB_PREF}sales_order_details sod
-        JOIN {TB_PREF}sales_orders so
+        FROM 0_sales_order_details sod
+        JOIN 0_sales_orders so
             ON so.order_no   = sod.order_no
            AND so.trans_type = sod.trans_type
-        JOIN {TB_PREF}debtors_master dm ON dm.debtor_no = so.debtor_no
+        JOIN 0_debtors_master dm ON dm.debtor_no = so.debtor_no
         LEFT JOIN (
             SELECT dtd.src_id, SUM(dtd.quantity) AS qty_invoiced
-            FROM {TB_PREF}debtor_trans_details dtd
-            JOIN {TB_PREF}debtor_trans dt
+            FROM 0_debtor_trans_details dtd
+            JOIN 0_debtor_trans dt
                 ON dt.trans_no = dtd.debtor_trans_no
                AND dt.type     = dtd.debtor_trans_type
             WHERE dtd.debtor_trans_type = 10
@@ -502,11 +502,11 @@ function check_sales_sod_invoiced_mismatch()
 function fix_sales_sod_invoiced()
 {
     $sql = "
-        UPDATE {TB_PREF}sales_order_details sod
+        UPDATE 0_sales_order_details sod
         LEFT JOIN (
             SELECT dtd.src_id, SUM(dtd.quantity) AS qty_invoiced
-            FROM {TB_PREF}debtor_trans_details dtd
-            JOIN {TB_PREF}debtor_trans dt
+            FROM 0_debtor_trans_details dtd
+            JOIN 0_debtor_trans dt
                 ON dt.trans_no = dtd.debtor_trans_no
                AND dt.type     = dtd.debtor_trans_type
             WHERE dtd.debtor_trans_type = 10
@@ -540,9 +540,9 @@ function check_sales_ghost_invoices()
             dt.alloc,
             dt.debtor_no,
             dm.name AS customer_name
-        FROM {TB_PREF}debtor_trans dt
-        JOIN {TB_PREF}debtors_master dm ON dm.debtor_no = dt.debtor_no
-        LEFT JOIN {TB_PREF}debtor_trans_details dtd
+        FROM 0_debtor_trans dt
+        JOIN 0_debtors_master dm ON dm.debtor_no = dt.debtor_no
+        LEFT JOIN 0_debtor_trans_details dtd
             ON dtd.debtor_trans_no   = dt.trans_no
            AND dtd.debtor_trans_type = dt.type
         WHERE dt.type = 10
@@ -573,9 +573,9 @@ function check_sales_orphaned_deliveries()
             dt.debtor_no,
             dm.name            AS customer_name,
             dt.ov_amount + dt.ov_freight AS total
-        FROM {TB_PREF}debtor_trans dt
-        JOIN {TB_PREF}debtors_master dm ON dm.debtor_no = dt.debtor_no
-        LEFT JOIN {TB_PREF}sales_orders so
+        FROM 0_debtor_trans dt
+        JOIN 0_debtors_master dm ON dm.debtor_no = dt.debtor_no
+        LEFT JOIN 0_sales_orders so
             ON so.order_no   = dt.order_
            AND so.trans_type = 30
         WHERE dt.type   = 13
@@ -607,9 +607,9 @@ function check_sales_delivery_missing_stock_moves()
             dt.debtor_no,
             dm.name     AS customer_name,
             dt.ov_amount + dt.ov_freight AS total
-        FROM {TB_PREF}debtor_trans dt
-        JOIN {TB_PREF}debtors_master dm ON dm.debtor_no = dt.debtor_no
-        LEFT JOIN {TB_PREF}stock_moves sm
+        FROM 0_debtor_trans dt
+        JOIN 0_debtors_master dm ON dm.debtor_no = dt.debtor_no
+        LEFT JOIN 0_stock_moves sm
             ON sm.trans_no = dt.trans_no
            AND sm.type     = dt.type
         WHERE dt.type  = 13
@@ -648,8 +648,8 @@ function check_alloc_supplier_drift($supplier_id = null)
             st.alloc - COALESCE(sa_sum.total_alloc, 0)  AS discrepancy,
             s.supplier_id,
             s.supp_name
-        FROM {TB_PREF}supp_trans st
-        JOIN {TB_PREF}suppliers s ON st.supplier_id = s.supplier_id
+        FROM 0_supp_trans st
+        JOIN 0_suppliers s ON st.supplier_id = s.supplier_id
         LEFT JOIN (
             SELECT person_id,
                    CASE
@@ -658,8 +658,8 @@ function check_alloc_supplier_drift($supplier_id = null)
                        ELSE 'to'
                    END AS direction,
                    SUM(amt) AS total_alloc
-            FROM {TB_PREF}supp_allocations sa2
-            JOIN {TB_PREF}supp_trans st2
+            FROM 0_supp_allocations sa2
+            JOIN 0_supp_trans st2
                 ON (sa2.trans_type_from = st2.type AND sa2.trans_no_from = st2.trans_no
                     AND sa2.person_id = st2.supplier_id)
                 OR (sa2.trans_type_to   = st2.type AND sa2.trans_no_to   = st2.trans_no
@@ -685,12 +685,12 @@ function check_alloc_supplier_drift($supplier_id = null)
             ROUND(st.alloc - COALESCE(sa_sum.total_alloc, 0), 4) AS discrepancy,
             s.supplier_id,
             s.supp_name
-        FROM {TB_PREF}supp_trans st
-        JOIN {TB_PREF}suppliers s ON st.supplier_id = s.supplier_id
+        FROM 0_supp_trans st
+        JOIN 0_suppliers s ON st.supplier_id = s.supplier_id
         LEFT JOIN (
             SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
                    SUM(amt) AS total_alloc
-            FROM {TB_PREF}supp_allocations
+            FROM 0_supp_allocations
             GROUP BY person_id, trans_no_to, trans_type_to
         ) sa_sum ON sa_sum.person_id = st.supplier_id
                AND sa_sum.trans_no   = st.trans_no
@@ -711,11 +711,11 @@ function check_alloc_supplier_drift($supplier_id = null)
 function fix_alloc_supplier_drift()
 {
     $sql = "
-        UPDATE {TB_PREF}supp_trans st
+        UPDATE 0_supp_trans st
         LEFT JOIN (
             SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
                    SUM(amt) AS total_alloc
-            FROM {TB_PREF}supp_allocations
+            FROM 0_supp_allocations
             GROUP BY person_id, trans_no_to, trans_type_to
         ) sa_sum ON sa_sum.person_id = st.supplier_id
                AND sa_sum.trans_no   = st.trans_no
@@ -753,12 +753,12 @@ function check_alloc_customer_drift($debtor_no = null)
             ROUND(dt.alloc - COALESCE(ca_sum.total_alloc, 0), 4) AS discrepancy,
             dt.debtor_no,
             dm.name AS customer_name
-        FROM {TB_PREF}debtor_trans dt
-        JOIN {TB_PREF}debtors_master dm ON dm.debtor_no = dt.debtor_no
+        FROM 0_debtor_trans dt
+        JOIN 0_debtors_master dm ON dm.debtor_no = dt.debtor_no
         LEFT JOIN (
             SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
                    SUM(amt) AS total_alloc
-            FROM {TB_PREF}cust_allocations
+            FROM 0_cust_allocations
             GROUP BY person_id, trans_no_to, trans_type_to
         ) ca_sum ON ca_sum.person_id = dt.debtor_no
                AND ca_sum.trans_no   = dt.trans_no
@@ -779,11 +779,11 @@ function check_alloc_customer_drift($debtor_no = null)
 function fix_alloc_customer_drift()
 {
     $sql = "
-        UPDATE {TB_PREF}debtor_trans dt
+        UPDATE 0_debtor_trans dt
         LEFT JOIN (
             SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
                    SUM(amt) AS total_alloc
-            FROM {TB_PREF}cust_allocations
+            FROM 0_cust_allocations
             GROUP BY person_id, trans_no_to, trans_type_to
         ) ca_sum ON ca_sum.person_id = dt.debtor_no
                AND ca_sum.trans_no   = dt.trans_no
@@ -819,8 +819,8 @@ function check_alloc_over_allocated()
                 ROUND(st.alloc - ABS(st.ov_amount + st.ov_gst + st.ov_discount), 4) AS over_by,
                 st.supplier_id                                           AS person_id,
                 s.supp_name                                              AS person_name
-            FROM {TB_PREF}supp_trans st
-            JOIN {TB_PREF}suppliers s ON st.supplier_id = s.supplier_id
+            FROM 0_supp_trans st
+            JOIN 0_suppliers s ON st.supplier_id = s.supplier_id
             WHERE st.ov_amount != 0
               AND st.alloc > ABS(st.ov_amount + st.ov_gst + st.ov_discount) + " . INTEG_DELTA . "
         )
@@ -837,8 +837,8 @@ function check_alloc_over_allocated()
                 ROUND(dt.alloc - ABS(dt.ov_amount + dt.ov_gst + dt.ov_freight + dt.ov_freight_tax + dt.ov_discount), 4) AS over_by,
                 dt.debtor_no                                                        AS person_id,
                 dm.name                                                             AS person_name
-            FROM {TB_PREF}debtor_trans dt
-            JOIN {TB_PREF}debtors_master dm ON dm.debtor_no = dt.debtor_no
+            FROM 0_debtor_trans dt
+            JOIN 0_debtors_master dm ON dm.debtor_no = dt.debtor_no
             WHERE dt.ov_amount != 0
               AND dt.alloc > ABS(dt.ov_amount + dt.ov_gst + dt.ov_freight + dt.ov_freight_tax + dt.ov_discount) + " . INTEG_DELTA . "
         )
@@ -870,14 +870,14 @@ function check_alloc_orphaned_supplier_allocs()
             sa.trans_no_to,
             CASE WHEN st_from.trans_no IS NULL THEN 'YES' ELSE 'no' END AS from_missing,
             CASE WHEN st_to.trans_no   IS NULL THEN 'YES' ELSE 'no' END AS to_missing
-        FROM {TB_PREF}supp_allocations sa
-        LEFT JOIN {TB_PREF}suppliers s
+        FROM 0_supp_allocations sa
+        LEFT JOIN 0_suppliers s
             ON s.supplier_id = sa.person_id
-        LEFT JOIN {TB_PREF}supp_trans st_from
+        LEFT JOIN 0_supp_trans st_from
             ON st_from.trans_no = sa.trans_no_from
            AND st_from.type     = sa.trans_type_from
            AND st_from.supplier_id = sa.person_id
-        LEFT JOIN {TB_PREF}supp_trans st_to
+        LEFT JOIN 0_supp_trans st_to
             ON st_to.trans_no = sa.trans_no_to
            AND st_to.type     = sa.trans_type_to
            AND st_to.supplier_id = sa.person_id
@@ -910,14 +910,14 @@ function check_alloc_orphaned_customer_allocs()
             ca.trans_no_to,
             CASE WHEN dt_from.trans_no IS NULL THEN 'YES' ELSE 'no' END AS from_missing,
             CASE WHEN dt_to.trans_no   IS NULL THEN 'YES' ELSE 'no' END AS to_missing
-        FROM {TB_PREF}cust_allocations ca
-        LEFT JOIN {TB_PREF}debtors_master dm
+        FROM 0_cust_allocations ca
+        LEFT JOIN 0_debtors_master dm
             ON dm.debtor_no = ca.person_id
-        LEFT JOIN {TB_PREF}debtor_trans dt_from
+        LEFT JOIN 0_debtor_trans dt_from
             ON dt_from.trans_no   = ca.trans_no_from
            AND dt_from.type       = ca.trans_type_from
            AND dt_from.debtor_no  = ca.person_id
-        LEFT JOIN {TB_PREF}debtor_trans dt_to
+        LEFT JOIN 0_debtor_trans dt_to
             ON dt_to.trans_no  = ca.trans_no_to
            AND dt_to.type      = ca.trans_type_to
            AND dt_to.debtor_no = ca.person_id
@@ -980,21 +980,21 @@ function get_purchase_pipeline_counts()
                 CASE WHEN inv_e.order_no  IS NOT NULL THEN 1 ELSE 0 END AS has_invoice,
                 CASE WHEN pay_e.order_no  IS NOT NULL THEN 1 ELSE 0 END AS has_payment,
                 CASE WHEN bad_e.order_no  IS NOT NULL THEN 1 ELSE 0 END AS has_mismatch
-            FROM {TB_PREF}purch_orders po
+            FROM 0_purch_orders po
 
             /* ---- Stage 1: any GRN? ---- */
             LEFT JOIN (
                 SELECT DISTINCT purch_order_no AS order_no
-                FROM {TB_PREF}grn_batch
+                FROM 0_grn_batch
             ) grn_e ON grn_e.order_no = po.order_no
 
             /* ---- Stage 2: any non-voided invoice linked via pod? ---- */
             LEFT JOIN (
                 SELECT DISTINCT pod.order_no
-                FROM {TB_PREF}purch_order_details pod
-                JOIN {TB_PREF}supp_invoice_items sii
+                FROM 0_purch_order_details pod
+                JOIN 0_supp_invoice_items sii
                     ON sii.po_detail_item_id = pod.po_detail_item
-                JOIN {TB_PREF}supp_trans st
+                JOIN 0_supp_trans st
                     ON st.trans_no = sii.supp_trans_no
                    AND st.type = 20
                    AND st.ov_amount != 0
@@ -1003,13 +1003,13 @@ function get_purchase_pipeline_counts()
             /* ---- Stage 3: any allocation against an invoice on this PO? ---- */
             LEFT JOIN (
                 SELECT DISTINCT pod2.order_no
-                FROM {TB_PREF}purch_order_details pod2
-                JOIN {TB_PREF}supp_invoice_items sii2
+                FROM 0_purch_order_details pod2
+                JOIN 0_supp_invoice_items sii2
                     ON sii2.po_detail_item_id = pod2.po_detail_item
-                JOIN {TB_PREF}supp_trans inv2
+                JOIN 0_supp_trans inv2
                     ON inv2.trans_no = sii2.supp_trans_no
                    AND inv2.type = 20
-                JOIN {TB_PREF}supp_allocations sa
+                JOIN 0_supp_allocations sa
                     ON sa.trans_no_to   = inv2.trans_no
                    AND sa.trans_type_to = 20
             ) pay_e ON pay_e.order_no = po.order_no
@@ -1020,12 +1020,12 @@ function get_purchase_pipeline_counts()
                 FROM (
                     /* P1-style: grn_items.quantity_inv drift */
                     SELECT gb.purch_order_no AS order_no
-                    FROM {TB_PREF}grn_batch gb
-                    JOIN {TB_PREF}grn_items gi ON gi.grn_batch_id = gb.id
+                    FROM 0_grn_batch gb
+                    JOIN 0_grn_items gi ON gi.grn_batch_id = gb.id
                     LEFT JOIN (
                         SELECT sii3.grn_item_id, SUM(sii3.quantity) AS qty_inv
-                        FROM {TB_PREF}supp_invoice_items sii3
-                        JOIN {TB_PREF}supp_trans st3
+                        FROM 0_supp_invoice_items sii3
+                        JOIN 0_supp_trans st3
                             ON st3.trans_no = sii3.supp_trans_no
                            AND st3.type = 20
                            AND st3.ov_amount != 0
@@ -1037,11 +1037,11 @@ function get_purchase_pipeline_counts()
 
                     /* P2-style: purch_order_details.qty_invoiced drift */
                     SELECT pod3.order_no
-                    FROM {TB_PREF}purch_order_details pod3
+                    FROM 0_purch_order_details pod3
                     LEFT JOIN (
                         SELECT sii4.po_detail_item_id, SUM(sii4.quantity) AS qty_inv
-                        FROM {TB_PREF}supp_invoice_items sii4
-                        JOIN {TB_PREF}supp_trans st4
+                        FROM 0_supp_invoice_items sii4
+                        JOIN 0_supp_trans st4
                             ON st4.trans_no = sii4.supp_trans_no
                            AND st4.type = 20
                            AND st4.ov_amount != 0
@@ -1053,10 +1053,10 @@ function get_purchase_pipeline_counts()
 
                     /* P3-style: purch_order_details.quantity_received drift */
                     SELECT pod4.order_no
-                    FROM {TB_PREF}purch_order_details pod4
+                    FROM 0_purch_order_details pod4
                     LEFT JOIN (
                         SELECT gi2.po_detail_item, SUM(gi2.qty_recd) AS qty_recv
-                        FROM {TB_PREF}grn_items gi2
+                        FROM 0_grn_items gi2
                         GROUP BY gi2.po_detail_item
                     ) grn_s ON grn_s.po_detail_item = pod4.po_detail_item
                     WHERE ABS(pod4.quantity_received - COALESCE(grn_s.qty_recv, 0)) > $d
@@ -1126,13 +1126,13 @@ function get_sales_pipeline_counts()
                 CASE WHEN inv_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_invoice,
                 CASE WHEN pay_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_payment,
                 CASE WHEN bad_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_mismatch
-            FROM {TB_PREF}sales_orders so
+            FROM 0_sales_orders so
             WHERE so.trans_type = 30
 
             /* ---- Stage 1: any delivery note? ---- */
             LEFT JOIN (
                 SELECT DISTINCT order_ AS order_no
-                FROM {TB_PREF}debtor_trans
+                FROM 0_debtor_trans
                 WHERE type = 13
                   AND ov_amount != 0
             ) del_e ON del_e.order_no = so.order_no
@@ -1140,7 +1140,7 @@ function get_sales_pipeline_counts()
             /* ---- Stage 2: any customer invoice? ---- */
             LEFT JOIN (
                 SELECT DISTINCT order_ AS order_no
-                FROM {TB_PREF}debtor_trans
+                FROM 0_debtor_trans
                 WHERE type = 10
                   AND ov_amount != 0
             ) inv_e ON inv_e.order_no = so.order_no
@@ -1148,8 +1148,8 @@ function get_sales_pipeline_counts()
             /* ---- Stage 3: any allocation against a customer invoice? ---- */
             LEFT JOIN (
                 SELECT DISTINCT dt.order_ AS order_no
-                FROM {TB_PREF}debtor_trans dt
-                JOIN {TB_PREF}cust_allocations ca
+                FROM 0_debtor_trans dt
+                JOIN 0_cust_allocations ca
                     ON ca.trans_no_to   = dt.trans_no
                    AND ca.trans_type_to = 10
                 WHERE dt.type = 10
@@ -1162,14 +1162,14 @@ function get_sales_pipeline_counts()
                 FROM (
                     /* S1-style: sales_order_details.qty_sent drift */
                     SELECT sod.order_no
-                    FROM {TB_PREF}sales_order_details sod
-                    JOIN {TB_PREF}sales_orders so2
+                    FROM 0_sales_order_details sod
+                    JOIN 0_sales_orders so2
                         ON so2.order_no   = sod.order_no
                        AND so2.trans_type = sod.trans_type
                     LEFT JOIN (
                         SELECT dtd.src_id, SUM(dtd.qty_done) AS qty_sent
-                        FROM {TB_PREF}debtor_trans_details dtd
-                        JOIN {TB_PREF}debtor_trans dt
+                        FROM 0_debtor_trans_details dtd
+                        JOIN 0_debtor_trans dt
                             ON dt.trans_no = dtd.debtor_trans_no
                            AND dt.type     = dtd.debtor_trans_type
                         WHERE dtd.debtor_trans_type = 13
@@ -1183,14 +1183,14 @@ function get_sales_pipeline_counts()
 
                     /* S2-style: sales_order_details.invoiced drift */
                     SELECT sod2.order_no
-                    FROM {TB_PREF}sales_order_details sod2
-                    JOIN {TB_PREF}sales_orders so3
+                    FROM 0_sales_order_details sod2
+                    JOIN 0_sales_orders so3
                         ON so3.order_no   = sod2.order_no
                        AND so3.trans_type = sod2.trans_type
                     LEFT JOIN (
                         SELECT dtd2.src_id, SUM(dtd2.quantity) AS qty_inv
-                        FROM {TB_PREF}debtor_trans_details dtd2
-                        JOIN {TB_PREF}debtor_trans dt2
+                        FROM 0_debtor_trans_details dtd2
+                        JOIN 0_debtor_trans dt2
                             ON dt2.trans_no = dtd2.debtor_trans_no
                            AND dt2.type     = dtd2.debtor_trans_type
                         WHERE dtd2.debtor_trans_type = 10
