@@ -151,7 +151,7 @@ function integ_handle_fix_post()
     if (!isset($_POST['_do_fix']) || !isset($_POST['_fix_check'])) {
         return null;
     }
-    if (!check_has_access(SA_DATAINTEGRITY_FIX)) {
+    if (!user_check_access('SA_DATAINTEGRITY_FIX')) {
         return null;
     }
 
