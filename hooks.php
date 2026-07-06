@@ -26,7 +26,7 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
     require_once __DIR__ . '/vendor/autoload.php';
 }
 
-define('SS_ksf_FA_DataIntegrity', 144 << 8);
+define('SS_ksf_FA_DataIntegrity', 145 << 8);
 
 class hooks_ksf_FA_DataIntegrity extends hooks
 {
