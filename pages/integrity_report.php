@@ -14,7 +14,7 @@
  * @since    1.0.0
  */
 
-$page_security = 'SA_DATAINTEGRITY_VIEW';
+$page_security = 'SA_OPEN';
 $path_to_root  = "../../..";
 
 // Load FA session (performs login/privilege check) but suppress HTML output

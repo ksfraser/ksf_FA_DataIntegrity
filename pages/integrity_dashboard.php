@@ -18,7 +18,7 @@
  * @since    1.0.0
  */
 
-$page_security = 'SA_DATAINTEGRITY_VIEW';
+$page_security = 'SA_OPEN';
 $path_to_root  = "../../..";
 
 include_once($path_to_root . "/includes/session.inc");

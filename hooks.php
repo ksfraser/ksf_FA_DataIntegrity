@@ -111,35 +111,35 @@ class dataintegrity_app extends application
             0,
             _("&Dashboard"),
             "modules/ksf_FA_DataIntegrity/pages/integrity_dashboard.php",
-            'SA_DATAINTEGRITY_VIEW',
+            'SA_OPEN',
             MENU_INQUIRY
         );
         $this->add_lapp_function(
             0,
             _("&Purchase Chain"),
             "modules/ksf_FA_DataIntegrity/pages/purchase_integrity.php",
-            'SA_DATAINTEGRITY_VIEW',
+            'SA_OPEN',
             MENU_INQUIRY
         );
         $this->add_lapp_function(
             0,
             _("&Sales Chain"),
             "modules/ksf_FA_DataIntegrity/pages/sales_integrity.php",
-            'SA_DATAINTEGRITY_VIEW',
+            'SA_OPEN',
             MENU_INQUIRY
         );
         $this->add_lapp_function(
             0,
             _("&Allocations"),
             "modules/ksf_FA_DataIntegrity/pages/allocation_integrity.php",
-            'SA_DATAINTEGRITY_VIEW',
+            'SA_OPEN',
             MENU_INQUIRY
         );
         $this->add_lapp_function(
             0,
             _("&Full Report"),
             "modules/ksf_FA_DataIntegrity/pages/integrity_report.php",
-            'SA_DATAINTEGRITY_VIEW',
+            'SA_OPEN',
             MENU_INQUIRY
         );
 
