@@ -53,11 +53,15 @@ page(_('Sales Chain Integrity'), false, false, '', $css);
 
 // ---- Show fix result notification ----
 if ($fix_result !== null) {
-    display_notification(sprintf(
-        _('Fix %s applied: %d row(s) recalculated.'),
-        $fix_result['check_id'],
-        $fix_result['rows_fixed']
-    ));
+    if ($fix_result['rows_fixed'] < 0) {
+        display_warning(_('Fix not applied — you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
+    } else {
+        display_notification(sprintf(
+            _('Fix %s applied: %d row(s) recalculated.'),
+            $fix_result['check_id'],
+            $fix_result['rows_fixed']
+        ));
+    }
 }
 
 // ---- Back to dashboard link ----
