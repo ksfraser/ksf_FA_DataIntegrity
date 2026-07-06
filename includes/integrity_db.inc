@@ -1127,7 +1127,6 @@ function get_sales_pipeline_counts()
                 CASE WHEN pay_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_payment,
                 CASE WHEN bad_e.order_no IS NOT NULL THEN 1 ELSE 0 END AS has_mismatch
             FROM &TB_PREF&sales_orders so
-            WHERE so.trans_type = 30
 
             /* ---- Stage 1: any delivery note? ---- */
             LEFT JOIN (
@@ -1201,6 +1200,7 @@ function get_sales_pipeline_counts()
                       AND ABS(sod2.invoiced - COALESCE(inv_s.qty_inv, 0)) > $d
                 ) bad
             ) bad_e ON bad_e.order_no = so.order_no
+            WHERE so.trans_type = 30
         ) pipeline";
 
     $result = db_query($sql, 'Get sales pipeline counts');
