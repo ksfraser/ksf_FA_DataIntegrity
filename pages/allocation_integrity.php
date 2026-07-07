@@ -22,8 +22,17 @@ $module_root = dirname(dirname(__FILE__));
 include_once($module_root . "/includes/integrity_db.inc");
 include_once($module_root . "/includes/integrity_ui.inc");
 
-// ---- Handle fix POST before any HTML output ----
+// ---- Handle bulk fix POST before any HTML output ----
 $fix_result = integ_handle_fix_post();
+
+// ---- Handle per-row Quick Allocate POST ----
+$quick_alloc_result = null;
+if (isset($_POST['_quick_alloc'])) {
+    $pno = (int)$_POST['_quick_alloc'];
+    require_once dirname(dirname(__FILE__)) . '/includes/repos/AllocationRepository.inc';
+    $status = quick_allocate_supplier_payment($pno);
+    $quick_alloc_result = array('payment_no' => $pno, 'status' => $status);
+}
 
 // ---- Tab definitions ----
 $tabs = array(
@@ -32,6 +41,7 @@ $tabs = array(
     'A3' => _('A3 – Over-allocated'),
     'A4' => _('A4 – Orphaned supp allocs'),
     'A5' => _('A5 – Orphaned cust allocs'),
+    'A6' => _('A6 – Unallocated payments'),
 );
 
 $check_funcs = array(
@@ -40,6 +50,7 @@ $check_funcs = array(
     'A3' => 'check_alloc_over_allocated',
     'A4' => 'check_alloc_orphaned_supplier_allocs',
     'A5' => 'check_alloc_orphaned_customer_allocs',
+    'A6' => 'check_alloc_unallocated_supplier_payments',
 );
 
 $labels = get_check_labels();
@@ -61,6 +72,23 @@ if ($fix_result !== null) {
             $fix_result['check_id'],
             $fix_result['rows_fixed']
         ));
+    }
+}
+
+// ---- Show Quick Allocate result notification ----
+if ($quick_alloc_result !== null) {
+    $status = $quick_alloc_result['status'];
+    $pno    = $quick_alloc_result['payment_no'];
+    if ($status === 'ok') {
+        display_notification(sprintf(_('Payment #%d allocated successfully.'), $pno));
+    } elseif ($status === 'not_found') {
+        display_error(sprintf(_('Payment #%d not found.'), $pno));
+    } elseif ($status === 'already_allocated') {
+        display_warning(sprintf(_('Payment #%d already has an allocation.'), $pno));
+    } elseif ($status === 'no_match') {
+        display_warning(sprintf(_('Payment #%d has no matching unpaid invoice from this supplier.'), $pno));
+    } elseif ($status === 'multiple_matches') {
+        display_warning(sprintf(_('Payment #%d matches multiple invoices — use the Allocate link to choose.'), $pno));
     }
 }
 

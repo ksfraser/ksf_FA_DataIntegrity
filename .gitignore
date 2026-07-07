@@ -1,0 +1,6 @@
+vendor/
+.phpunit.cache/
+composer.lock
+pages/_debug_fix.php
+pages/_debug_fix2.php
+pages/_debug_fix3.php

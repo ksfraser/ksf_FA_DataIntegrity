@@ -927,6 +927,126 @@ function check_alloc_orphaned_customer_allocs()
     return db_query($sql, 'Check A5: Orphaned cust_allocations');
 }
 
+/**
+ * CHECK A6 — Supplier payments with no allocation record (orphaned payments).
+ *
+ * Returns one row per unallocated payment with match_count indicating how
+ * many unpaid invoices from the same supplier have a balance matching the
+ * payment amount exactly (within INTEG_DELTA).
+ *
+ * @return resource
+ */
+function check_alloc_unallocated_supplier_payments()
+{
+    $d = INTEG_DELTA;
+    $sql = "
+        SELECT
+            p.trans_no           AS payment_no,
+            p.tran_date          AS payment_date,
+            p.reference          AS payment_ref,
+            p.supplier_id,
+            s.supp_name,
+            -p.ov_amount         AS amount,
+            (SELECT COUNT(*)
+             FROM &TB_PREF&supp_trans i2
+             WHERE i2.supplier_id = p.supplier_id
+               AND i2.type = 20
+               AND i2.ov_amount - i2.alloc > $d
+               AND ABS(ABS(p.ov_amount) - (i2.ov_amount - i2.alloc)) < $d
+            ) AS match_count
+        FROM &TB_PREF&supp_trans p
+        JOIN &TB_PREF&suppliers s ON s.supplier_id = p.supplier_id
+        WHERE p.type = 22
+            AND p.ov_amount < 0
+            AND NOT EXISTS (
+                SELECT 1 FROM &TB_PREF&supp_allocations sa
+                WHERE sa.trans_no_from = p.trans_no
+                  AND sa.trans_type_from = 22
+            )
+        ORDER BY p.tran_date, s.supp_name";
+
+    return db_query($sql, 'Check A6: Unallocated supplier payments');
+}
+
+/**
+ * Quick-allocate ONE supplier payment against its single matching invoice.
+ *
+ * Called per-row from the A6 tab — never bulk.  Returns a status string
+ * for the caller to display as a notification.
+ *
+ * @param  int    $payment_no  supp_trans.trans_no where type=22
+ * @return string  'ok', 'not_found', 'no_match', 'multiple_matches', 'already_allocated'
+ */
+function quick_allocate_supplier_payment($payment_no)
+{
+    $payment_no = (int)$payment_no;
+    $d = INTEG_DELTA;
+
+    // — 1. Load the payment record —
+    $sql = "SELECT supplier_id, ov_amount, alloc
+            FROM &TB_PREF&supp_trans
+            WHERE trans_no = $payment_no AND type = 22";
+    $result = db_query($sql, 'QuickAlloc: load payment');
+    if (!$result || !($pay = db_fetch($result))) {
+        return 'not_found';
+    }
+    if ($pay['ov_amount'] >= 0) {
+        return 'not_found'; // not a payment (negative = payment)
+    }
+    $amount    = -1 * (float)$pay['ov_amount'];
+    $person_id = (int)$pay['supplier_id'];
+
+    // — 2. Check it's not already allocated —
+    $sql = "SELECT COUNT(*) AS cnt
+            FROM &TB_PREF&supp_allocations
+            WHERE trans_no_from = $payment_no AND trans_type_from = 22";
+    $r2 = db_query($sql, 'QuickAlloc: check existing');
+    $row2 = db_fetch($r2);
+    if ($row2 && (int)$row2['cnt'] > 0) {
+        return 'already_allocated';
+    }
+
+    // — 3. Find matching unpaid invoices from the same supplier —
+    $sql = "SELECT trans_no, ov_amount, alloc,
+                   ov_amount - alloc AS balance
+            FROM &TB_PREF&supp_trans
+            WHERE supplier_id = $person_id
+              AND type = 20
+              AND ov_amount - alloc > $d
+              AND ABS($amount - (ov_amount - alloc)) < $d
+            ORDER BY tran_date";
+    $r3 = db_query($sql, 'QuickAlloc: find matching invoices');
+    if (!$r3) {
+        return 'no_match';
+    }
+
+    $invoices = array();
+    while ($inv = db_fetch($r3)) {
+        $invoices[] = $inv;
+    }
+
+    if (count($invoices) === 0) {
+        return 'no_match';
+    }
+    if (count($invoices) > 1) {
+        return 'multiple_matches';
+    }
+
+    // — 4. Exactly one match — create the allocation —
+    $inv = $invoices[0];
+    $inv_no = (int)$inv['trans_no'];
+    $today  = date('Y-m-d');
+
+    require_once dirname(__FILE__) . '/repos/AllocationRepository.inc';
+    $dto  = new SupplierAllocationDTO($amount, 22, $payment_no, 20, $inv_no, $person_id, $today);
+    $repo = new AllocationRepository();
+    $repo->createSupplierAllocation($dto);
+    $repo->updateSupplierTransactionAllocation(22, $payment_no, $person_id);
+    $repo->updateSupplierTransactionAllocation(20, $inv_no, $person_id);
+
+    return 'ok';
+}
+
 // ===========================================================================
 // PIPELINE / FUNNEL ANALYSIS
 // ===========================================================================
@@ -1256,6 +1376,7 @@ function count_all_integrity_issues()
         'A3' => 'check_alloc_over_allocated',
         'A4' => 'check_alloc_orphaned_supplier_allocs',
         'A5' => 'check_alloc_orphaned_customer_allocs',
+        'A6' => 'check_alloc_unallocated_supplier_payments',
     );
 
     foreach ($checks as $id => $func) {
@@ -1296,6 +1417,7 @@ function get_check_labels()
         'A3' => _('Over-allocated transactions'),
         'A4' => _('Orphaned supplier allocation records'),
         'A5' => _('Orphaned customer allocation records'),
+        'A6' => _('Unallocated supplier payments (missing allocation)'),
     );
 }
 
@@ -1324,5 +1446,6 @@ function get_fix_functions()
         'A3' => null,   // over-allocated: requires re-allocation
         'A4' => null,   // orphaned alloc rows: manual delete after verification
         'A5' => null,   // orphaned alloc rows: manual delete after verification
+        'A6' => null,   // per-row Quick Allocate UI (no bulk fix)
     );
 }

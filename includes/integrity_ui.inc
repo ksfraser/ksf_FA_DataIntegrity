@@ -234,6 +234,7 @@ function integ_render_check_result($check_id, $result)
         'A3' => 'integ_render_a3',
         'A4' => 'integ_render_a4',
         'A5' => 'integ_render_a5',
+        'A6' => 'integ_render_a6',
     );
 
     if (!isset($dispatch[$check_id])) {
@@ -1067,6 +1068,27 @@ function integ_render_a4($result)
 }
 
 /**
+ * Return an HTML anchor to FA's supplier allocation page for a given payment.
+ *
+ * @param  int    $payment_no   Supplier payment transaction number
+ * @param  int    $supplier_id  Supplier ID
+ * @param  string $label        Link text (default 'Allocate')
+ * @return string  HTML anchor
+ * @since  1.0.0
+ */
+function integ_alloc_link($payment_no, $supplier_id, $label = '')
+{
+    global $path_to_root;
+
+    if ($label === '') {
+        $label = _('Allocate');
+    }
+    $url = $path_to_root . '/purchasing/allocations/supplier_allocate.php?trans_no='
+        . (int)$payment_no . '&trans_type=22&supplier_id=' . (int)$supplier_id;
+    return '<a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($label) . '</a>';
+}
+
+/**
  * Render A5 — Orphaned cust_allocations rows.
  *
  * @param  resource $result  DB result from check_alloc_orphaned_customer_allocs()
@@ -1098,6 +1120,64 @@ function integ_render_a5($result)
         label_cell(integ_view_link($row['trans_type_to'], $row['trans_no_to'], '#' . $row['trans_no_to']));
         label_cell('<span style="color:' . ($row['to_missing'] === 'YES' ? 'red' : 'green') . '">'
             . htmlspecialchars($row['to_missing']) . '</span>');
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render A6 — Unallocated supplier payments.
+ *
+ * Each row shows payment details.  When match_count = 1 a "Quick Allocate"
+ * submit button is rendered alongside the standard Allocation link.
+ *
+ * @param  resource $result  DB result from check_alloc_unallocated_supplier_payments()
+ * @return void
+ * @since  1.0.0
+ */
+function integ_render_a6($result)
+{
+    $cols = array(
+        _('Payment #'), _('Date'), _('Ref'), _('Supplier'),
+        _('Amount'), _('Matching Invoices'),
+        _('Quick Allocate'), _('Alloc Screen'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        alt_table_row_color($k);
+        label_cell(integ_view_link(INTEG_ST_SUPPAYMENT, $row['payment_no'], '#' . $row['payment_no']));
+        label_cell($row['payment_date']);
+        label_cell(htmlspecialchars($row['payment_ref']));
+        label_cell(htmlspecialchars($row['supp_name']));
+        label_cell(number_format($row['amount'], 2));
+
+        $mc = (int)$row['match_count'];
+        if ($mc === 0) {
+            label_cell('<span style="color:#999">' . _('None — manual allocate required') . '</span>');
+        } elseif ($mc === 1) {
+            label_cell('<span style="color:#060">' . _('1 invoice matches exactly') . '</span>');
+        } else {
+            label_cell('<span style="color:#960">' . sprintf(_('%d invoices match'), $mc) . '</span>');
+        }
+
+        if ($mc === 1) {
+            label_cell(
+                '<button type="submit" name="_quick_alloc" value="' . (int)$row['payment_no']
+                . '" style="padding:2px 6px">'
+                . _('Quick Allocate') . '</button>'
+            );
+        } else {
+            label_cell('<span style="color:#999;font-size:0.9em">' . _('N/A') . '</span>');
+        }
+
+        label_cell(integ_alloc_link($row['payment_no'], $row['supplier_id']));
         end_row();
     }
 
