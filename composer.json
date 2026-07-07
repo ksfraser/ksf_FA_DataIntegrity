@@ -11,7 +11,7 @@
     ],
     "require": {
         "php": ">=7.3",
-        "ksfraser/fa-classes": "dev-main"
+                    "ksfraser/fa-classes": "1.0.0"
     },
     "repositories": [
         {
@@ -20,7 +20,7 @@
             "options": {
                 "symlink": false,
                 "versions": {
-                    "ksfraser/fa-classes": "dev-main"
+"ksfraser/fa-classes": "1.0.0"
                 }
             }
         },
