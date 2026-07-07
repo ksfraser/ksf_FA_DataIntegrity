@@ -11,20 +11,33 @@ the FIX security area gates counter recalculation actions.
 ```
 ksf_FA_DataIntegrity/
 ├── _init/
-│   └── config              # gzip compressed; Version: 2.4.3-0
-├── hooks.php               # hooks_ksf_FA_DataIntegrity extends hooks
+│   └── config                    # gzip compressed; Version: 2.4.3-0
+├── hooks.php                     # hooks_ksf_FA_DataIntegrity extends hooks
 ├── sql/
-│   └── install.sql         # creates 0_ksf_integrity_log; uses 0_ prefix
+│   └── install.sql               # creates 0_ksf_integrity_log; uses 0_ prefix
 ├── includes/
-│   ├── integrity_db.inc    # DB query helpers
-│   └── integrity_ui.inc    # shared UI helpers
+│   ├── integrity_db.inc          # DB check/fix functions
+│   ├── integrity_ui.inc          # shared UI helpers
+│   └── repos/
+│       ├── AllocationRepository.inc      # A1, A2, A6 allocation operations
+│       ├── GrnItemsRepository.inc         # P1 grn_items operations
+│       ├── PurchOrderDetailsRepository.inc # P2/P3 purch_order_details ops
+│       └── SalesOrderDetailsRepository.inc # S1/S2 sales_order_details ops
 ├── pages/
 │   ├── integrity_dashboard.php   # overview / scan summary
 │   ├── integrity_report.php      # full combined report
 │   ├── purchase_integrity.php    # PO → GRN → Invoice → Payment
 │   ├── sales_integrity.php       # SO → Delivery → Invoice → Payment
 │   └── allocation_integrity.php  # allocation counter drift
-└── composer.json
+├── tests/
+│   ├── bootstrap.php
+│   └── Unit/
+│       ├── AllocationRepositoryTest.php
+│       ├── GrnItemsRepositoryTest.php
+│       ├── PurchOrderDetailsRepositoryTest.php
+│       └── SalesOrderDetailsRepositoryTest.php
+├── composer.json
+└── phpunit.xml
 ```
 
 ## Security
@@ -116,9 +129,9 @@ All development is done in the **devel tree** (`~/Documents/ksf_FA_DataIntegrity
 
 ### Workflow Steps
 1. **Develop** in this repo (feature branches preferred)
-2. **Test**: run repo-appropriate tests
+2. **Test**: run `vendor/bin/phpunit` (all tests must pass)
 3. **Lint**: `php -l` on modified PHP files (no syntax errors)
-4. **Commit** and **Push** branch to GitHub
+4. **ALWAYS commit and push** — do not wait for user permission
 5. **Merge** to `master` when ready
 6. **Push** `master` to GitHub
 7. **Deploy** to UAT by pulling in the Infrastructure bind point:

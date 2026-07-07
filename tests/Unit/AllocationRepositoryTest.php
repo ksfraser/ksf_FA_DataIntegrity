@@ -219,4 +219,111 @@ class AllocationRepositoryTest extends \PHPUnit\Framework\TestCase
         $this->assertSame(10, $dto->transNoTo);
         $this->assertSame(3, $dto->personId);
     }
+
+    // ===================================================================
+    // Tests — recalcSupplierAlloc
+    // ===================================================================
+
+    /**
+     * @test
+     */
+    public function recalcSupplierAlloc_updatesSuppTrans()
+    {
+        $this->repo->recalcSupplierAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertNotNull($sql);
+
+        $this->assertStringContainsString('UPDATE', $sql);
+        $this->assertStringContainsString('&TB_PREF&supp_trans', $sql);
+        $this->assertStringContainsString('st.alloc', $sql);
+    }
+
+    /**
+     * @test
+     */
+    public function recalcSupplierAlloc_joinsSuppAllocations()
+    {
+        $this->repo->recalcSupplierAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertStringContainsString('supp_allocations', $sql);
+        $this->assertStringContainsString('SUM(amt)', $sql);
+        $this->assertStringContainsString('person_id', $sql);
+    }
+
+    /**
+     * @test
+     */
+    public function recalcSupplierAlloc_usesCoalesce()
+    {
+        $this->repo->recalcSupplierAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertStringContainsString('COALESCE', $sql);
+    }
+
+    /**
+     * @test
+     */
+    public function recalcSupplierAlloc_usesDeltaThreshold()
+    {
+        $this->repo->recalcSupplierAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertStringContainsString('0.005', $sql);
+    }
+
+    // ===================================================================
+    // Tests — recalcCustomerAlloc
+    // ===================================================================
+
+    /**
+     * @test
+     */
+    public function recalcCustomerAlloc_updatesDebtorTrans()
+    {
+        $this->repo->recalcCustomerAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertNotNull($sql);
+
+        $this->assertStringContainsString('UPDATE', $sql);
+        $this->assertStringContainsString('&TB_PREF&debtor_trans', $sql);
+        $this->assertStringContainsString('dt.alloc', $sql);
+    }
+
+    /**
+     * @test
+     */
+    public function recalcCustomerAlloc_joinsCustAllocations()
+    {
+        $this->repo->recalcCustomerAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertStringContainsString('cust_allocations', $sql);
+        $this->assertStringContainsString('SUM(amt)', $sql);
+    }
+
+    /**
+     * @test
+     */
+    public function recalcCustomerAlloc_usesCoalesce()
+    {
+        $this->repo->recalcCustomerAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertStringContainsString('COALESCE', $sql);
+    }
+
+    /**
+     * @test
+     */
+    public function recalcCustomerAlloc_usesDeltaThreshold()
+    {
+        $this->repo->recalcCustomerAlloc();
+
+        $sql = $GLOBALS['__fa_last_sql'];
+        $this->assertStringContainsString('0.005', $sql);
+    }
 }

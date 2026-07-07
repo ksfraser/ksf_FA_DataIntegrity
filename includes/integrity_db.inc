@@ -83,23 +83,9 @@ function check_purchase_grn_qty_inv_mismatch()
  */
 function fix_purchase_grn_qty_inv()
 {
-    $sql = "
-        UPDATE &TB_PREF&grn_items g
-        LEFT JOIN (
-            SELECT si.grn_item_id, SUM(si.quantity) AS qty_invoiced
-            FROM &TB_PREF&supp_invoice_items si
-            JOIN &TB_PREF&supp_trans st
-                ON st.trans_no = si.supp_trans_no
-               AND st.type     = si.supp_trans_type
-            WHERE si.supp_trans_type = 20
-              AND st.ov_amount != 0
-            GROUP BY si.grn_item_id
-        ) inv_sum ON inv_sum.grn_item_id = g.id
-        SET g.quantity_inv = COALESCE(inv_sum.qty_invoiced, 0)
-        WHERE ABS(g.quantity_inv - COALESCE(inv_sum.qty_invoiced, 0)) > " . INTEG_DELTA;
-
-    db_query($sql, 'Fix P1: Recalculate grn_items.quantity_inv');
-    return db_num_affected_rows();
+    require_once dirname(__FILE__) . '/repos/GrnItemsRepository.inc';
+    $repo = new GrnItemsRepository();
+    return $repo->recalcQtyInv();
 }
 
 // ---------------------------------------------------------------------------
@@ -154,23 +140,9 @@ function check_purchase_pod_qty_invoiced_mismatch()
  */
 function fix_purchase_pod_qty_invoiced()
 {
-    $sql = "
-        UPDATE &TB_PREF&purch_order_details pod
-        LEFT JOIN (
-            SELECT si.po_detail_item_id, SUM(si.quantity) AS qty_invoiced
-            FROM &TB_PREF&supp_invoice_items si
-            JOIN &TB_PREF&supp_trans st
-                ON st.trans_no = si.supp_trans_no
-               AND st.type     = si.supp_trans_type
-            WHERE si.supp_trans_type = 20
-              AND st.ov_amount != 0
-            GROUP BY si.po_detail_item_id
-        ) inv_sum ON inv_sum.po_detail_item_id = pod.po_detail_item
-        SET pod.qty_invoiced = COALESCE(inv_sum.qty_invoiced, 0)
-        WHERE ABS(pod.qty_invoiced - COALESCE(inv_sum.qty_invoiced, 0)) > " . INTEG_DELTA;
-
-    db_query($sql, 'Fix P2: Recalculate pod.qty_invoiced');
-    return db_num_affected_rows();
+    require_once dirname(__FILE__) . '/repos/PurchOrderDetailsRepository.inc';
+    $repo = new PurchOrderDetailsRepository();
+    return $repo->recalcQtyInvoiced();
 }
 
 // ---------------------------------------------------------------------------
@@ -216,18 +188,9 @@ function check_purchase_pod_qty_received_mismatch()
  */
 function fix_purchase_pod_qty_received()
 {
-    $sql = "
-        UPDATE &TB_PREF&purch_order_details pod
-        LEFT JOIN (
-            SELECT po_detail_item, SUM(qty_recd) AS qty_recd
-            FROM &TB_PREF&grn_items
-            GROUP BY po_detail_item
-        ) grn_sum ON grn_sum.po_detail_item = pod.po_detail_item
-        SET pod.quantity_received = COALESCE(grn_sum.qty_recd, 0)
-        WHERE ABS(pod.quantity_received - COALESCE(grn_sum.qty_recd, 0)) > " . INTEG_DELTA;
-
-    db_query($sql, 'Fix P3: Recalculate pod.quantity_received');
-    return db_num_affected_rows();
+    require_once dirname(__FILE__) . '/repos/PurchOrderDetailsRepository.inc';
+    $repo = new PurchOrderDetailsRepository();
+    return $repo->recalcQtyReceived();
 }
 
 // ---------------------------------------------------------------------------
@@ -428,23 +391,9 @@ function check_sales_sod_qty_sent_mismatch()
  */
 function fix_sales_sod_qty_sent()
 {
-    $sql = "
-        UPDATE &TB_PREF&sales_order_details sod
-        LEFT JOIN (
-            SELECT dtd.src_id, SUM(dtd.qty_done) AS qty_sent
-            FROM &TB_PREF&debtor_trans_details dtd
-            JOIN &TB_PREF&debtor_trans dt
-                ON dt.trans_no = dtd.debtor_trans_no
-               AND dt.type     = dtd.debtor_trans_type
-            WHERE dtd.debtor_trans_type = 13
-              AND dt.ov_amount != 0
-            GROUP BY dtd.src_id
-        ) del_sum ON del_sum.src_id = sod.id
-        SET sod.qty_sent = COALESCE(del_sum.qty_sent, 0)
-        WHERE ABS(sod.qty_sent - COALESCE(del_sum.qty_sent, 0)) > " . INTEG_DELTA;
-
-    db_query($sql, 'Fix S1: Recalculate sod.qty_sent');
-    return db_num_affected_rows();
+    require_once dirname(__FILE__) . '/repos/SalesOrderDetailsRepository.inc';
+    $repo = new SalesOrderDetailsRepository();
+    return $repo->recalcQtySent();
 }
 
 // ---------------------------------------------------------------------------
@@ -501,23 +450,9 @@ function check_sales_sod_invoiced_mismatch()
  */
 function fix_sales_sod_invoiced()
 {
-    $sql = "
-        UPDATE &TB_PREF&sales_order_details sod
-        LEFT JOIN (
-            SELECT dtd.src_id, SUM(dtd.quantity) AS qty_invoiced
-            FROM &TB_PREF&debtor_trans_details dtd
-            JOIN &TB_PREF&debtor_trans dt
-                ON dt.trans_no = dtd.debtor_trans_no
-               AND dt.type     = dtd.debtor_trans_type
-            WHERE dtd.debtor_trans_type = 10
-              AND dt.ov_amount != 0
-            GROUP BY dtd.src_id
-        ) inv_sum ON inv_sum.src_id = sod.id
-        SET sod.invoiced = COALESCE(inv_sum.qty_invoiced, 0)
-        WHERE ABS(sod.invoiced - COALESCE(inv_sum.qty_invoiced, 0)) > " . INTEG_DELTA;
-
-    db_query($sql, 'Fix S2: Recalculate sod.invoiced');
-    return db_num_affected_rows();
+    require_once dirname(__FILE__) . '/repos/SalesOrderDetailsRepository.inc';
+    $repo = new SalesOrderDetailsRepository();
+    return $repo->recalcInvoiced();
 }
 
 // ---------------------------------------------------------------------------
@@ -710,22 +645,9 @@ function check_alloc_supplier_drift($supplier_id = null)
  */
 function fix_alloc_supplier_drift()
 {
-    $sql = "
-        UPDATE &TB_PREF&supp_trans st
-        LEFT JOIN (
-            SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
-                   SUM(amt) AS total_alloc
-            FROM &TB_PREF&supp_allocations
-            GROUP BY person_id, trans_no_to, trans_type_to
-        ) sa_sum ON sa_sum.person_id = st.supplier_id
-               AND sa_sum.trans_no   = st.trans_no
-               AND sa_sum.type       = st.type
-        SET st.alloc = COALESCE(sa_sum.total_alloc, 0)
-        WHERE st.ov_amount != 0
-          AND ABS(st.alloc - COALESCE(sa_sum.total_alloc, 0)) > " . INTEG_DELTA;
-
-    db_query($sql, 'Fix A1: Recalculate supp_trans.alloc');
-    return db_num_affected_rows();
+    require_once dirname(__FILE__) . '/repos/AllocationRepository.inc';
+    $repo = new AllocationRepository();
+    return $repo->recalcSupplierAlloc();
 }
 
 // ---------------------------------------------------------------------------
@@ -778,22 +700,9 @@ function check_alloc_customer_drift($debtor_no = null)
  */
 function fix_alloc_customer_drift()
 {
-    $sql = "
-        UPDATE &TB_PREF&debtor_trans dt
-        LEFT JOIN (
-            SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
-                   SUM(amt) AS total_alloc
-            FROM &TB_PREF&cust_allocations
-            GROUP BY person_id, trans_no_to, trans_type_to
-        ) ca_sum ON ca_sum.person_id = dt.debtor_no
-               AND ca_sum.trans_no   = dt.trans_no
-               AND ca_sum.type       = dt.type
-        SET dt.alloc = COALESCE(ca_sum.total_alloc, 0)
-        WHERE dt.ov_amount != 0
-          AND ABS(dt.alloc - COALESCE(ca_sum.total_alloc, 0)) > " . INTEG_DELTA;
-
-    db_query($sql, 'Fix A2: Recalculate debtor_trans.alloc');
-    return db_num_affected_rows();
+    require_once dirname(__FILE__) . '/repos/AllocationRepository.inc';
+    $repo = new AllocationRepository();
+    return $repo->recalcCustomerAlloc();
 }
 
 // ---------------------------------------------------------------------------

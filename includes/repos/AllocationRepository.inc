@@ -118,4 +118,62 @@ class AllocationRepository
                 WHERE trans.supplier_id = $personId AND $where";
         db_query($sql, 'AllocationRepository: update supplier transaction allocation');
     }
+
+    /**
+     * Recalculate supp_trans.alloc for every supplier transaction where it
+     * differs from the sum of matching supp_allocations rows.
+     *
+     * Replicates the A1 fix logic.
+     *
+     * @return int  Number of rows updated
+     */
+    public function recalcSupplierAlloc()
+    {
+        $d = INTEG_DELTA;
+        $sql = "
+            UPDATE &TB_PREF&supp_trans st
+            LEFT JOIN (
+                SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
+                       SUM(amt) AS total_alloc
+                FROM &TB_PREF&supp_allocations
+                GROUP BY person_id, trans_no_to, trans_type_to
+            ) sa_sum ON sa_sum.person_id = st.supplier_id
+                   AND sa_sum.trans_no   = st.trans_no
+                   AND sa_sum.type       = st.type
+            SET st.alloc = COALESCE(sa_sum.total_alloc, 0)
+            WHERE st.ov_amount != 0
+              AND ABS(st.alloc - COALESCE(sa_sum.total_alloc, 0)) > $d";
+
+        db_query($sql, 'AllocationRepository: recalc supplier alloc');
+        return db_num_affected_rows();
+    }
+
+    /**
+     * Recalculate debtor_trans.alloc for every customer transaction where it
+     * differs from the sum of matching cust_allocations rows.
+     *
+     * Replicates the A2 fix logic.
+     *
+     * @return int  Number of rows updated
+     */
+    public function recalcCustomerAlloc()
+    {
+        $d = INTEG_DELTA;
+        $sql = "
+            UPDATE &TB_PREF&debtor_trans dt
+            LEFT JOIN (
+                SELECT person_id, trans_no_to AS trans_no, trans_type_to AS type,
+                       SUM(amt) AS total_alloc
+                FROM &TB_PREF&cust_allocations
+                GROUP BY person_id, trans_no_to, trans_type_to
+            ) ca_sum ON ca_sum.person_id = dt.debtor_no
+                   AND ca_sum.trans_no   = dt.trans_no
+                   AND ca_sum.type       = dt.type
+            SET dt.alloc = COALESCE(ca_sum.total_alloc, 0)
+            WHERE dt.ov_amount != 0
+              AND ABS(dt.alloc - COALESCE(ca_sum.total_alloc, 0)) > $d";
+
+        db_query($sql, 'AllocationRepository: recalc customer alloc');
+        return db_num_affected_rows();
+    }
 }
