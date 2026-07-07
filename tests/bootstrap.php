@@ -9,12 +9,11 @@
  * PHP 5.6+ compatible.
  */
 
-// ── Include module source files needed by tests ─────────────────────
-
-require_once __DIR__ . '/../includes/repos/AllocationRepository.inc';
-require_once __DIR__ . '/../includes/repos/GrnItemsRepository.inc';
-require_once __DIR__ . '/../includes/repos/PurchOrderDetailsRepository.inc';
-require_once __DIR__ . '/../includes/repos/SalesOrderDetailsRepository.inc';
+// Load Composer autoload (provides FrontAccounting\Repository\* classes)
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($autoload)) {
+    require_once $autoload;
+}
 
 // ── Define constants used by repos ────────────────────────────────
 

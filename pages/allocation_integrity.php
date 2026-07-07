@@ -29,7 +29,6 @@ $fix_result = integ_handle_fix_post();
 $quick_alloc_result = null;
 if (isset($_POST['_quick_alloc'])) {
     $pno = (int)$_POST['_quick_alloc'];
-    require_once dirname(dirname(__FILE__)) . '/includes/repos/AllocationRepository.inc';
     $status = quick_allocate_supplier_payment($pno);
     $quick_alloc_result = array('payment_no' => $pno, 'status' => $status);
 }

@@ -18,8 +18,25 @@
  * @since    1.0.0
  */
 
+// Load Composer autoloader (provides FrontAccounting\Repository\* classes)
+$integrityAutoload = __DIR__ . '/../vendor/autoload.php';
+if (file_exists($integrityAutoload)) {
+    require_once $integrityAutoload;
+}
+
 // Floating-point comparison tolerance
 define('INTEG_DELTA', 0.005);
+
+/**
+ * Helper: create a FrontAccountingDbAdapter for the current company.
+ * @return \Ksfraser\ModulesDAO\Db\FrontAccountingDbAdapter
+ */
+function integ_db_adapter()
+{
+    return new \Ksfraser\ModulesDAO\Db\FrontAccountingDbAdapter(
+        defined('TB_PREF') ? TB_PREF : ''
+    );
+}
 
 // ===========================================================================
 // PURCHASE CHAIN CHECKS
@@ -83,8 +100,7 @@ function check_purchase_grn_qty_inv_mismatch()
  */
 function fix_purchase_grn_qty_inv()
 {
-    require_once dirname(__FILE__) . '/repos/GrnItemsRepository.inc';
-    $repo = new GrnItemsRepository();
+    $repo = new \FrontAccounting\Repository\GrnItemsRepository(integ_db_adapter());
     return $repo->recalcQtyInv();
 }
 
@@ -140,8 +156,7 @@ function check_purchase_pod_qty_invoiced_mismatch()
  */
 function fix_purchase_pod_qty_invoiced()
 {
-    require_once dirname(__FILE__) . '/repos/PurchOrderDetailsRepository.inc';
-    $repo = new PurchOrderDetailsRepository();
+    $repo = new \FrontAccounting\Repository\PurchOrderDetailsRepository(integ_db_adapter());
     return $repo->recalcQtyInvoiced();
 }
 
@@ -188,8 +203,7 @@ function check_purchase_pod_qty_received_mismatch()
  */
 function fix_purchase_pod_qty_received()
 {
-    require_once dirname(__FILE__) . '/repos/PurchOrderDetailsRepository.inc';
-    $repo = new PurchOrderDetailsRepository();
+    $repo = new \FrontAccounting\Repository\PurchOrderDetailsRepository(integ_db_adapter());
     return $repo->recalcQtyReceived();
 }
 
@@ -391,8 +405,7 @@ function check_sales_sod_qty_sent_mismatch()
  */
 function fix_sales_sod_qty_sent()
 {
-    require_once dirname(__FILE__) . '/repos/SalesOrderDetailsRepository.inc';
-    $repo = new SalesOrderDetailsRepository();
+    $repo = new \FrontAccounting\Repository\SalesOrderDetailsRepository(integ_db_adapter());
     return $repo->recalcQtySent();
 }
 
@@ -450,8 +463,7 @@ function check_sales_sod_invoiced_mismatch()
  */
 function fix_sales_sod_invoiced()
 {
-    require_once dirname(__FILE__) . '/repos/SalesOrderDetailsRepository.inc';
-    $repo = new SalesOrderDetailsRepository();
+    $repo = new \FrontAccounting\Repository\SalesOrderDetailsRepository(integ_db_adapter());
     return $repo->recalcInvoiced();
 }
 
@@ -645,8 +657,7 @@ function check_alloc_supplier_drift($supplier_id = null)
  */
 function fix_alloc_supplier_drift()
 {
-    require_once dirname(__FILE__) . '/repos/AllocationRepository.inc';
-    $repo = new AllocationRepository();
+    $repo = new \FrontAccounting\Repository\AllocationRepository(integ_db_adapter());
     return $repo->recalcSupplierAlloc();
 }
 
@@ -700,8 +711,7 @@ function check_alloc_customer_drift($debtor_no = null)
  */
 function fix_alloc_customer_drift()
 {
-    require_once dirname(__FILE__) . '/repos/AllocationRepository.inc';
-    $repo = new AllocationRepository();
+    $repo = new \FrontAccounting\Repository\AllocationRepository(integ_db_adapter());
     return $repo->recalcCustomerAlloc();
 }
 
@@ -946,9 +956,8 @@ function quick_allocate_supplier_payment($payment_no)
     $inv_no = (int)$inv['trans_no'];
     $today  = date('Y-m-d');
 
-    require_once dirname(__FILE__) . '/repos/AllocationRepository.inc';
-    $dto  = new SupplierAllocationDTO($amount, 22, $payment_no, 20, $inv_no, $person_id, $today);
-    $repo = new AllocationRepository();
+    $dto  = new \FrontAccounting\DTO\SupplierAllocation($amount, 22, $payment_no, 20, $inv_no, $person_id, $today);
+    $repo = new \FrontAccounting\Repository\AllocationRepository(integ_db_adapter());
     $repo->createSupplierAllocation($dto);
     $repo->updateSupplierTransactionAllocation(22, $payment_no, $person_id);
     $repo->updateSupplierTransactionAllocation(20, $inv_no, $person_id);
