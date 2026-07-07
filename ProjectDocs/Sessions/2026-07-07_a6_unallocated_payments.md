@@ -48,7 +48,9 @@
 - **Repository pattern** for allocation DB ops (`AllocationRepository`) rather than calling FA's internal functions — self-contained, FA-version-independent, testable.
 - **famock auto-load** via Composer's `autoload_files.php` — `db_query`/`db_fetch` come from `FaDbStubs.php`; tests verify SQL via `$GLOBALS['__fa_last_sql']`.
 
+### Dashboard Fix
+- Added 'A6' to `$alloc_checks` array in `integrity_dashboard.php` and updated group header to A1–A6.
+- Updated all "17 checks" references to "18 checks" (summary, docblocks).
+
 ## Pending
-- Add A6 count to dashboard (`integrity_dashboard.php` + `count_alloc_unallocated_supplier_payments()`).
-- Create `.gitignore` (exclude `vendor/`, `.phpunit.cache/`, `composer.lock`).
-- End-to-end verification in UAT bind point.
+- *(none)*

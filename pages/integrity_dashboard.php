@@ -9,7 +9,7 @@
  *    Gives the business-level view: "of 100 POs, 50 complete & clean, 28 have
  *    data issues, 12 received but not yet invoiced ..."
  *
- * 2. INTEGRITY CHECKS — Per-check row counts (P1–P7, S1–S5, A1–A5) with
+ * 2. INTEGRITY CHECKS — Per-check row counts (P1–P7, S1–S5, A1–A6) with
  *    colour-coded counts and links to detail/fix pages.
  *
  * PHP 5.6+ compatible.
@@ -71,10 +71,10 @@ br();
 
 echo "<p class='integ-section-title'>" . _('Integrity Check Details') . "</p>\n";
 echo "<p style='color:#555;font-size:0.9em'>"
-    . _('Row-level counts for each of the 17 checks.  Green = no issues.  Red = issues found.  Click Details to view affected rows and apply available fixes.')
+    . _('Row-level counts for each of the 18 checks.  Green = no issues.  Red = issues found.  Click Details to view affected rows and apply available fixes.')
     . "</p>\n";
 
-// Run all 17 checks
+// Run all 18 checks
 $counts = count_all_integrity_issues();
 $labels = get_check_labels();
 $fixes  = get_fix_functions();
@@ -85,11 +85,11 @@ foreach ($counts as $n) {
 }
 
 if ($total_issues === 0) {
-    display_notification(_('All 17 integrity checks passed. No row-level issues found.'));
+    display_notification(_('All 18 integrity checks passed. No row-level issues found.'));
 } else {
     $failing = count(array_filter($counts, function ($n) { return (int)$n > 0; }));
     display_warning(sprintf(
-        _('Found %d issue(s) across %d of 17 checks.  See detail pages for fix options.'),
+        _('Found %d issue(s) across %d of 18 checks.  See detail pages for fix options.'),
         $total_issues,
         $failing
     ));
@@ -136,9 +136,9 @@ foreach ($sales_checks as $id) {
 }
 
 // Allocation group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Allocations (A1–A5)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Allocations (A1–A6)') . "</td></tr>\n";
 
-$alloc_checks = array('A1', 'A2', 'A3', 'A4', 'A5');
+$alloc_checks = array('A1', 'A2', 'A3', 'A4', 'A5', 'A6');
 foreach ($alloc_checks as $id) {
     alt_table_row_color($k);
     label_cell('<strong>' . $id . '</strong>');
