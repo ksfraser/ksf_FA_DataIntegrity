@@ -11,38 +11,21 @@
     ],
     "require": {
         "php": ">=7.3",
-                    "ksfraser/fa-classes": "1.0.0"
+        "ksfraser/fa-classes": "^1.0",
+        "ksfraser/ksf-modules-dao": "^0.3"
     },
     "repositories": [
         {
-            "type": "path",
-            "url": "../ksf_FA_Classes",
-            "options": {
-                "symlink": false,
-                "versions": {
-"ksfraser/fa-classes": "1.0.0"
-                }
-            }
+            "type": "vcs",
+            "url": "https://github.com/ksfraser/fa_classes.git"
         },
         {
-            "type": "path",
-            "url": "../ksf_ModulesDAO",
-            "options": {
-                "symlink": false,
-                "versions": {
-                    "ksfraser/ksf-modules-dao": "dev-main"
-                }
-            }
+            "type": "vcs",
+            "url": "https://github.com/ksfraser/ksf_ModulesDAO.git"
         },
         {
-            "type": "path",
-            "url": "../validation",
-            "options": {
-                "symlink": false,
-                "versions": {
-                    "ksfraser/validation": "dev-main"
-                }
-            }
+            "type": "vcs",
+            "url": "https://github.com/ksfraser/Validation.git"
         }
     ],
     "require-dev": {
