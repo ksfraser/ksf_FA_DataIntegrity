@@ -34,7 +34,7 @@ class hooks_ksf_FA_DataIntegrity extends hooks
     var $module_name = 'ksf_FA_DataIntegrity';
 
     /** @var string Module version */
-    var $version = '2.4.3';
+    var $version = '2.4.4';
 
     /**
      * Register the Data Integrity application tab in FA's main menu.
@@ -45,6 +45,7 @@ class hooks_ksf_FA_DataIntegrity extends hooks
      */
     function install_tabs($app)
     {
+        include_once __DIR__ . '/includes/dataintegrity_app.inc';
         set_ext_domain('modules/ksf_FA_DataIntegrity');
         $app->add_application(new dataintegrity_app());
         set_ext_domain();
@@ -94,55 +95,5 @@ class hooks_ksf_FA_DataIntegrity extends hooks
 
 // ===========================================================================
 // Data Integrity application (FA menu tab + sub-items)
+// Defined in includes/dataintegrity_app.inc (loaded by install_tabs)
 // ===========================================================================
-
-class dataintegrity_app extends application
-{
-    function __construct()
-    {
-        parent::__construct(
-            "DataIntegrity",
-            _($this->help_context = "&Data Integrity")
-        );
-
-        $this->add_module(_("Data Integrity"));
-
-        $this->add_lapp_function(
-            0,
-            _("&Dashboard"),
-            "modules/ksf_FA_DataIntegrity/pages/integrity_dashboard.php",
-            'SA_OPEN',
-            MENU_INQUIRY
-        );
-        $this->add_lapp_function(
-            0,
-            _("&Purchase Chain"),
-            "modules/ksf_FA_DataIntegrity/pages/purchase_integrity.php",
-            'SA_OPEN',
-            MENU_INQUIRY
-        );
-        $this->add_lapp_function(
-            0,
-            _("&Sales Chain"),
-            "modules/ksf_FA_DataIntegrity/pages/sales_integrity.php",
-            'SA_OPEN',
-            MENU_INQUIRY
-        );
-        $this->add_lapp_function(
-            0,
-            _("&Allocations"),
-            "modules/ksf_FA_DataIntegrity/pages/allocation_integrity.php",
-            'SA_OPEN',
-            MENU_INQUIRY
-        );
-        $this->add_lapp_function(
-            0,
-            _("&Full Report"),
-            "modules/ksf_FA_DataIntegrity/pages/integrity_report.php",
-            'SA_OPEN',
-            MENU_INQUIRY
-        );
-
-        $this->add_extensions();
-    }
-}
