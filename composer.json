@@ -11,8 +11,8 @@
     ],
     "require": {
         "php": ">=7.3",
-        "ksfraser/fa-classes": "^1.0",
-        "ksfraser/ksf-modules-dao": "^0.4"
+        "ksfraser/fa-classes": "^1.4",
+        "ksfraser/ksf-modules-dao": "^0.5"
     },
     "repositories": [
         {
