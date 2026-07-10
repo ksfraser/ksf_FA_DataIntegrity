@@ -9,7 +9,7 @@
  *    Gives the business-level view: "of 100 POs, 50 complete & clean, 28 have
  *    data issues, 12 received but not yet invoiced ..."
  *
- * 2. INTEGRITY CHECKS — Per-check row counts (P1–P7, S1–S5, A1–A6) with
+ * 2. INTEGRITY CHECKS — Per-check row counts (P1–P4 + PCHAIN, S1–S2 + SCHAIN, A1–A6) with
  *    colour-coded counts and links to detail/fix pages.
  *
  * PHP 5.6+ compatible.
@@ -101,9 +101,9 @@ start_table(TABLESTYLE, "width='85%'");
 table_header(array(_('Check'), _('Description'), _('Issues'), _('Auto-fix?'), _('Detail Page')));
 
 // Purchase chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1–P7)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1–P4, PCHAIN)') . "</td></tr>\n";
 
-$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7');
+$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'PCHAIN');
 $k = 0;
 foreach ($purchase_checks as $id) {
     alt_table_row_color($k);
@@ -116,12 +116,13 @@ foreach ($purchase_checks as $id) {
     label_cell($fixes[$id] ? _('Yes') : _('Manual'));
     label_cell('<a href="purchase_integrity.php?tab=' . $id . '">' . _('Details') . ' &raquo;</a>');
     end_row();
+    $k++;
 }
 
 // Sales chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1–S5)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1–S2, SCHAIN)') . "</td></tr>\n";
 
-$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5');
+$sales_checks = array('S1', 'S2', 'SCHAIN');
 foreach ($sales_checks as $id) {
     alt_table_row_color($k);
     label_cell('<strong>' . $id . '</strong>');
@@ -133,6 +134,7 @@ foreach ($sales_checks as $id) {
     label_cell($fixes[$id] ? _('Yes') : _('Manual'));
     label_cell('<a href="sales_integrity.php?tab=' . $id . '">' . _('Details') . ' &raquo;</a>');
     end_row();
+    $k++;
 }
 
 // Allocation group

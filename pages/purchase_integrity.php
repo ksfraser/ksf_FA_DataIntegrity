@@ -2,7 +2,7 @@
 /**
  * purchase_integrity.php — Purchase chain integrity detail page
  *
- * Shows tabbed detail views for checks P1–P7.  Each tab runs only the active
+ * Shows tabbed detail views for checks P1–P4 + PCHAIN.  Each tab runs only the active
  * check query.  Checks that have an auto-fix function show a "Recalculate/Fix"
  * button that POSTs back to this page.
  *
