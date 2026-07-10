@@ -562,9 +562,12 @@ function integ_render_p3($result)
  */
 function integ_render_p4($result)
 {
+    global $path_to_root;
+
     $cols = array(
         _('GRN Batch'), _('Date'), _('Supplier'), _('Item Code'), _('Description'),
         _('Qty Recv\'d'), _('Qty Invoiced'), _('Over By'),
+        _('Create Credit Note'),
         _('View GRN'), _('View PO'),
     );
     start_table(TABLESTYLE, "width='98%'");
@@ -581,6 +584,13 @@ function integ_render_p4($result)
         label_cell(number_format($row['qty_recd'], 2));
         label_cell(number_format($row['qty_invoiced'], 2));
         label_cell('<span style="color:red">' . number_format($row['over_by'], 4) . '</span>');
+
+        // Credit-note link: open FA supplier credit with supplier pre-filled
+        $cnUrl = $path_to_root . '/purchasing/supplier_credit.php?NewCredit=1'
+            . '&supplier_id=' . (int)$row['supplier_id'];
+        label_cell('<a href="' . htmlspecialchars($cnUrl) . '">'
+            . htmlspecialchars(_('Credit Note')) . '</a>');
+
         label_cell(integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id']));
         label_cell(integ_view_link(INTEG_ST_PURCHORDER, $row['purch_order_no']));
         end_row();
@@ -1185,4 +1195,545 @@ function integ_render_a6($result)
         integ_no_issues_row(count($cols));
     }
     end_table(1);
+}
+
+// ===========================================================================
+// CONSOLIDATED CHAIN VIEW — purchase (replaces P5/P6/P7)
+// ===========================================================================
+
+/**
+ * Render the consolidated purchase chain table.
+ *
+ * PO | PO↔GRN | GRN | GRN↔Inv | Invoice | Actions
+ *
+ * @param  array $rows  Output from check_purchase_chain()
+ * @return void
+ */
+function integ_render_purchase_chain($rows)
+{
+    $cols = array(
+        _('Supplier'),
+        _('Purchase Order'),
+        _('PO↔GRN'),
+        _('GRN'),
+        _('GRN↔Inv'),
+        _('Invoice'),
+        _('Actions'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    if (empty($rows)) {
+        integ_no_issues_row(count($cols));
+        end_table(1);
+        return;
+    }
+
+    $k = 0;
+    foreach ($rows as $row) {
+        $key  = htmlspecialchars($row['row_key']);
+        $type = $row['row_type'];
+
+        alt_table_row_color($k);
+
+        // ---- Supplier ----
+        label_cell(htmlspecialchars($row['supp_name']));
+
+        // ---- PO ----
+        $poCell = _chain_cell_po($row);
+        label_cell($poCell);
+
+        // ---- PO↔GRN link status ----
+        $linkPoGrn = _chain_cell_po_grn_link($row, $key);
+        label_cell($linkPoGrn);
+
+        // ---- GRN ----
+        $grnCell = _chain_cell_grn($row);
+        label_cell($grnCell);
+
+        // ---- GRN↔Inv link status ----
+        $linkGrnInv = _chain_cell_grn_inv_link($row, $key);
+        label_cell($linkGrnInv);
+
+        // ---- Invoice ----
+        $invCell = _chain_cell_invoice($row);
+        label_cell($invCell);
+
+        // ---- Actions ----
+        $actions = _chain_cell_actions($row, $key);
+        label_cell($actions);
+
+        end_row();
+    }
+
+    end_table(1);
+}
+
+/**
+ * Build the PO column content for a purchase chain row.
+ */
+function _chain_cell_po($row)
+{
+    if ($row['po_order_no']) {
+        $bg = '#dfd'; // green — exists
+        if ($row['row_type'] === 'orphan_inv' && $row['candidate_po_id']) {
+            $bg = '#ffd'; // light yellow — has candidate PO
+        }
+        $text = integ_view_link(INTEG_ST_PURCHORDER, $row['po_order_no'], '#' . $row['po_order_no']);
+        if ($row['po_ref']) {
+            $text .= '<br><small>' . htmlspecialchars($row['po_ref']) . '</small>';
+        }
+        if ($row['po_item_code']) {
+            $text .= '<br><small>' . htmlspecialchars($row['po_item_code']) . '</small>';
+        }
+        return "<div style='background:$bg;padding:2px 4px'>$text</div>";
+    }
+    return '<span style="color:#999">' . _('—') . '</span>';
+}
+
+/**
+ * Build the PO↔GRN link status column.
+ */
+function _chain_cell_po_grn_link($row, $key)
+{
+    $code = $row['row_type'];
+
+    // Linked — green check
+    if ($row['po_order_no'] && $row['grn_batch_id']) {
+        return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
+    }
+
+    if ($code === 'orphan_grn') {
+        return '<span style="color:#c00">' . _('Missing PO') . '</span>';
+    }
+
+    return '<span style="color:#999">—</span>';
+}
+
+/**
+ * Build the GRN column content.
+ */
+function _chain_cell_grn($row)
+{
+    $code = $row['row_type'];
+
+    if ($row['grn_batch_id']) {
+        $bg = '#dfd';
+        if ($code === 'orphan_grn') {
+            $bg = '#ffc'; // yellow — has invoice link but no PO
+        } elseif ($code === 'item_mismatch') {
+            $bg = '#ffc'; // yellow — linked to PO but item mismatch with invoice
+        }
+        $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']);
+        if ($row['grn_item_code']) {
+            $text .= '<br><small>' . htmlspecialchars($row['grn_item_code']) . '</small>';
+        }
+        if ($row['grn_qty'] > 0) {
+            $text .= '<br><small>' . _('Qty:') . ' ' . number_format($row['grn_qty'], 2) . '</small>';
+        }
+        return "<div style='background:$bg;padding:2px 4px'>$text</div>";
+    }
+
+    if ($code === 'orphan_grn') {
+        // Standalone orphaned GRN — show details even without invoice
+        $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']);
+        $text .= '<br><small>' . htmlspecialchars($row['grn_item_code']) . '</small>';
+        if ($row['grn_qty'] > 0) {
+            $text .= '<br><small>' . _('Qty:') . ' ' . number_format($row['grn_qty'], 2) . '</small>';
+        }
+        return "<div style='background:#ffc;padding:2px 4px'>$text</div>";
+    }
+
+    // No GRN — orphaned invoice item
+    if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
+        $bg = '#fdb'; // orange — candidate found
+        $text = sprintf(_('Candidate GRN #%d'), $row['candidate_grn_batch_id']);
+        return "<div style='background:$bg;padding:2px 4px'>$text</div>";
+    }
+
+    if ($code === 'orphan_inv') {
+        return '<span style="color:#c00">' . _('Missing GRN') . '</span>';
+    }
+
+    return '<span style="color:#999">—</span>';
+}
+
+/**
+ * Build the GRN↔Inv link status column.
+ */
+function _chain_cell_grn_inv_link($row, $key)
+{
+    $code = $row['row_type'];
+
+    if ($row['inv_trans_no'] && $row['grn_batch_id']
+        && $code !== 'item_mismatch' && $code !== 'orphan_inv') {
+        return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
+    }
+
+    // Item mismatch — red with Disassociate button
+    if ($code === 'item_mismatch') {
+        $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
+             . ' style="padding:2px 6px;background:#c00;color:#fff;border:none">'
+             . _('Disassociate') . '</button>';
+        return $btn;
+    }
+
+    // Orphaned invoice with candidate GRN — orange Match button
+    if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
+        $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_grn_inv"'
+             . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+             . _('Match') . '</button>';
+        $btn .= '<input type="hidden" name="_cand_grn_batch[' . $key . ']" value="' . (int)$row['candidate_grn_batch_id'] . '">';
+        $btn .= '<input type="hidden" name="_cand_grn_item[' . $key . ']" value="' . (int)$row['candidate_grn_item_id'] . '">';
+        return $btn;
+    }
+
+    // Orphaned invoice with no candidate — red
+    if ($code === 'orphan_inv') {
+        return '<span style="color:#c00">' . _('Broken') . '</span>';
+    }
+
+    return '<span style="color:#999">—</span>';
+}
+
+/**
+ * Build the Invoice column content.
+ */
+function _chain_cell_invoice($row)
+{
+    $code = $row['row_type'];
+
+    if ($code === 'ghost_inv') {
+        // Ghost invoice — red background
+        $bg = '#fdd';
+        $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+        $text .= '<br><small>' . _('GHOST — no line items') . '</small>';
+        if ($row['inv_total'] > 0) {
+            $text .= '<br><small>' . _('Total:') . ' ' . number_format($row['inv_total'], 2) . '</small>';
+        }
+        return "<div style='background:$bg;padding:2px 4px'>$text</div>";
+    }
+
+    if ($code === 'item_mismatch') {
+        // Item mismatch — red
+        $bg = '#fdd';
+        $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+        $text .= '<br><small>' . _('Item:') . ' ' . htmlspecialchars($row['inv_stock_id']) . '</small>';
+        $text .= '<br><small style="color:#c00">' . _('MISMATCH: GRN says') . ' ' . htmlspecialchars($row['grn_item_code']) . '</small>';
+        return "<div style='background:$bg;padding:2px 4px'>$text</div>";
+    }
+
+    if ($code === 'orphan_inv') {
+        // Orphaned — orange if candidate, red if no candidate
+        $bg = $row['candidate_grn_batch_id'] ? '#fdb' : '#fdd';
+        $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+        if ($row['inv_stock_id']) {
+            $text .= '<br><small>' . htmlspecialchars($row['inv_stock_id']) . '</small>';
+        }
+        $text .= '<br><small>' . _('Qty:') . ' ' . number_format($row['inv_qty'], 2) . '</small>';
+        return "<div style='background:$bg;padding:2px 4px'>$text</div>";
+    }
+
+    if ($code === 'orphan_grn') {
+        // Standalone GRN with no invoice — blank cell
+        return '<span style="color:#999">—</span>';
+    }
+
+    // Healthy invoice
+    $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+    if ($row['inv_stock_id']) {
+        $text .= '<br><small>' . htmlspecialchars($row['inv_stock_id']) . '</small>';
+    }
+    return "<div style='background:#dfd;padding:2px 4px'>$text</div>";
+}
+
+/**
+ * Build the Actions column for a purchase chain row.
+ */
+function _chain_cell_actions($row, $key)
+{
+    $code = $row['row_type'];
+    $parts = array();
+
+    if ($code === 'ghost_inv') {
+        // Ghost invoice — Void button
+        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
+                 . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
+                 . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
+                 . _('Void') . '</button>';
+    }
+
+    if ($code === 'orphan_grn') {
+        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po"'
+                 . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                 . _('Add PO') . '</button>';
+    }
+
+    if ($code === 'orphan_inv') {
+        // Orphaned invoice item
+        if ($row['candidate_po_id']) {
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po"'
+                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . _('Add GRN (Assoc PO)') . '</button>';
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po_inv"'
+                     . ' style="padding:2px 6px;background:#060;color:#fff;border:none">'
+                     . _('Add GRN (Assoc PO/Inv)') . '</button>';
+        } else {
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po_grn"'
+                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . _('Add PO + GRN') . '</button>';
+        }
+    }
+
+    if ($code === 'item_mismatch') {
+        // Item mismatch — Disassociate
+        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
+                 . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
+                 . ' onclick="return confirm(\'' . _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.') . '\')">'
+                 . _('Disassociate') . '</button>';
+    }
+
+    // View invoice popup link
+    if ($row['inv_trans_no']) {
+        $url = _integ_invoice_popup_url($row['inv_trans_no']);
+        $parts[] = '<a href="' . htmlspecialchars($url) . '" target="_blank" style="padding:2px 6px">'
+                 . _('View Invoice') . '</a>';
+    }
+
+    return implode('<br>', $parts);
+}
+
+// ===========================================================================
+// CONSOLIDATED CHAIN VIEW — sales (replaces S3/S4/S5)
+// ===========================================================================
+
+/**
+ * Render the consolidated sales chain table.
+ *
+ * SO | SO↔Del | Delivery | Stock Moves | Actions
+ *
+ * @param  array $rows  Output from check_sales_chain()
+ * @return void
+ */
+function integ_render_sales_chain($rows)
+{
+    $cols = array(
+        _('Customer'),
+        _('Sales Order'),
+        _('SO↔Del'),
+        _('Delivery'),
+        _('Stock'),
+        _('Actions'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    if (empty($rows)) {
+        integ_no_issues_row(count($cols));
+        end_table(1);
+        return;
+    }
+
+    $k = 0;
+    foreach ($rows as $row) {
+        $key  = htmlspecialchars($row['row_key']);
+        $type = $row['row_type'];
+
+        alt_table_row_color($k);
+
+        // Customer
+        label_cell(htmlspecialchars($row['customer_name']));
+
+        // SO
+        $soCell = _sales_cell_so($row);
+        label_cell($soCell);
+
+        // SO↔Del link
+        $linkCell = _sales_cell_so_del_link($row, $key);
+        label_cell($linkCell);
+
+        // Delivery
+        $delCell = _sales_cell_delivery($row);
+        label_cell($delCell);
+
+        // Stock moves
+        $stockCell = _sales_cell_stock($row, $key);
+        label_cell($stockCell);
+
+        // Actions
+        $actions = _sales_cell_actions($row, $key);
+        label_cell($actions);
+
+        end_row();
+    }
+
+    end_table(1);
+}
+
+function _sales_cell_so($row)
+{
+    if ($row['so_order_no']) {
+        $text = integ_view_link(INTEG_ST_SALESORDER, $row['so_order_no'], '#' . $row['so_order_no']);
+        if ($row['so_ref']) {
+            $text .= '<br><small>' . htmlspecialchars($row['so_ref']) . '</small>';
+        }
+        if ($row['so_item_code']) {
+            $text .= '<br><small>' . htmlspecialchars($row['so_item_code']) . '</small>';
+        }
+        return "<div style='background:#dfd;padding:2px 4px'>$text</div>";
+    }
+    return '<span style="color:#999">—</span>';
+}
+
+function _sales_cell_so_del_link($row, $key)
+{
+    $type = $row['row_type'];
+
+    if ($row['so_order_no'] && $row['del_trans_no']) {
+        return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
+    }
+
+    if ($type === 'orphan_del' && $row['candidate_so_id']) {
+        $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_so_del"'
+             . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+             . _('Match') . '</button>';
+        $btn .= '<input type="hidden" name="_cand_so[' . $key . ']" value="' . (int)$row['candidate_so_id'] . '">';
+        return $btn;
+    }
+
+    if ($type === 'orphan_del') {
+        return '<span style="color:#c00">' . _('Missing SO') . '</span>';
+    }
+
+    return '<span style="color:#999">—</span>';
+}
+
+function _sales_cell_delivery($row)
+{
+    $type = $row['row_type'];
+
+    if ($row['del_trans_no']) {
+        $bg = ($type === 'orphan_del' || $type === 'missing_stock') ? '#ffc' : '#dfd';
+        $text = integ_view_link(INTEG_ST_CUSTDELIVERY, $row['del_trans_no'], '#' . $row['del_trans_no']);
+        if ($row['del_item_code']) {
+            $text .= '<br><small>' . htmlspecialchars($row['del_item_code']) . '</small>';
+        }
+        if ($row['del_qty'] > 0) {
+            $text .= '<br><small>' . _('Qty:') . ' ' . number_format($row['del_qty'], 2) . '</small>';
+        }
+        return "<div style='background:$bg;padding:2px 4px'>$text</div>";
+    }
+
+    if ($type === 'ghost_inv') {
+        $text = integ_view_link(INTEG_ST_SALESINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+        $text .= '<br><small style="color:#c00">' . _('GHOST — no items') . '</small>';
+        return "<div style='background:#fdd;padding:2px 4px'>$text</div>";
+    }
+
+    return '<span style="color:#999">—</span>';
+}
+
+function _sales_cell_stock($row, $key)
+{
+    if ($row['row_type'] === 'missing_stock') {
+        return '<span style="color:#c00">' . _('Missing') . '</span>';
+    }
+    if ($row['del_trans_no'] && $row['row_type'] !== 'missing_stock') {
+        return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
+    }
+    return '<span style="color:#999">—</span>';
+}
+
+function _sales_cell_actions($row, $key)
+{
+    $type = $row['row_type'];
+    $parts = array();
+
+    if ($type === 'ghost_inv') {
+        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
+                 . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
+                 . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
+                 . _('Void') . '</button>';
+    }
+
+    if ($type === 'orphan_del') {
+        if ($row['candidate_so_id']) {
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="match_so_del"'
+                     . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+                     . _('Match SO') . '</button>';
+            $parts[] = '<input type="hidden" name="_cand_so[' . $key . ']" value="' . (int)$row['candidate_so_id'] . '">';
+        } else {
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_so"'
+                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . _('Add SO') . '</button>';
+        }
+    }
+
+    if ($type === 'missing_stock') {
+        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_stock_moves"'
+                 . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                 . _('Create Stock Moves') . '</button>';
+    }
+
+    if ($row['del_trans_no']) {
+        $url = $GLOBALS['path_to_root'] . '/sales/customer_delivery.php?ModifyDelivery=' . (int)$row['del_trans_no'];
+        $parts[] = '<a href="' . htmlspecialchars($url) . '" target="_blank" style="padding:2px 6px">'
+                 . _('Edit Delivery') . '</a>';
+    }
+
+    return implode('<br>', $parts);
+}
+
+// ===========================================================================
+// CHAIN POST HANDLER
+// ===========================================================================
+
+/**
+ * Handle per-row fix action POST for a consolidated chain tab.
+ *
+ * $_POST['_fix_action'] is an associative array with one element:
+ *   [row_key => action_name]
+ *
+ * Optional companion arrays:
+ *   $_POST['_cand_po'][row_key]      = candidate PO order_no
+ *   $_POST['_cand_grn_batch'][row_key] = candidate GRN batch id
+ *   $_POST['_cand_grn_item'][row_key]  = candidate GRN item id
+ *   $_POST['_cand_so'][row_key]       = candidate SO order_no
+ *
+ * @param  string $chainCheckId  'PCHAIN' or 'SCHAIN'
+ * @return array|null  ['message'=>string, 'popup_url'=>string|null] or null
+ */
+function integ_handle_chain_fix_post($chainCheckId)
+{
+    if (!isset($_POST['_fix_action']) || !is_array($_POST['_fix_action'])) {
+        return null;
+    }
+    if (!user_check_access('SA_DATAINTEGRITY_FIX')) {
+        return array('message' => _('Fix not applied — missing SA_DATAINTEGRITY_FIX permission.'), 'popup_url' => null);
+    }
+
+    $rowKey = key($_POST['_fix_action']);
+    $action = current($_POST['_fix_action']);
+
+    // Load companion candidate IDs from POST
+    $candPo   = isset($_POST['_cand_po'][$rowKey])        ? (int)$_POST['_cand_po'][$rowKey] : 0;
+    $candGrnB = isset($_POST['_cand_grn_batch'][$rowKey]) ? (int)$_POST['_cand_grn_batch'][$rowKey] : 0;
+    $candGrnI = isset($_POST['_cand_grn_item'][$rowKey])  ? (int)$_POST['_cand_grn_item'][$rowKey] : 0;
+    $candSo   = isset($_POST['_cand_so'][$rowKey])        ? (int)$_POST['_cand_so'][$rowKey] : 0;
+
+    // Set candidate globals for the fix functions to read
+    if ($candPo)   $_POST['_cand_po']   = $candPo;
+    if ($candGrnB) $_POST['_cand_grn_batch'] = $candGrnB;
+    if ($candGrnI) $_POST['_cand_grn_item']  = $candGrnI;
+    if ($candSo)   $_POST['_cand_so']   = $candSo;
+
+    if ($chainCheckId === 'PCHAIN') {
+        return fix_purchase_chain_row($rowKey, $action);
+    }
+
+    if ($chainCheckId === 'SCHAIN') {
+        return fix_sales_chain_row($rowKey, $action);
+    }
+
+    return array('message' => _('Unknown chain: ') . $chainCheckId, 'popup_url' => null);
 }

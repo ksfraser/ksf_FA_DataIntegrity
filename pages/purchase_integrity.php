@@ -24,27 +24,22 @@ include_once($module_root . "/includes/integrity_ui.inc");
 
 // ---- Handle fix POST before any HTML output ----
 $fix_result = integ_handle_fix_post();
+$chain_fix  = integ_handle_chain_fix_post('PCHAIN');
 
 // ---- Tab definitions ----
 $tabs = array(
-    'P1' => _('P1 – GRN qty_inv'),
-    'P2' => _('P2 – PO qty_invoiced'),
-    'P3' => _('P3 – PO qty_received'),
-    'P4' => _('P4 – Over-invoiced'),
-    'P5' => _('P5 – Orphaned inv items'),
-    'P6' => _('P6 – Orphaned GRN batches'),
-    'P7' => _('P7 – Ghost invoices'),
+    'P1'     => _('P1 – GRN qty_inv'),
+    'P2'     => _('P2 – PO qty_invoiced'),
+    'P3'     => _('P3 – PO qty_received'),
+    'P4'     => _('P4 – Over-invoiced'),
+    'PCHAIN' => _('PCHAIN – Broken chain'),
 );
 
-// Map check IDs to their db check functions
 $check_funcs = array(
     'P1' => 'check_purchase_grn_qty_inv_mismatch',
     'P2' => 'check_purchase_pod_qty_invoiced_mismatch',
     'P3' => 'check_purchase_pod_qty_received_mismatch',
     'P4' => 'check_purchase_grn_over_invoiced',
-    'P5' => 'check_purchase_orphaned_invoice_items',
-    'P6' => 'check_purchase_orphaned_grn_batches',
-    'P7' => 'check_purchase_ghost_invoices',
 );
 
 $labels = get_check_labels();
@@ -89,7 +84,25 @@ if (isset($labels[$active])) {
 }
 
 // ---- Run the active check and render its result table ----
-if (isset($check_funcs[$active])) {
+if ($active === 'PCHAIN') {
+    // Consolidated chain view — returns array, not db result
+    $chainRows = check_purchase_chain();
+    $count = count($chainRows);
+
+    if ($chain_fix !== null) {
+        if ($chain_fix['popup_url']) {
+            display_notification($chain_fix['message'] . ' &ndash; <a href="' . htmlspecialchars($chain_fix['popup_url']) . '" target="_blank">' . _('View Invoice') . '</a>');
+        } else {
+            display_notification($chain_fix['message']);
+        }
+    }
+
+    if ($count > 0) {
+        display_warning(sprintf(_('%d chain issue(s) found.'), $count));
+    }
+
+    integ_render_purchase_chain($chainRows);
+} elseif (isset($check_funcs[$active])) {
     $result = call_user_func($check_funcs[$active]);
     $count  = db_num_rows($result);
 

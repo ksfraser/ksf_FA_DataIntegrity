@@ -24,22 +24,18 @@ include_once($module_root . "/includes/integrity_ui.inc");
 
 // ---- Handle fix POST before any HTML output ----
 $fix_result = integ_handle_fix_post();
+$chain_fix  = integ_handle_chain_fix_post('SCHAIN');
 
 // ---- Tab definitions ----
 $tabs = array(
-    'S1' => _('S1 – SO qty_sent'),
-    'S2' => _('S2 – SO invoiced'),
-    'S3' => _('S3 – Ghost invoices'),
-    'S4' => _('S4 – Orphaned deliveries'),
-    'S5' => _('S5 – Missing stock moves'),
+    'S1'     => _('S1 – SO qty_sent'),
+    'S2'     => _('S2 – SO invoiced'),
+    'SCHAIN' => _('SCHAIN – Broken chain'),
 );
 
 $check_funcs = array(
     'S1' => 'check_sales_sod_qty_sent_mismatch',
     'S2' => 'check_sales_sod_invoiced_mismatch',
-    'S3' => 'check_sales_ghost_invoices',
-    'S4' => 'check_sales_orphaned_deliveries',
-    'S5' => 'check_sales_delivery_missing_stock_moves',
 );
 
 $labels = get_check_labels();
@@ -84,7 +80,24 @@ if (isset($labels[$active])) {
 }
 
 // ---- Run the active check and render its result table ----
-if (isset($check_funcs[$active])) {
+if ($active === 'SCHAIN') {
+    $chainRows = check_sales_chain();
+    $count = count($chainRows);
+
+    if ($chain_fix !== null) {
+        if ($chain_fix['popup_url']) {
+            display_notification($chain_fix['message'] . ' &ndash; <a href="' . htmlspecialchars($chain_fix['popup_url']) . '" target="_blank">' . _('Edit Delivery') . '</a>');
+        } else {
+            display_notification($chain_fix['message']);
+        }
+    }
+
+    if ($count > 0) {
+        display_warning(sprintf(_('%d chain issue(s) found.'), $count));
+    }
+
+    integ_render_sales_chain($chainRows);
+} elseif (isset($check_funcs[$active])) {
     $result = call_user_func($check_funcs[$active]);
     $count  = db_num_rows($result);
 

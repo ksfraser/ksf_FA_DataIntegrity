@@ -24,6 +24,12 @@ if (file_exists($integrityAutoload)) {
     require_once $integrityAutoload;
 }
 
+// Load reconstruction fix functions (P5/P6/S4/S5 etc.)
+$reconFile = __DIR__ . '/integrity_reconstruction.inc';
+if (file_exists($reconFile)) {
+    require_once $reconFile;
+}
+
 // Floating-point comparison tolerance
 define('INTEG_DELTA', 0.005);
 
@@ -1281,14 +1287,10 @@ function count_all_integrity_issues()
         'P2' => 'check_purchase_pod_qty_invoiced_mismatch',
         'P3' => 'check_purchase_pod_qty_received_mismatch',
         'P4' => 'check_purchase_grn_over_invoiced',
-        'P5' => 'check_purchase_orphaned_invoice_items',
-        'P6' => 'check_purchase_orphaned_grn_batches',
-        'P7' => 'check_purchase_ghost_invoices',
+        'PCHAIN' => 'check_purchase_chain',
         'S1' => 'check_sales_sod_qty_sent_mismatch',
         'S2' => 'check_sales_sod_invoiced_mismatch',
-        'S3' => 'check_sales_ghost_invoices',
-        'S4' => 'check_sales_orphaned_deliveries',
-        'S5' => 'check_sales_delivery_missing_stock_moves',
+        'SCHAIN' => 'check_sales_chain',
         'A1' => 'check_alloc_supplier_drift',
         'A2' => 'check_alloc_customer_drift',
         'A3' => 'check_alloc_over_allocated',
@@ -1299,11 +1301,13 @@ function count_all_integrity_issues()
 
     foreach ($checks as $id => $func) {
         $result = call_user_func($func);
-        if ($result) {
+        if ($result === null) {
+            $counts[$id] = 0;
+        } elseif (is_array($result)) {
+            $counts[$id] = count($result);
+        } else {
             $counts[$id] = db_num_rows($result);
             db_free_result($result);
-        } else {
-            $counts[$id] = 0;
         }
     }
 
@@ -1322,14 +1326,10 @@ function get_check_labels()
         'P2' => _('PO line qty_invoiced drift'),
         'P3' => _('PO line quantity_received drift'),
         'P4' => _('GRN lines over-invoiced'),
-        'P5' => _('Orphaned supplier invoice items (missing GRN)'),
-        'P6' => _('Orphaned GRN batches (missing purchase order)'),
-        'P7' => _('Ghost supplier invoices (no line items)'),
+        'PCHAIN' => _('Purchase chain — broken links (replaces P5/P6/P7)'),
         'S1' => _('Sales order line qty_sent drift'),
         'S2' => _('Sales order line invoiced qty drift'),
-        'S3' => _('Ghost customer invoices (no line items)'),
-        'S4' => _('Orphaned delivery notes (missing sales order)'),
-        'S5' => _('Delivery notes with no stock moves'),
+        'SCHAIN' => _('Sales chain — broken links (replaces S3/S4/S5)'),
         'A1' => _('Supplier alloc drift (alloc vs supp_allocations)'),
         'A2' => _('Customer alloc drift (alloc vs cust_allocations)'),
         'A3' => _('Over-allocated transactions'),
@@ -1350,20 +1350,43 @@ function get_fix_functions()
         'P1' => 'fix_purchase_grn_qty_inv',
         'P2' => 'fix_purchase_pod_qty_invoiced',
         'P3' => 'fix_purchase_pod_qty_received',
-        'P4' => null,   // over-invoiced: requires credit note, no auto-fix
-        'P5' => null,   // orphaned invoice items: manual investigation
-        'P6' => null,   // orphaned GRN batches: manual investigation
-        'P7' => null,   // ghost invoices: manual void
+        'P4' => 'fix_purchase_grn_over_invoiced',    // credit-note link (no auto-fix)
+        'PCHAIN' => null,  // per-row chain fix actions (no bulk)
         'S1' => 'fix_sales_sod_qty_sent',
         'S2' => 'fix_sales_sod_invoiced',
-        'S3' => null,   // ghost invoices: manual void
-        'S4' => null,   // orphaned deliveries: manual investigation
-        'S5' => null,   // missing stock moves: requires manual GL correction
+        'SCHAIN' => null, // per-row chain fix actions (no bulk)
         'A1' => 'fix_alloc_supplier_drift',
         'A2' => 'fix_alloc_customer_drift',
-        'A3' => null,   // over-allocated: requires re-allocation
-        'A4' => null,   // orphaned alloc rows: manual delete after verification
-        'A5' => null,   // orphaned alloc rows: manual delete after verification
+        'A3' => 'fix_alloc_over_allocated',
+        'A4' => 'fix_alloc_orphaned_supplier_allocs',
+        'A5' => 'fix_alloc_orphaned_customer_allocs',
         'A6' => null,   // per-row Quick Allocate UI (no bulk fix)
+    );
+}
+
+/**
+ * Return user-facing descriptions explaining what each fix function does.
+ *
+ * Shown in the UI below the check results and above the fix button so the
+ * user understands the scope and side effects before clicking.
+ *
+ * @return array  check_id => string description
+ */
+function get_fix_descriptions()
+{
+    return array(
+        'P1' => _('Recalculates grn_items.quantity_inv from the sum of supp_invoice_items.quantity for non-voided supplier invoices. Safe to run multiple times.'),
+        'P2' => _('Recalculates purch_order_details.qty_invoiced from actual supplier invoice line quantities. Fixes the "PO line qty_invoiced reset to 0 on PO edit" bug.'),
+        'P3' => _('Recalculates purch_order_details.quantity_received from GRN item quantities.'),
+        'P4' => _('These GRN lines have been invoiced for more than was received. A supplier credit note is required. Use the per-row "Credit Note" link to open FA\'s credit note entry with the supplier pre-filled.'),
+        'PCHAIN' => _('Consolidated purchase chain view (replaces P5/P6/P7). Each row shows PO → GRN → Invoice. Green cells are healthy. Orange cells have a candidate match — click Match to link. Yellow cells have an issue with an Add button. Red cells are orphaned with no candidate, or have item mismatches. Ghost invoices show a Void button.'),
+        'S1' => _('Recalculates sales_order_details.qty_sent from delivery note detail quantities.'),
+        'S2' => _('Recalculates sales_order_details.invoiced from customer invoice detail quantities.'),
+        'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO → Delivery → Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
+        'A1' => _('Recalculates supp_trans.alloc from the sum of supp_allocations.'),
+        'A2' => _('Recalculates debtor_trans.alloc from the sum of cust_allocations.'),
+        'A3' => _('Runs both A1 (supplier) and A2 (customer) alloc recalculations. This resets alloc to the actual allocation total, correcting any over-allocated condition.'),
+        'A4' => _('Deletes orphaned supp_allocations rows where the from- or to-transaction no longer exists. Then recalculates supplier alloc (A1).'),
+        'A5' => _('Deletes orphaned cust_allocations rows where the from- or to-transaction no longer exists. Then recalculates customer alloc (A2).'),
     );
 }
