@@ -36,12 +36,12 @@ function _integ_candidate_grn($supplierId, $stockId, $invDate)
 
     $sql = "SELECT g.id AS grn_item_id, gb.id AS grn_batch_id,
                    gb.delivery_date,
-                   ABS(DATEDIFF(gb.delivery_date, '" . db_escape($invDate) . "')) AS day_diff
+                   ABS(DATEDIFF(gb.delivery_date, " . db_escape($invDate) . ")) AS day_diff
             FROM " . TB_PREF . "grn_items g
             JOIN " . TB_PREF . "grn_batch gb ON gb.id = g.grn_batch_id
             WHERE gb.supplier_id = " . (int)$supplierId . "
-              AND g.item_code = '" . db_escape($stockId) . "'
-              AND ABS(DATEDIFF(gb.delivery_date, '" . db_escape($invDate) . "')) <= 14
+              AND g.item_code = " . db_escape($stockId) . "
+              AND ABS(DATEDIFF(gb.delivery_date, " . db_escape($invDate) . ")) <= 14
               AND g.quantity_inv < g.qty_recd - 0.001
               AND NOT EXISTS (
                   SELECT 1 FROM " . TB_PREF . "supp_invoice_items si2
@@ -92,12 +92,12 @@ function _integ_candidate_po($supplierId, $itemCode, $grnDate)
 
     $sql = "SELECT po.order_no, po.reference,
                    po.ord_date,
-                   ABS(DATEDIFF(po.ord_date, '" . db_escape($grnDate) . "')) AS day_diff
+                   ABS(DATEDIFF(po.ord_date, " . db_escape($grnDate) . ")) AS day_diff
             FROM " . TB_PREF . "purch_orders po
             JOIN " . TB_PREF . "purch_order_details pod ON pod.order_no = po.order_no
             WHERE po.supplier_id = " . (int)$supplierId . "
-              AND pod.item_code = '" . db_escape($itemCode) . "'
-              AND ABS(DATEDIFF(po.ord_date, '" . db_escape($grnDate) . "')) <= 14
+              AND pod.item_code = " . db_escape($itemCode) . "
+              AND ABS(DATEDIFF(po.ord_date, " . db_escape($grnDate) . ")) <= 14
               AND NOT EXISTS (
                   SELECT 1 FROM " . TB_PREF . "grn_batch gb2
                   WHERE gb2.purch_order_no = po.order_no
@@ -134,14 +134,14 @@ function _integ_candidate_so($debtorNo, $stockId, $delDate)
 {
     $sql = "SELECT so.order_no, so.reference,
                    so.ord_date,
-                   ABS(DATEDIFF(so.ord_date, '" . db_escape($delDate) . "')) AS day_diff
+                   ABS(DATEDIFF(so.ord_date, " . db_escape($delDate) . ")) AS day_diff
             FROM " . TB_PREF . "sales_orders so
             JOIN " . TB_PREF . "sales_order_details sod
                 ON sod.order_no = so.order_no AND sod.trans_type = so.trans_type
             WHERE so.debtor_no = " . (int)$debtorNo . "
-              AND sod.stk_code = '" . db_escape($stockId) . "'
+              AND sod.stk_code = " . db_escape($stockId) . "
               AND so.trans_type = 30
-              AND ABS(DATEDIFF(so.ord_date, '" . db_escape($delDate) . "')) <= 14
+              AND ABS(DATEDIFF(so.ord_date, " . db_escape($delDate) . ")) <= 14
               AND NOT EXISTS (
                   SELECT 1 FROM " . TB_PREF . "debtor_trans dt2
                   WHERE dt2.order_ = so.order_no AND dt2.type = 13
