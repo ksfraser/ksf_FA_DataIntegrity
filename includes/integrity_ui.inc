@@ -1458,14 +1458,14 @@ function _chain_cell_actions($row, $key)
     if ($code === 'ghost_inv') {
         // Ghost invoice &mdash; Void button
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
-                 . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
+                 . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
                  . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
                  . _('Void') . '</button>';
     }
 
     if ($code === 'orphan_grn') {
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po"'
-                 . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                 . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
                  . _('Add PO') . '</button>';
     }
 
@@ -1473,14 +1473,14 @@ function _chain_cell_actions($row, $key)
         // Orphaned invoice item
         if ($row['candidate_po_id']) {
             $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po"'
-                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
                      . _('Add GRN (Assoc PO)') . '</button>';
             $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po_inv"'
-                     . ' style="padding:2px 6px;background:#060;color:#fff;border:none">'
+                     . ' style="padding:2px 8px;background:#060;color:#fff;border:1px solid #040;border-radius:2px;cursor:pointer;font-size:11px">'
                      . _('Add GRN (Assoc PO/Inv)') . '</button>';
         } else {
             $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po_grn"'
-                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
                      . _('Add PO + GRN') . '</button>';
         }
     }
@@ -1488,7 +1488,7 @@ function _chain_cell_actions($row, $key)
     if ($code === 'item_mismatch') {
         // Item mismatch &mdash; Disassociate
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
-                 . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
+                 . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
                  . ' onclick="return confirm(\'' . _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.') . '\')">'
                  . _('Disassociate') . '</button>';
     }
