@@ -32,6 +32,8 @@
  */
 function _integ_candidate_grn($supplierId, $stockId, $invDate)
 {
+    echo "<pre>DEBUG [_candidate_grn]: ENTERED supplierId=$supplierId stockId=" . var_export($stockId, true) . " invDate=$invDate</pre>\n";
+
     $sql = "SELECT g.id AS grn_item_id, gb.id AS grn_batch_id,
                    gb.delivery_date,
                    ABS(DATEDIFF(gb.delivery_date, '" . db_escape($invDate) . "')) AS day_diff
@@ -53,8 +55,21 @@ function _integ_candidate_grn($supplierId, $stockId, $invDate)
             ORDER BY day_diff
             LIMIT 1";
 
+    echo "<pre>DEBUG [_candidate_grn]: SQL=" . htmlspecialchars($sql) . "</pre>\n";
     $result = db_query($sql, 'Find candidate GRN for invoice item');
-    return ($result && ($row = db_fetch($result))) ? $row : null;
+    echo "<pre>DEBUG [_candidate_grn]: db_query result=" . ($result ? 'OK' : 'FAIL') . "</pre>\n";
+
+    if ($result) {
+        if ($row = db_fetch($result)) {
+            echo "<pre>DEBUG [_candidate_grn]: FOUND grn_item_id={$row['grn_item_id']} batch_id={$row['grn_batch_id']}</pre>\n";
+            return $row;
+        } else {
+            echo "<pre>DEBUG [_candidate_grn]: db_fetch returned false (no rows)</pre>\n";
+            return null;
+        }
+    }
+    echo "<pre>DEBUG [_candidate_grn]: returning null (no result)</pre>\n";
+    return null;
 }
 
 /**
@@ -73,6 +88,8 @@ function _integ_candidate_grn($supplierId, $stockId, $invDate)
  */
 function _integ_candidate_po($supplierId, $itemCode, $grnDate)
 {
+    echo "<pre>DEBUG [_candidate_po]: ENTERED supplierId=$supplierId itemCode=" . var_export($itemCode, true) . " grnDate=$grnDate</pre>\n";
+
     $sql = "SELECT po.order_no, po.reference,
                    po.ord_date,
                    ABS(DATEDIFF(po.ord_date, '" . db_escape($grnDate) . "')) AS day_diff
@@ -88,8 +105,21 @@ function _integ_candidate_po($supplierId, $itemCode, $grnDate)
             ORDER BY day_diff
             LIMIT 1";
 
+    echo "<pre>DEBUG [_candidate_po]: SQL=" . htmlspecialchars($sql) . "</pre>\n";
     $result = db_query($sql, 'Find candidate PO for GRN batch');
-    return ($result && ($row = db_fetch($result))) ? $row : null;
+    echo "<pre>DEBUG [_candidate_po]: db_query result=" . ($result ? 'OK' : 'FAIL') . "</pre>\n";
+
+    if ($result) {
+        if ($row = db_fetch($result)) {
+            echo "<pre>DEBUG [_candidate_po]: FOUND order_no={$row['order_no']} ref={$row['reference']}</pre>\n";
+            return $row;
+        } else {
+            echo "<pre>DEBUG [_candidate_po]: db_fetch returned false (no rows)</pre>\n";
+            return null;
+        }
+    }
+    echo "<pre>DEBUG [_candidate_po]: returning null (no result)</pre>\n";
+    return null;
 }
 
 /**
@@ -142,10 +172,17 @@ function _integ_candidate_so($debtorNo, $stockId, $delDate)
  *
  * @return array
  */
+function _debug_flush()
+{
+    if (ob_get_level()) ob_flush();
+    flush();
+}
+
 function check_purchase_chain()
 {
     $rows = array();
     echo "<pre>DEBUG [check_purchase_chain]: ENTERED</pre>\n";
+    _debug_flush();
 
     error_log('PCHAIN_FUNC: entered check_purchase_chain()');
 
@@ -267,7 +304,13 @@ function check_purchase_chain()
             // Find candidate matches
             if ($rowType === 'orphan_inv') {
                 echo "<pre>DEBUG [Part1 Row#$part1_count]: calling _integ_candidate_grn(supplier_id={$r['supplier_id']}, stock_id={$r['inv_stock_id']}, inv_date={$r['inv_date']})</pre>\n";
-                $cand = _integ_candidate_grn($r['supplier_id'], $r['inv_stock_id'], $r['inv_date']);
+                _debug_flush();
+                try {
+                    $cand = _integ_candidate_grn($r['supplier_id'], $r['inv_stock_id'], $r['inv_date']);
+                } catch (\Throwable $t) {
+                    echo "<pre>DEBUG [Part1 Row#$part1_count]: _integ_candidate_grn CRASHED: " . htmlspecialchars($t->getMessage()) . " in " . $t->getFile() . ":" . $t->getLine() . "</pre>\n";
+                    $cand = null;
+                }
                 if ($cand) {
                     $row['candidate_grn_batch_id'] = (int)$cand['grn_batch_id'];
                     $row['candidate_grn_item_id']  = (int)$cand['grn_item_id'];
@@ -277,7 +320,12 @@ function check_purchase_chain()
                 }
             } elseif ($rowType === 'orphan_grn') {
                 echo "<pre>DEBUG [Part1 Row#$part1_count]: calling _integ_candidate_po(supplier_id={$r['supplier_id']}, item_code={$r['grn_item_code']}, grn_date={$r['grn_date']})</pre>\n";
-                $cand = _integ_candidate_po($r['supplier_id'], $r['grn_item_code'], $r['grn_date']);
+                try {
+                    $cand = _integ_candidate_po($r['supplier_id'], $r['grn_item_code'], $r['grn_date']);
+                } catch (\Throwable $t) {
+                    echo "<pre>DEBUG [Part1 Row#$part1_count]: _integ_candidate_po CRASHED: " . htmlspecialchars($t->getMessage()) . " in " . $t->getFile() . ":" . $t->getLine() . "</pre>\n";
+                    $cand = null;
+                }
                 if ($cand) {
                     $row['candidate_po_id']  = (int)$cand['order_no'];
                     $row['candidate_po_ref'] = $cand['reference'];
@@ -414,7 +462,12 @@ function check_purchase_chain()
             );
 
             echo "<pre>DEBUG [Part3 Row#$part3_count]: calling _integ_candidate_po(supplier_id={$r['supplier_id']}, item_code={$r['grn_item_code']}, grn_date={$r['grn_date']})</pre>\n";
-            $cand = _integ_candidate_po($r['supplier_id'], $r['grn_item_code'], $r['grn_date']);
+            try {
+                $cand = _integ_candidate_po($r['supplier_id'], $r['grn_item_code'], $r['grn_date']);
+            } catch (\Throwable $t) {
+                echo "<pre>DEBUG [Part3 Row#$part3_count]: _integ_candidate_po CRASHED: " . htmlspecialchars($t->getMessage()) . " in " . $t->getFile() . ":" . $t->getLine() . "</pre>\n";
+                $cand = null;
+            }
             if ($cand) {
                 $row['candidate_po_id']  = (int)$cand['order_no'];
                 $row['candidate_po_ref'] = $cand['reference'];
