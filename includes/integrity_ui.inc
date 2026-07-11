@@ -1,6 +1,6 @@
 <?php
 /**
- * integrity_ui.inc — UI helpers for KSF FA DataIntegrity
+ * integrity_ui.inc &mdash; UI helpers for KSF FA DataIntegrity
  *
  * Provides view/edit link builders, per-check result table renderers, fix
  * action buttons, and the fix-POST handler.  All output uses FA's own HTML
@@ -132,7 +132,7 @@ function integ_fix_button($check_id)
     }
     if (!user_check_access('SA_DATAINTEGRITY_FIX')) {
         echo "<br>\n";
-        echo "<span style='color:#999;font-size:0.9em'>" . _('Fix not available — contact admin for SA_DATAINTEGRITY_FIX permission.') . "</span>\n";
+        echo "<span style='color:#999;font-size:0.9em'>" . _('Fix not available &mdash; contact admin for SA_DATAINTEGRITY_FIX permission.') . "</span>\n";
         return;
     }
     echo "<br>\n";
@@ -255,10 +255,10 @@ function integ_render_check_result($check_id, $result)
  *
  * The $rows parameter is an ordered array of display rows, each describing
  * one pipeline stage bucket.  Each element is an associative array with:
- *   'key'     — key into $data (from get_purchase/sales_pipeline_counts())
- *   'label'   — human-readable stage description
- *   'style'   — 'good' | 'warn' | 'bad' | 'normal' | 'anomalous'
- *   'note'    — optional short tooltip / parenthetical
+ *   'key'     &mdash; key into $data (from get_purchase/sales_pipeline_counts())
+ *   'label'   &mdash; human-readable stage description
+ *   'style'   &mdash; 'good' | 'warn' | 'bad' | 'normal' | 'anomalous'
+ *   'note'    &mdash; optional short tooltip / parenthetical
  *
  * Percentage columns are computed relative to $data['total'].
  *
@@ -280,7 +280,7 @@ function integ_render_pipeline_summary($data, $title, $rows)
         'warn'      => '#996600',// amber
         'bad'       => '#c00',   // red
         'normal'    => '#333',   // neutral (open / in-progress)
-        'anomalous' => '#800080',// purple — should never happen
+        'anomalous' => '#800080',// purple &mdash; should never happen
     );
 
     start_table(TABLESTYLE, "width='70%'");
@@ -352,7 +352,7 @@ function integ_purchase_pipeline_rows()
             'key'   => 'received_not_invoiced',
             'label' => _('GRN received, not yet invoiced'),
             'style' => 'warn',
-            'note'  => _('May include Direct Invoice timeout failures — check P1 tab'),
+            'note'  => _('May include Direct Invoice timeout failures &mdash; check P1 tab'),
         ),
         array(
             'key'   => 'open_po',
@@ -364,7 +364,7 @@ function integ_purchase_pipeline_rows()
             'key'   => 'anomalous',
             'label' => _('Anomalous (payment exists but no invoice traced)'),
             'style' => 'anomalous',
-            'note'  => _('Should be 0 — investigate immediately'),
+            'note'  => _('Should be 0 &mdash; investigate immediately'),
         ),
     );
 }
@@ -419,17 +419,17 @@ function integ_sales_pipeline_rows()
             'key'   => 'anomalous',
             'label' => _('Anomalous (payment exists but no invoice traced)'),
             'style' => 'anomalous',
-            'note'  => _('Should be 0 — investigate immediately'),
+            'note'  => _('Should be 0 &mdash; investigate immediately'),
         ),
     );
 }
 
 // ---------------------------------------------------------------------------
-// Per-check render functions — PURCHASE
+// Per-check render functions &mdash; PURCHASE
 // ---------------------------------------------------------------------------
 
 /**
- * Render P1 — grn_items.quantity_inv drift vs actual supp_invoice_items.
+ * Render P1 &mdash; grn_items.quantity_inv drift vs actual supp_invoice_items.
  *
  * @param  resource $result  DB result from check_purchase_grn_qty_inv_mismatch()
  * @return void
@@ -470,7 +470,7 @@ function integ_render_p1($result)
 }
 
 /**
- * Render P2 — purch_order_details.qty_invoiced drift.
+ * Render P2 &mdash; purch_order_details.qty_invoiced drift.
  *
  * @param  resource $result  DB result from check_purchase_pod_qty_invoiced_mismatch()
  * @return void
@@ -512,7 +512,7 @@ function integ_render_p2($result)
 }
 
 /**
- * Render P3 — purch_order_details.quantity_received drift vs GRN items.
+ * Render P3 &mdash; purch_order_details.quantity_received drift vs GRN items.
  *
  * @param  resource $result  DB result from check_purchase_pod_qty_received_mismatch()
  * @return void
@@ -553,7 +553,7 @@ function integ_render_p3($result)
 }
 
 /**
- * Render P4 — GRN lines where quantity_inv > qty_recd (over-invoiced).
+ * Render P4 &mdash; GRN lines where quantity_inv > qty_recd (over-invoiced).
  * No auto-fix available; view link provided.
  *
  * @param  resource $result  DB result from check_purchase_grn_over_invoiced()
@@ -603,7 +603,7 @@ function integ_render_p4($result)
 }
 
 /**
- * Render P5 — supp_invoice_items with no matching grn_items row.
+ * Render P5 &mdash; supp_invoice_items with no matching grn_items row.
  *
  * @param  resource $result  DB result from check_purchase_orphaned_invoice_items()
  * @return void
@@ -642,7 +642,7 @@ function integ_render_p5($result)
 }
 
 /**
- * Render P6 — grn_batch rows whose parent purch_order_no is missing.
+ * Render P6 &mdash; grn_batch rows whose parent purch_order_no is missing.
  *
  * @param  resource $result  DB result from check_purchase_orphaned_grn_batches()
  * @return void
@@ -679,7 +679,7 @@ function integ_render_p6($result)
 }
 
 /**
- * Render P7 — Supplier invoice headers with no supp_invoice_items lines.
+ * Render P7 &mdash; Supplier invoice headers with no supp_invoice_items lines.
  *
  * @param  resource $result  DB result from check_purchase_ghost_invoices()
  * @return void
@@ -717,11 +717,11 @@ function integ_render_p7($result)
 }
 
 // ---------------------------------------------------------------------------
-// Per-check render functions — SALES
+// Per-check render functions &mdash; SALES
 // ---------------------------------------------------------------------------
 
 /**
- * Render S1 — sales_order_details.qty_sent drift vs delivery note details.
+ * Render S1 &mdash; sales_order_details.qty_sent drift vs delivery note details.
  *
  * @param  resource $result  DB result from check_sales_sod_qty_sent_mismatch()
  * @return void
@@ -762,7 +762,7 @@ function integ_render_s1($result)
 }
 
 /**
- * Render S2 — sales_order_details.invoiced drift vs customer invoice details.
+ * Render S2 &mdash; sales_order_details.invoiced drift vs customer invoice details.
  *
  * @param  resource $result  DB result from check_sales_sod_invoiced_mismatch()
  * @return void
@@ -803,7 +803,7 @@ function integ_render_s2($result)
 }
 
 /**
- * Render S3 — Customer invoices with no debtor_trans_details lines.
+ * Render S3 &mdash; Customer invoices with no debtor_trans_details lines.
  *
  * @param  resource $result  DB result from check_sales_ghost_invoices()
  * @return void
@@ -840,7 +840,7 @@ function integ_render_s3($result)
 }
 
 /**
- * Render S4 — Delivery notes whose parent sales order is missing.
+ * Render S4 &mdash; Delivery notes whose parent sales order is missing.
  *
  * @param  resource $result  DB result from check_sales_orphaned_deliveries()
  * @return void
@@ -876,7 +876,7 @@ function integ_render_s4($result)
 }
 
 /**
- * Render S5 — Delivery notes with no stock_moves entries.
+ * Render S5 &mdash; Delivery notes with no stock_moves entries.
  *
  * @param  resource $result  DB result from check_sales_delivery_missing_stock_moves()
  * @return void
@@ -911,11 +911,11 @@ function integ_render_s5($result)
 }
 
 // ---------------------------------------------------------------------------
-// Per-check render functions — ALLOCATIONS
+// Per-check render functions &mdash; ALLOCATIONS
 // ---------------------------------------------------------------------------
 
 /**
- * Render A1 — supp_trans.alloc drift vs supp_allocations sum.
+ * Render A1 &mdash; supp_trans.alloc drift vs supp_allocations sum.
  *
  * @param  resource $result  DB result from check_alloc_supplier_drift()
  * @return void
@@ -957,7 +957,7 @@ function integ_render_a1($result)
 }
 
 /**
- * Render A2 — debtor_trans.alloc drift vs cust_allocations sum.
+ * Render A2 &mdash; debtor_trans.alloc drift vs cust_allocations sum.
  *
  * @param  resource $result  DB result from check_alloc_customer_drift()
  * @return void
@@ -998,7 +998,7 @@ function integ_render_a2($result)
 }
 
 /**
- * Render A3 — Transactions where alloc exceeds the absolute transaction amount.
+ * Render A3 &mdash; Transactions where alloc exceeds the absolute transaction amount.
  *
  * @param  resource $result  DB result from check_alloc_over_allocated()
  * @return void
@@ -1037,7 +1037,7 @@ function integ_render_a3($result)
 }
 
 /**
- * Render A4 — Orphaned supp_allocations rows.
+ * Render A4 &mdash; Orphaned supp_allocations rows.
  *
  * @param  resource $result  DB result from check_alloc_orphaned_supplier_allocs()
  * @return void
@@ -1099,7 +1099,7 @@ function integ_alloc_link($payment_no, $supplier_id, $label = '')
 }
 
 /**
- * Render A5 — Orphaned cust_allocations rows.
+ * Render A5 &mdash; Orphaned cust_allocations rows.
  *
  * @param  resource $result  DB result from check_alloc_orphaned_customer_allocs()
  * @return void
@@ -1140,7 +1140,7 @@ function integ_render_a5($result)
 }
 
 /**
- * Render A6 — Unallocated supplier payments.
+ * Render A6 &mdash; Unallocated supplier payments.
  *
  * Each row shows payment details.  When match_count = 1 a "Quick Allocate"
  * submit button is rendered alongside the standard Allocation link.
@@ -1170,7 +1170,7 @@ function integ_render_a6($result)
 
         $mc = (int)$row['match_count'];
         if ($mc === 0) {
-            label_cell('<span style="color:#999">' . _('None — manual allocate required') . '</span>');
+            label_cell('<span style="color:#999">' . _('None &mdash; manual allocate required') . '</span>');
         } elseif ($mc === 1) {
             label_cell('<span style="color:#060">' . _('1 invoice matches exactly') . '</span>');
         } else {
@@ -1198,13 +1198,13 @@ function integ_render_a6($result)
 }
 
 // ===========================================================================
-// CONSOLIDATED CHAIN VIEW — purchase (replaces P5/P6/P7)
+// CONSOLIDATED CHAIN VIEW &mdash; purchase (replaces P5/P6/P7)
 // ===========================================================================
 
 /**
  * Render the consolidated purchase chain table.
  *
- * PO | PO↔GRN | GRN | GRN↔Inv | Invoice | Actions
+ * PO | PO&#8596;GRN | GRN | GRN&#8596;Inv | Invoice | Actions
  *
  * @param  array $rows  Output from check_purchase_chain()
  * @return void
@@ -1214,9 +1214,9 @@ function integ_render_purchase_chain($rows)
     $cols = array(
         _('Supplier'),
         _('Purchase Order'),
-        _('PO↔GRN'),
+        _('PO&#8596;GRN'),
         _('GRN'),
-        _('GRN↔Inv'),
+        _('GRN&#8596;Inv'),
         _('Invoice'),
         _('Actions'),
     );
@@ -1243,7 +1243,7 @@ function integ_render_purchase_chain($rows)
         $poCell = _chain_cell_po($row);
         label_cell($poCell);
 
-        // ---- PO↔GRN link status ----
+        // ---- PO&#8596;GRN link status ----
         $linkPoGrn = _chain_cell_po_grn_link($row, $key);
         label_cell($linkPoGrn);
 
@@ -1251,7 +1251,7 @@ function integ_render_purchase_chain($rows)
         $grnCell = _chain_cell_grn($row);
         label_cell($grnCell);
 
-        // ---- GRN↔Inv link status ----
+        // ---- GRN&#8596;Inv link status ----
         $linkGrnInv = _chain_cell_grn_inv_link($row, $key);
         label_cell($linkGrnInv);
 
@@ -1275,9 +1275,9 @@ function integ_render_purchase_chain($rows)
 function _chain_cell_po($row)
 {
     if ($row['po_order_no']) {
-        $bg = '#dfd'; // green — exists
+        $bg = '#dfd'; // green &mdash; exists
         if ($row['row_type'] === 'orphan_inv' && $row['candidate_po_id']) {
-            $bg = '#ffd'; // light yellow — has candidate PO
+            $bg = '#ffd'; // light yellow &mdash; has candidate PO
         }
         $text = integ_view_link(INTEG_ST_PURCHORDER, $row['po_order_no'], '#' . $row['po_order_no']);
         if ($row['po_ref']) {
@@ -1288,17 +1288,17 @@ function _chain_cell_po($row)
         }
         return "<div style='background:$bg;padding:2px 4px'>$text</div>";
     }
-    return '<span style="color:#999">' . _('—') . '</span>';
+    return '<span style="color:#999">' . _('&mdash;') . '</span>';
 }
 
 /**
- * Build the PO↔GRN link status column.
+ * Build the PO&#8596;GRN link status column.
  */
 function _chain_cell_po_grn_link($row, $key)
 {
     $code = $row['row_type'];
 
-    // Linked — green check
+    // Linked &mdash; green check
     if ($row['po_order_no'] && $row['grn_batch_id']) {
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
@@ -1307,7 +1307,7 @@ function _chain_cell_po_grn_link($row, $key)
         return '<span style="color:#c00">' . _('Missing PO') . '</span>';
     }
 
-    return '<span style="color:#999">—</span>';
+    return '<span style="color:#999">&mdash;</span>';
 }
 
 /**
@@ -1320,9 +1320,9 @@ function _chain_cell_grn($row)
     if ($row['grn_batch_id']) {
         $bg = '#dfd';
         if ($code === 'orphan_grn') {
-            $bg = '#ffc'; // yellow — has invoice link but no PO
+            $bg = '#ffc'; // yellow &mdash; has invoice link but no PO
         } elseif ($code === 'item_mismatch') {
-            $bg = '#ffc'; // yellow — linked to PO but item mismatch with invoice
+            $bg = '#ffc'; // yellow &mdash; linked to PO but item mismatch with invoice
         }
         $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']);
         if ($row['grn_item_code']) {
@@ -1335,7 +1335,7 @@ function _chain_cell_grn($row)
     }
 
     if ($code === 'orphan_grn') {
-        // Standalone orphaned GRN — show details even without invoice
+        // Standalone orphaned GRN &mdash; show details even without invoice
         $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']);
         $text .= '<br><small>' . htmlspecialchars($row['grn_item_code']) . '</small>';
         if ($row['grn_qty'] > 0) {
@@ -1344,9 +1344,9 @@ function _chain_cell_grn($row)
         return "<div style='background:#ffc;padding:2px 4px'>$text</div>";
     }
 
-    // No GRN — orphaned invoice item
+    // No GRN &mdash; orphaned invoice item
     if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
-        $bg = '#fdb'; // orange — candidate found
+        $bg = '#fdb'; // orange &mdash; candidate found
         $text = sprintf(_('Candidate GRN #%d'), $row['candidate_grn_batch_id']);
         return "<div style='background:$bg;padding:2px 4px'>$text</div>";
     }
@@ -1355,11 +1355,11 @@ function _chain_cell_grn($row)
         return '<span style="color:#c00">' . _('Missing GRN') . '</span>';
     }
 
-    return '<span style="color:#999">—</span>';
+    return '<span style="color:#999">&mdash;</span>';
 }
 
 /**
- * Build the GRN↔Inv link status column.
+ * Build the GRN&#8596;Inv link status column.
  */
 function _chain_cell_grn_inv_link($row, $key)
 {
@@ -1370,7 +1370,7 @@ function _chain_cell_grn_inv_link($row, $key)
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
 
-    // Item mismatch — red with Disassociate button
+    // Item mismatch &mdash; red with Disassociate button
     if ($code === 'item_mismatch') {
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
              . ' style="padding:2px 6px;background:#c00;color:#fff;border:none">'
@@ -1378,7 +1378,7 @@ function _chain_cell_grn_inv_link($row, $key)
         return $btn;
     }
 
-    // Orphaned invoice with candidate GRN — orange Match button
+    // Orphaned invoice with candidate GRN &mdash; orange Match button
     if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_grn_inv"'
              . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
@@ -1388,12 +1388,12 @@ function _chain_cell_grn_inv_link($row, $key)
         return $btn;
     }
 
-    // Orphaned invoice with no candidate — red
+    // Orphaned invoice with no candidate &mdash; red
     if ($code === 'orphan_inv') {
         return '<span style="color:#c00">' . _('Broken') . '</span>';
     }
 
-    return '<span style="color:#999">—</span>';
+    return '<span style="color:#999">&mdash;</span>';
 }
 
 /**
@@ -1404,10 +1404,10 @@ function _chain_cell_invoice($row)
     $code = $row['row_type'];
 
     if ($code === 'ghost_inv') {
-        // Ghost invoice — red background
+        // Ghost invoice &mdash; red background
         $bg = '#fdd';
         $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
-        $text .= '<br><small>' . _('GHOST — no line items') . '</small>';
+        $text .= '<br><small>' . _('GHOST &mdash; no line items') . '</small>';
         if ($row['inv_total'] > 0) {
             $text .= '<br><small>' . _('Total:') . ' ' . number_format($row['inv_total'], 2) . '</small>';
         }
@@ -1415,7 +1415,7 @@ function _chain_cell_invoice($row)
     }
 
     if ($code === 'item_mismatch') {
-        // Item mismatch — red
+        // Item mismatch &mdash; red
         $bg = '#fdd';
         $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
         $text .= '<br><small>' . _('Item:') . ' ' . htmlspecialchars($row['inv_stock_id']) . '</small>';
@@ -1424,7 +1424,7 @@ function _chain_cell_invoice($row)
     }
 
     if ($code === 'orphan_inv') {
-        // Orphaned — orange if candidate, red if no candidate
+        // Orphaned &mdash; orange if candidate, red if no candidate
         $bg = $row['candidate_grn_batch_id'] ? '#fdb' : '#fdd';
         $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
         if ($row['inv_stock_id']) {
@@ -1435,8 +1435,8 @@ function _chain_cell_invoice($row)
     }
 
     if ($code === 'orphan_grn') {
-        // Standalone GRN with no invoice — blank cell
-        return '<span style="color:#999">—</span>';
+        // Standalone GRN with no invoice &mdash; blank cell
+        return '<span style="color:#999">&mdash;</span>';
     }
 
     // Healthy invoice
@@ -1456,7 +1456,7 @@ function _chain_cell_actions($row, $key)
     $parts = array();
 
     if ($code === 'ghost_inv') {
-        // Ghost invoice — Void button
+        // Ghost invoice &mdash; Void button
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
                  . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
                  . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
@@ -1486,7 +1486,7 @@ function _chain_cell_actions($row, $key)
     }
 
     if ($code === 'item_mismatch') {
-        // Item mismatch — Disassociate
+        // Item mismatch &mdash; Disassociate
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
                  . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
                  . ' onclick="return confirm(\'' . _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.') . '\')">'
@@ -1504,13 +1504,13 @@ function _chain_cell_actions($row, $key)
 }
 
 // ===========================================================================
-// CONSOLIDATED CHAIN VIEW — sales (replaces S3/S4/S5)
+// CONSOLIDATED CHAIN VIEW &mdash; sales (replaces S3/S4/S5)
 // ===========================================================================
 
 /**
  * Render the consolidated sales chain table.
  *
- * SO | SO↔Del | Delivery | Stock Moves | Actions
+ * SO | SO&#8596;Del | Delivery | Stock Moves | Actions
  *
  * @param  array $rows  Output from check_sales_chain()
  * @return void
@@ -1520,7 +1520,7 @@ function integ_render_sales_chain($rows)
     $cols = array(
         _('Customer'),
         _('Sales Order'),
-        _('SO↔Del'),
+        _('SO&#8596;Del'),
         _('Delivery'),
         _('Stock'),
         _('Actions'),
@@ -1548,7 +1548,7 @@ function integ_render_sales_chain($rows)
         $soCell = _sales_cell_so($row);
         label_cell($soCell);
 
-        // SO↔Del link
+        // SO&#8596;Del link
         $linkCell = _sales_cell_so_del_link($row, $key);
         label_cell($linkCell);
 
@@ -1582,7 +1582,7 @@ function _sales_cell_so($row)
         }
         return "<div style='background:#dfd;padding:2px 4px'>$text</div>";
     }
-    return '<span style="color:#999">—</span>';
+    return '<span style="color:#999">&mdash;</span>';
 }
 
 function _sales_cell_so_del_link($row, $key)
@@ -1605,7 +1605,7 @@ function _sales_cell_so_del_link($row, $key)
         return '<span style="color:#c00">' . _('Missing SO') . '</span>';
     }
 
-    return '<span style="color:#999">—</span>';
+    return '<span style="color:#999">&mdash;</span>';
 }
 
 function _sales_cell_delivery($row)
@@ -1626,11 +1626,11 @@ function _sales_cell_delivery($row)
 
     if ($type === 'ghost_inv') {
         $text = integ_view_link(INTEG_ST_SALESINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
-        $text .= '<br><small style="color:#c00">' . _('GHOST — no items') . '</small>';
+        $text .= '<br><small style="color:#c00">' . _('GHOST &mdash; no items') . '</small>';
         return "<div style='background:#fdd;padding:2px 4px'>$text</div>";
     }
 
-    return '<span style="color:#999">—</span>';
+    return '<span style="color:#999">&mdash;</span>';
 }
 
 function _sales_cell_stock($row, $key)
@@ -1641,7 +1641,7 @@ function _sales_cell_stock($row, $key)
     if ($row['del_trans_no'] && $row['row_type'] !== 'missing_stock') {
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
-    return '<span style="color:#999">—</span>';
+    return '<span style="color:#999">&mdash;</span>';
 }
 
 function _sales_cell_actions($row, $key)
@@ -1709,7 +1709,7 @@ function integ_handle_chain_fix_post($chainCheckId)
         return null;
     }
     if (!user_check_access('SA_DATAINTEGRITY_FIX')) {
-        return array('message' => _('Fix not applied — missing SA_DATAINTEGRITY_FIX permission.'), 'popup_url' => null);
+        return array('message' => _('Fix not applied &mdash; missing SA_DATAINTEGRITY_FIX permission.'), 'popup_url' => null);
     }
 
     $rowKey = key($_POST['_fix_action']);
