@@ -93,8 +93,12 @@ if (isset($labels[$active])) {
 // ---- Run the active check and render its result table ----
 if ($active === 'PCHAIN') {
     // Consolidated chain view — returns array, not db result
+    echo "<pre>DEBUG [purchase_page]: PCHAIN tab active, about to call check_purchase_chain()</pre>\n";
+    error_log('PCHAIN: about to call check_purchase_chain()');
     $chainRows = check_purchase_chain();
     $count = count($chainRows);
+    echo "<pre>DEBUG [purchase_page]: check_purchase_chain() returned count=" . $count . "</pre>\n";
+    error_log('PCHAIN: check_purchase_chain returned ' . $count . ' rows');
 
     if ($chain_fix !== null) {
         if ($chain_fix['popup_url']) {
@@ -108,7 +112,9 @@ if ($active === 'PCHAIN') {
         display_warning(sprintf(_('%d chain issue(s) found.'), $count));
     }
 
+    echo "<pre>DEBUG [purchase_page]: calling integ_render_purchase_chain()</pre>\n";
     integ_render_purchase_chain($chainRows);
+    echo "<pre>DEBUG [purchase_page]: integ_render_purchase_chain() finished</pre>\n";
 } elseif (isset($check_funcs[$active])) {
     $result = call_user_func($check_funcs[$active]);
     $count  = db_num_rows($result);
