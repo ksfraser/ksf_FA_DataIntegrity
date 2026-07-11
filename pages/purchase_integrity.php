@@ -2,9 +2,10 @@
 /**
  * purchase_integrity.php — Purchase chain integrity detail page
  *
- * Shows tabbed detail views for checks P1–P4 + PCHAIN.  Each tab runs only the active
- * check query.  Checks that have an auto-fix function show a "Recalculate/Fix"
- * button that POSTs back to this page.
+ * Shows tabbed detail views for checks P1–P7 + PCHAIN.  Each tab runs only the active
+ * check query.  P1–P4 have auto-fix functions (Recalculate/Fix button).
+ * P5–P7 show raw SQL results (view-only, per-row fixes on PCHAIN tab).
+ * PCHAIN shows the consolidated chain view with per-row Add/Match/Disassociate/Void.
  *
  * PHP 5.6+ compatible.
  *
@@ -32,6 +33,9 @@ $tabs = array(
     'P2'     => _('P2 – PO qty_invoiced'),
     'P3'     => _('P3 – PO qty_received'),
     'P4'     => _('P4 – Over-invoiced'),
+    'P5'     => _('P5 – Orphaned inv items'),
+    'P6'     => _('P6 – Orphaned GRN batches'),
+    'P7'     => _('P7 – Ghost invoices'),
     'PCHAIN' => _('PCHAIN – Broken chain'),
 );
 
@@ -40,6 +44,9 @@ $check_funcs = array(
     'P2' => 'check_purchase_pod_qty_invoiced_mismatch',
     'P3' => 'check_purchase_pod_qty_received_mismatch',
     'P4' => 'check_purchase_grn_over_invoiced',
+    'P5' => 'check_purchase_orphaned_invoice_items',
+    'P6' => 'check_purchase_orphaned_grn_batches',
+    'P7' => 'check_purchase_ghost_invoices',
 );
 
 $labels = get_check_labels();

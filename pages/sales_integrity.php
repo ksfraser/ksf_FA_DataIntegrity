@@ -2,9 +2,10 @@
 /**
  * sales_integrity.php — Sales chain integrity detail page
  *
- * Shows tabbed detail views for checks S1–S2 + SCHAIN.  Each tab runs only the active
- * check query.  Checks that have an auto-fix function show a "Recalculate/Fix"
- * button that POSTs back to this page.
+ * Shows tabbed detail views for checks S1–S5 + SCHAIN.  Each tab runs only the active
+ * check query.  S1–S2 have auto-fix functions (Recalculate/Fix button).
+ * S3–S5 show raw SQL results (view-only, per-row fixes on SCHAIN tab).
+ * SCHAIN shows the consolidated chain view with per-row Add/Match/Void actions.
  *
  * PHP 5.6+ compatible.
  *
@@ -30,12 +31,18 @@ $chain_fix  = integ_handle_chain_fix_post('SCHAIN');
 $tabs = array(
     'S1'     => _('S1 – SO qty_sent'),
     'S2'     => _('S2 – SO invoiced'),
+    'S3'     => _('S3 – Ghost invoices'),
+    'S4'     => _('S4 – Orphaned deliveries'),
+    'S5'     => _('S5 – No stock moves'),
     'SCHAIN' => _('SCHAIN – Broken chain'),
 );
 
 $check_funcs = array(
     'S1' => 'check_sales_sod_qty_sent_mismatch',
     'S2' => 'check_sales_sod_invoiced_mismatch',
+    'S3' => 'check_sales_ghost_invoices',
+    'S4' => 'check_sales_orphaned_deliveries',
+    'S5' => 'check_sales_delivery_missing_stock_moves',
 );
 
 $labels = get_check_labels();

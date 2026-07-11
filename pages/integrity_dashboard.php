@@ -71,7 +71,7 @@ br();
 
 echo "<p class='integ-section-title'>" . _('Integrity Check Details') . "</p>\n";
 echo "<p style='color:#555;font-size:0.9em'>"
-    . _('Row-level counts for each of the 18 checks.  Green = no issues.  Red = issues found.  Click Details to view affected rows and apply available fixes.')
+    . _('Row-level counts for each of the 24 checks.  Green = no issues.  Red = issues found.  Click Details to view affected rows and apply available fixes.')
     . "</p>\n";
 
 // Run all 18 checks
@@ -85,13 +85,15 @@ foreach ($counts as $n) {
 }
 
 if ($total_issues === 0) {
-    display_notification(_('All 18 integrity checks passed. No row-level issues found.'));
+    display_notification(_('All integrity checks passed. No row-level issues found.'));
 } else {
     $failing = count(array_filter($counts, function ($n) { return (int)$n > 0; }));
+    $total_checks = count($counts);
     display_warning(sprintf(
-        _('Found %d issue(s) across %d of 18 checks.  See detail pages for fix options.'),
+        _('Found %d issue(s) across %d of %d checks.  See detail pages for fix options.'),
         $total_issues,
-        $failing
+        $failing,
+        $total_checks
     ));
 }
 
@@ -101,9 +103,9 @@ start_table(TABLESTYLE, "width='85%'");
 table_header(array(_('Check'), _('Description'), _('Issues'), _('Auto-fix?'), _('Detail Page')));
 
 // Purchase chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1–P4, PCHAIN)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1–P7, PCHAIN)') . "</td></tr>\n";
 
-$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'PCHAIN');
+$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'PCHAIN');
 $k = 0;
 foreach ($purchase_checks as $id) {
     alt_table_row_color($k);
@@ -120,9 +122,9 @@ foreach ($purchase_checks as $id) {
 }
 
 // Sales chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1–S2, SCHAIN)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1–S5, SCHAIN)') . "</td></tr>\n";
 
-$sales_checks = array('S1', 'S2', 'SCHAIN');
+$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5', 'SCHAIN');
 foreach ($sales_checks as $id) {
     alt_table_row_color($k);
     label_cell('<strong>' . $id . '</strong>');

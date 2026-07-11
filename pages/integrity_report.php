@@ -2,11 +2,9 @@
 /**
  * integrity_report.php — Print-friendly data integrity summary report
  *
- * Runs all checks (P1–P4, PCHAIN, S1–S2, SCHAIN, A1–A5) and renders a single-page HTML document suitable for
+ * Runs all checks (P1–P7, PCHAIN, S1–S5, SCHAIN, A1–A5) and renders a single-page HTML document suitable for
  * browser printing or PDF export.  Does NOT use FA's page()/end_page() chrome
  * so there is no navigation bar — just a clean printable table.
- *
- * Access is controlled via FA's session check before any output.
  *
  * PHP 5.6+ compatible.
  *
@@ -115,8 +113,8 @@ h3          { font-size: 12px; margin-top: 16px; }
     <tbody>
         <?php
         $groups = array(
-            _('Purchase Chain (P1–P4, PCHAIN)') => array('P1','P2','P3','P4','PCHAIN'),
-            _('Sales Chain (S1–S2, SCHAIN)')    => array('S1','S2','SCHAIN'),
+            _('Purchase Chain (P1–P7, PCHAIN)') => array('P1','P2','P3','P4','P5','P6','P7','PCHAIN'),
+            _('Sales Chain (S1–S5, SCHAIN)')    => array('S1','S2','S3','S4','S5','SCHAIN'),
             _('Allocations (A1–A5)')    => array('A1','A2','A3','A4','A5'),
         );
         foreach ($groups as $group_name => $ids) {
@@ -171,8 +169,14 @@ $check_funcs = array(
     'P2' => 'check_purchase_pod_qty_invoiced_mismatch',
     'P3' => 'check_purchase_pod_qty_received_mismatch',
     'P4' => 'check_purchase_grn_over_invoiced',
+    'P5' => 'check_purchase_orphaned_invoice_items',
+    'P6' => 'check_purchase_orphaned_grn_batches',
+    'P7' => 'check_purchase_ghost_invoices',
     'S1' => 'check_sales_sod_qty_sent_mismatch',
     'S2' => 'check_sales_sod_invoiced_mismatch',
+    'S3' => 'check_sales_ghost_invoices',
+    'S4' => 'check_sales_orphaned_deliveries',
+    'S5' => 'check_sales_delivery_missing_stock_moves',
     'A1' => 'check_alloc_supplier_drift',
     'A2' => 'check_alloc_customer_drift',
     'A3' => 'check_alloc_over_allocated',
