@@ -1373,7 +1373,8 @@ function _chain_cell_grn_inv_link($row, $key)
     // Item mismatch &mdash; red with Disassociate button
     if ($code === 'item_mismatch') {
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
-             . ' style="padding:2px 6px;background:#c00;color:#fff;border:none">'
+             . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
+             . ' onclick="return confirm(\'' . _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.') . '\')">'
              . _('Disassociate') . '</button>';
         return $btn;
     }
@@ -1381,7 +1382,7 @@ function _chain_cell_grn_inv_link($row, $key)
     // Orphaned invoice with candidate GRN &mdash; orange Match button
     if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_grn_inv"'
-             . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+             . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
              . _('Match') . '</button>';
         $btn .= '<input type="hidden" name="_cand_grn_batch[' . $key . ']" value="' . (int)$row['candidate_grn_batch_id'] . '">';
         $btn .= '<input type="hidden" name="_cand_grn_item[' . $key . ']" value="' . (int)$row['candidate_grn_item_id'] . '">';
@@ -1485,13 +1486,7 @@ function _chain_cell_actions($row, $key)
         }
     }
 
-    if ($code === 'item_mismatch') {
-        // Item mismatch &mdash; Disassociate
-        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
-                 . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
-                 . ' onclick="return confirm(\'' . _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.') . '\')">'
-                 . _('Disassociate') . '</button>';
-    }
+    // (Disassociate is rendered in the GRN&#8596;Inv column instead)
 
     // View invoice popup link
     if ($row['inv_trans_no']) {
