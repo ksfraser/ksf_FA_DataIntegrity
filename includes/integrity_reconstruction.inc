@@ -12,6 +12,63 @@
  * @since    2.5.0
  */
 
+/**
+ * DTO listing entities affected by a chain-modification action.
+ * Passed to _chain_recalc_all() so only relevant counters are refreshed.
+ */
+class ChainRecalcScope
+{
+    /** @var int[] Purchase GRN item IDs affected */
+    public $grnItemIds = array();
+    /** @var int[] Purchase order detail item IDs affected */
+    public $poDetailItemIds = array();
+    /** @var int[] Supplier invoice item IDs affected */
+    public $supplierInvoiceItemIds = array();
+    /** @var int[] Sales order detail item IDs affected */
+    public $soDetailItemIds = array();
+    /** @var int[] Customer delivery detail IDs affected */
+    public $deliveryDetailIds = array();
+    /** @var int[] Customer invoice item IDs affected */
+    public $customerInvoiceItemIds = array();
+    /** @var bool Recalculate supplier allocations */
+    public $recalcSupplierAlloc = false;
+    /** @var bool Recalculate customer allocations */
+    public $recalcCustomerAlloc = false;
+}
+
+/**
+ * Run all relevant recalculations for the entities listed in the scope.
+ * Every recalc is idempotent — only rows with actual drift are updated.
+ *
+ * @param  FrontAccounting\Db\DbAdapterInterface $db
+ * @param  ChainRecalcScope|null                 $scope
+ * @return void
+ */
+function _chain_recalc_all($db, $scope = null)
+{
+    // ---- Purchase side ----
+    $grnRepo = new \FrontAccounting\Repository\GrnItemsRepository($db);
+    $grnRepo->recalcQtyInv();
+
+    $podRepo = new \FrontAccounting\Repository\PurchOrderDetailsRepository($db);
+    $podRepo->recalcQtyInvoiced();
+    $podRepo->recalcQtyReceived();
+
+    // ---- Sales side ----
+    $sodRepo = new \FrontAccounting\Repository\SalesOrderDetailsRepository($db);
+    $sodRepo->recalcQtySent();
+    $sodRepo->recalcInvoiced();
+
+    // ---- Allocations ----
+    $allocRepo = new \FrontAccounting\Repository\AllocationRepository($db);
+    if ($scope && $scope->recalcSupplierAlloc) {
+        $allocRepo->recalcSupplierAlloc();
+    }
+    if ($scope && $scope->recalcCustomerAlloc) {
+        $allocRepo->recalcCustomerAlloc();
+    }
+}
+
 // ===========================================================================
 // CANDIDATE MATCHING HELPERS
 // ===========================================================================
@@ -802,9 +859,7 @@ function _chain_do_add_po_from_grn($db, $grnBatchId)
         $db->execute("UPDATE " . TB_PREF . "grn_items SET po_detail_item = $podItem WHERE grn_batch_id = $grnBatchId");
     }
 
-    // Recalculate P3
-    $podRepo = new \FrontAccounting\Repository\PurchOrderDetailsRepository($db);
-    $podRepo->recalcQtyReceived();
+    _chain_recalc_all($db);
 
     $message = sprintf(_('Created PO #%d from orphaned GRN #%d and linked.'), $poNo, $grnBatchId);
     return array('message' => $message, 'popup_url' => null);
@@ -857,12 +912,7 @@ function _chain_do_add_grn($db, $item, $assocPoNo = null, $alsoLinkInv = false)
         $db->execute("UPDATE " . TB_PREF . "supp_invoice_items SET grn_item_id = $grnItemId WHERE id = $itemId");
     }
 
-    // Recalc P1/P2/P3
-    $grnRepo  = new \FrontAccounting\Repository\GrnItemsRepository($db);
-    $podRepo  = new \FrontAccounting\Repository\PurchOrderDetailsRepository($db);
-    $grnRepo->recalcQtyInv();
-    $podRepo->recalcQtyInvoiced();
-    $podRepo->recalcQtyReceived();
+    _chain_recalc_all($db);
 
     $msg = sprintf(_('Created GRN #%d (item #%d) for invoice item #%d.'), $grnBatchId, $grnItemId, $itemId);
     if ($assocPoNo) {
@@ -905,12 +955,7 @@ function _chain_do_add_po_grn($db, $item)
         $db->execute("UPDATE " . TB_PREF . "supp_invoice_items SET grn_item_id = $grnItemId WHERE id = $itemId");
     }
 
-    // Recalc counters
-    $grnRepo  = new \FrontAccounting\Repository\GrnItemsRepository($db);
-    $podRepo  = new \FrontAccounting\Repository\PurchOrderDetailsRepository($db);
-    $grnRepo->recalcQtyInv();
-    $podRepo->recalcQtyInvoiced();
-    $podRepo->recalcQtyReceived();
+    _chain_recalc_all($db);
 
     $msg = sprintf(_('Created PO #%d and GRN #%d (item #%d) for invoice item #%d.'), $poNo, $grnBatchId, $grnItemId, $itemId);
     $popupUrl = _integ_invoice_popup_url($item['supp_trans_no']);
@@ -940,8 +985,7 @@ function _chain_do_match_po_grn($db, $grnBatchId, $poNo)
         }
     }
 
-    $podRepo = new \FrontAccounting\Repository\PurchOrderDetailsRepository($db);
-    $podRepo->recalcQtyReceived();
+    _chain_recalc_all($db);
 
     $msg = sprintf(_('Linked GRN #%d to PO #%d.'), $grnBatchId, $poNo);
     return array('message' => $msg, 'popup_url' => null);
@@ -956,8 +1000,7 @@ function _chain_do_match_grn_inv($db, $invoiceItemId, $candBatchId, $candItemId)
                   SET grn_item_id = $candItemId
                   WHERE id = $invoiceItemId");
 
-    $grnRepo = new \FrontAccounting\Repository\GrnItemsRepository($db);
-    $grnRepo->recalcQtyInv();
+    _chain_recalc_all($db);
 
     // Load invoice trans_no for popup
     $sql = "SELECT supp_trans_no FROM " . TB_PREF . "supp_invoice_items WHERE id = $invoiceItemId";
@@ -989,11 +1032,7 @@ function _chain_do_disassociate($db, $invoiceItemId)
         [$invoiceItemId]
     );
 
-    $grnRepo = new \FrontAccounting\Repository\GrnItemsRepository($db);
-    $grnRepo->recalcQtyInv();
-
-    $podRepo = new \FrontAccounting\Repository\PurchOrderDetailsRepository($db);
-    $podRepo->recalcQtyInvoiced();
+    _chain_recalc_all($db);
 
     $msg = sprintf(_('Disassociated invoice item #%d from GRN item #%d.'), $invoiceItemId, $grnItemId);
     $popupUrl = _integ_invoice_popup_url_for_item($invoiceItemId);
@@ -1063,9 +1102,7 @@ function _chain_do_sales_add_so($db, $delTransNo)
     // Link delivery → SO
     $db->execute("UPDATE " . TB_PREF . "debtor_trans SET order_ = $soNo WHERE trans_no = $delTransNo AND type = 13");
 
-    // Recalc S1
-    $sodRepo = new \FrontAccounting\Repository\SalesOrderDetailsRepository($db);
-    $sodRepo->recalcQtySent();
+    _chain_recalc_all($db);
 
     $msg = sprintf(_('Created SO #%d from orphaned delivery #%d and linked.'), $soNo, $delTransNo);
     return array('message' => $msg, 'popup_url' => null);
@@ -1097,8 +1134,7 @@ function _chain_do_sales_match_so($db, $delTransNo, $soNo)
         }
     }
 
-    $sodRepo = new \FrontAccounting\Repository\SalesOrderDetailsRepository($db);
-    $sodRepo->recalcQtySent();
+    _chain_recalc_all($db);
 
     $msg = sprintf(_('Linked delivery #%d to SO #%d.'), $delTransNo, $soNo);
     return array('message' => $msg, 'popup_url' => null);

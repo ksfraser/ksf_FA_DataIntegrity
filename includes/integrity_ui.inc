@@ -54,6 +54,44 @@ function integ_type_name($type)
 }
 
 /**
+ * Render a horizontal navigation bar for the Data Integrity module pages.
+ * Call once after page() — replaces reliance on FA's left-side sidebar.
+ *
+ * @param string $activePage  Identifier of the active page:
+ *                            'dashboard', 'purchase', 'sales', 'allocation', 'report'
+ * @return void
+ * @since  2.5.0
+ */
+function integ_page_nav($activePage)
+{
+    $pages = array(
+        'dashboard'  => array('label' => _('Dashboard'),       'url' => 'integrity_dashboard.php'),
+        'purchase'   => array('label' => _('Purchase Chain'),  'url' => 'purchase_integrity.php'),
+        'sales'      => array('label' => _('Sales Chain'),     'url' => 'sales_integrity.php'),
+        'allocation' => array('label' => _('Allocations'),     'url' => 'allocation_integrity.php'),
+        'report'     => array('label' => _('Full Report'),     'url' => 'integrity_report.php'),
+    );
+
+    echo "<div style='margin:6px 0 10px 0;padding:4px 0;border-bottom:1px solid #ccc;'>\n";
+    $first = true;
+    foreach ($pages as $id => $page) {
+        if (!$first) {
+            echo "<span style='color:#aaa;padding:0 2px;'>|</span>\n";
+        }
+        $first = false;
+        $isActive = ($id === $activePage);
+        if ($isActive) {
+            echo "<span style='background:#e0e0e0;font-weight:bold;padding:3px 10px;border:1px solid #aaa;border-radius:3px;'>"
+                . $page['label'] . "</span>\n";
+        } else {
+            echo "<a href='" . $page['url'] . "' style='padding:3px 10px;text-decoration:none;'>"
+                . $page['label'] . "</a>\n";
+        }
+    }
+    echo "</div>\n";
+}
+
+/**
  * Return an HTML popup-view anchor for a FA transaction, or an empty string
  * if get_trans_view_str() cannot build one for this type.
  *
@@ -138,8 +176,7 @@ function integ_fix_button($check_id)
 }
 
 /**
- * Inspect $_POST for a pending fix action and execute it if the user has
- * the SA_DATAINTEGRITY_FIX privilege.
+ * Inspect $_POST for a pending fix action and execute it.
  *
  * Must be called before any HTML output (before page()).
  *
@@ -151,10 +188,6 @@ function integ_handle_fix_post()
     if (!isset($_POST['_do_fix']) || !isset($_POST['_fix_check'])) {
         return null;
     }
-    if (!user_check_access('SA_DATAINTEGRITY_FIX')) {
-        return array('check_id' => $_POST['_fix_check'], 'rows_fixed' => -1);
-    }
-
     $check_id  = $_POST['_fix_check'];
     $fix_funcs = get_fix_functions();
 

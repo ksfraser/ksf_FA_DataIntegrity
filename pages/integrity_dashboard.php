@@ -38,6 +38,8 @@ $css = "<style>
 
 page(_('Data Integrity Dashboard'), false, false, '', $css);
 
+integ_page_nav('dashboard');
+
 // =========================================================================
 // SECTION 1 — Pipeline / funnel health
 // =========================================================================

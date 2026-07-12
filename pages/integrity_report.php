@@ -24,6 +24,11 @@ include_once($module_root . "/includes/integrity_db.inc");
 include_once($path_to_root . "/includes/ui.inc");
 include_once($module_root . "/includes/integrity_ui.inc");
 
+// Print-friendly navigation
+echo "<div style='margin:10px;font-size:0.9em;'>\n";
+echo "<a href='integrity_dashboard.php'>&laquo; " . _('Back to Dashboard') . "</a>\n";
+echo "</div>\n";
+
 // ---- Collect all data before rendering ----
 $counts      = count_all_integrity_issues();
 $labels      = get_check_labels();
