@@ -88,10 +88,8 @@ if (isset($labels[$active])) {
 
 // ---- Run the active check and render its result table ----
 if ($active === 'SCHAIN') {
-    echo "<pre>DEBUG [sales_page]: SCHAIN tab active, about to call check_sales_chain()</pre>\n";
     $chainRows = check_sales_chain();
     $count = count($chainRows);
-    echo "<pre>DEBUG [sales_page]: check_sales_chain() returned count=" . $count . "</pre>\n";
 
     if ($chain_fix !== null) {
         if ($chain_fix['popup_url']) {
@@ -105,9 +103,7 @@ if ($active === 'SCHAIN') {
         display_warning(sprintf(_('%d chain issue(s) found.'), $count));
     }
 
-    echo "<pre>DEBUG [sales_page]: calling integ_render_sales_chain()</pre>\n";
     integ_render_sales_chain($chainRows);
-    echo "<pre>DEBUG [sales_page]: integ_render_sales_chain() finished</pre>\n";
 } elseif (isset($check_funcs[$active])) {
     $result = call_user_func($check_funcs[$active]);
     $count  = db_num_rows($result);

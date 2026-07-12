@@ -1394,6 +1394,11 @@ function _chain_cell_grn_inv_link($row, $key)
         return '<span style="color:#c00">' . _('Broken') . '</span>';
     }
 
+    // Standalone GRN (valid PO, no invoice) &mdash; no invoice linked
+    if ($code === 'standalone_grn') {
+        return '<span style="color:#c00">' . _('No Invoice') . '</span>';
+    }
+
     return '<span style="color:#999">&mdash;</span>';
 }
 
@@ -1438,6 +1443,11 @@ function _chain_cell_invoice($row)
     if ($code === 'orphan_grn') {
         // Standalone GRN with no invoice &mdash; blank cell
         return '<span style="color:#999">&mdash;</span>';
+    }
+
+    if ($code === 'standalone_grn') {
+        // Valid PO+GRN with no invoice &mdash; blank cell
+        return '<span style="color:#999">' . _('&mdash;') . '</span>';
     }
 
     // Healthy invoice

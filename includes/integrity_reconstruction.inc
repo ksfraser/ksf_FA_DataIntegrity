@@ -32,8 +32,6 @@
  */
 function _integ_candidate_grn($supplierId, $stockId, $invDate)
 {
-    echo "<pre>DEBUG [_candidate_grn]: ENTERED supplierId=$supplierId stockId=" . var_export($stockId, true) . " invDate=$invDate</pre>\n";
-
     $sql = "SELECT g.id AS grn_item_id, gb.id AS grn_batch_id,
                    gb.delivery_date,
                    ABS(DATEDIFF(gb.delivery_date, " . db_escape($invDate) . ")) AS day_diff
@@ -55,20 +53,15 @@ function _integ_candidate_grn($supplierId, $stockId, $invDate)
             ORDER BY day_diff
             LIMIT 1";
 
-    echo "<pre>DEBUG [_candidate_grn]: SQL=" . htmlspecialchars($sql) . "</pre>\n";
     $result = db_query($sql, 'Find candidate GRN for invoice item');
-    echo "<pre>DEBUG [_candidate_grn]: db_query result=" . ($result ? 'OK' : 'FAIL') . "</pre>\n";
 
     if ($result) {
         if ($row = db_fetch($result)) {
-            echo "<pre>DEBUG [_candidate_grn]: FOUND grn_item_id={$row['grn_item_id']} batch_id={$row['grn_batch_id']}</pre>\n";
             return $row;
         } else {
-            echo "<pre>DEBUG [_candidate_grn]: db_fetch returned false (no rows)</pre>\n";
             return null;
         }
     }
-    echo "<pre>DEBUG [_candidate_grn]: returning null (no result)</pre>\n";
     return null;
 }
 
@@ -88,8 +81,6 @@ function _integ_candidate_grn($supplierId, $stockId, $invDate)
  */
 function _integ_candidate_po($supplierId, $itemCode, $grnDate)
 {
-    echo "<pre>DEBUG [_candidate_po]: ENTERED supplierId=$supplierId itemCode=" . var_export($itemCode, true) . " grnDate=$grnDate</pre>\n";
-
     $sql = "SELECT po.order_no, po.reference,
                    po.ord_date,
                    ABS(DATEDIFF(po.ord_date, " . db_escape($grnDate) . ")) AS day_diff
@@ -105,20 +96,15 @@ function _integ_candidate_po($supplierId, $itemCode, $grnDate)
             ORDER BY day_diff
             LIMIT 1";
 
-    echo "<pre>DEBUG [_candidate_po]: SQL=" . htmlspecialchars($sql) . "</pre>\n";
     $result = db_query($sql, 'Find candidate PO for GRN batch');
-    echo "<pre>DEBUG [_candidate_po]: db_query result=" . ($result ? 'OK' : 'FAIL') . "</pre>\n";
 
     if ($result) {
         if ($row = db_fetch($result)) {
-            echo "<pre>DEBUG [_candidate_po]: FOUND order_no={$row['order_no']} ref={$row['reference']}</pre>\n";
             return $row;
         } else {
-            echo "<pre>DEBUG [_candidate_po]: db_fetch returned false (no rows)</pre>\n";
             return null;
         }
     }
-    echo "<pre>DEBUG [_candidate_po]: returning null (no result)</pre>\n";
     return null;
 }
 
@@ -172,18 +158,9 @@ function _integ_candidate_so($debtorNo, $stockId, $delDate)
  *
  * @return array
  */
-function _debug_flush()
-{
-    if (ob_get_level()) ob_flush();
-    flush();
-}
-
 function check_purchase_chain()
 {
     $rows = array();
-    echo "<pre>DEBUG [check_purchase_chain]: ENTERED</pre>\n";
-    _debug_flush();
-
     error_log('PCHAIN_FUNC: entered check_purchase_chain()');
 
     // ---- Part 1: Orphaned invoice items (P5) + item mismatches ----
@@ -238,40 +215,24 @@ function check_purchase_chain()
             ORDER BY s.supp_name, st.tran_date";
 
     error_log('PCHAIN_FUNC: Part 1 SQL: ' . $sql);
-    echo "<pre>DEBUG [Part1]: Running query...</pre>\n";
     $result = db_query($sql, 'Check purchase chain — orphaned items');
     error_log('PCHAIN_FUNC: Part 1 result=' . ($result ? 'OK' : 'FAIL'));
-    echo "<pre>DEBUG [Part1]: result=" . ($result ? 'OK' : 'FAIL') . "</pre>\n";
     if ($result) {
         $part1_count = 0;
-        echo "<pre>DEBUG [Part1]: db_num_rows=" . db_num_rows($result) . "</pre>\n";
         while ($r = db_fetch($result)) {
             $part1_count++;
             error_log('PCHAIN_FUNC: Part1 row#' . $part1_count . ' item_id=' . $r['invoice_item_id'] . ' grn_id=' . ($r['grn_item_id'] ?? 'null') . ' stock=' . $r['inv_stock_id']);
-            echo "<pre>DEBUG [Part1 Row#$part1_count]:"
-                . " inv_item_id=" . var_export($r['invoice_item_id'], true)
-                . " grn_item_id=" . var_export($r['grn_item_id'], true)
-                . " inv_grn_item_id=" . var_export($r['inv_grn_item_id'], true)
-                . " stock=" . var_export($r['inv_stock_id'], true)
-                . " grn_code=" . var_export($r['grn_item_code'], true)
-                . " po_no=" . var_export($r['po_order_no'], true)
-                . " grn_po_no=" . var_export($r['grn_po_no'], true)
-                . "</pre>\n";
 
             $grnExists = ($r['grn_item_id'] !== null);
             $poExists  = ($r['po_order_no'] !== null);
 
             if ($grnExists && $r['grn_item_code'] !== $r['inv_stock_id']) {
                 $rowType = 'item_mismatch';
-                echo "<pre>DEBUG [Part1 Row#$part1_count]: -> item_mismatch (grn_code=" . var_export($r['grn_item_code'], true) . " != inv_stock=" . var_export($r['inv_stock_id'], true) . ")</pre>\n";
             } elseif (!$grnExists) {
                 $rowType = 'orphan_inv';
-                echo "<pre>DEBUG [Part1 Row#$part1_count]: -> orphan_inv (si.grn_item_id=" . var_export($r['inv_grn_item_id'], true) . ", g.id IS NULL)</pre>\n";
             } elseif (!$poExists && $r['grn_po_no'] !== null) {
                 $rowType = 'orphan_grn';
-                echo "<pre>DEBUG [Part1 Row#$part1_count]: -> orphan_grn (grn_po_no=" . var_export($r['grn_po_no'], true) . " but po_no IS NULL)</pre>\n";
             } else {
-                echo "<pre>DEBUG [Part1 Row#$part1_count]: -> HEALTHY, skipping (grnExists=$grnExists poExists=$poExists grn_po_no=" . var_export($r['grn_po_no'], true) . ")</pre>\n";
                 continue; // healthy chain — skip
             }
 
@@ -303,48 +264,33 @@ function check_purchase_chain()
 
             // Find candidate matches
             if ($rowType === 'orphan_inv') {
-                echo "<pre>DEBUG [Part1 Row#$part1_count]: calling _integ_candidate_grn(supplier_id={$r['supplier_id']}, stock_id={$r['inv_stock_id']}, inv_date={$r['inv_date']})</pre>\n";
-                _debug_flush();
                 try {
                     $cand = _integ_candidate_grn($r['supplier_id'], $r['inv_stock_id'], $r['inv_date']);
                 } catch (\Throwable $t) {
-                    echo "<pre>DEBUG [Part1 Row#$part1_count]: _integ_candidate_grn CRASHED: " . htmlspecialchars($t->getMessage()) . " in " . $t->getFile() . ":" . $t->getLine() . "</pre>\n";
                     $cand = null;
                 }
                 if ($cand) {
                     $row['candidate_grn_batch_id'] = (int)$cand['grn_batch_id'];
                     $row['candidate_grn_item_id']  = (int)$cand['grn_item_id'];
-                    echo "<pre>DEBUG [Part1 Row#$part1_count]: candidate GRN found: batch_id={$cand['grn_batch_id']} item_id={$cand['grn_item_id']}</pre>\n";
-                } else {
-                    echo "<pre>DEBUG [Part1 Row#$part1_count]: NO candidate GRN found</pre>\n";
                 }
             } elseif ($rowType === 'orphan_grn') {
-                echo "<pre>DEBUG [Part1 Row#$part1_count]: calling _integ_candidate_po(supplier_id={$r['supplier_id']}, item_code={$r['grn_item_code']}, grn_date={$r['grn_date']})</pre>\n";
                 try {
                     $cand = _integ_candidate_po($r['supplier_id'], $r['grn_item_code'], $r['grn_date']);
                 } catch (\Throwable $t) {
-                    echo "<pre>DEBUG [Part1 Row#$part1_count]: _integ_candidate_po CRASHED: " . htmlspecialchars($t->getMessage()) . " in " . $t->getFile() . ":" . $t->getLine() . "</pre>\n";
                     $cand = null;
                 }
                 if ($cand) {
                     $row['candidate_po_id']  = (int)$cand['order_no'];
                     $row['candidate_po_ref'] = $cand['reference'];
-                    echo "<pre>DEBUG [Part1 Row#$part1_count]: candidate PO found: order_no={$cand['order_no']} ref={$cand['reference']}</pre>\n";
-                } else {
-                    echo "<pre>DEBUG [Part1 Row#$part1_count]: NO candidate PO found</pre>\n";
                 }
             }
 
             $rows[] = $row;
         }
         $added = count($rows);
-        echo "<pre>DEBUG [Part1]: processed $part1_count rows from query, $added added to \$rows array</pre>\n";
         error_log('PCHAIN_FUNC: Part 1 produced ' . $part1_count . ' rows from query, ' . $added . ' added to array');
-    } else {
-        echo "<pre>DEBUG [Part1]: query FAILED or returned FALSE</pre>\n";
     }
 
-    echo "<pre>DEBUG: rows count before Part 2 = " . count($rows) . "</pre>\n";
     error_log('PCHAIN_FUNC: rows count before Part 2 = ' . count($rows));
 
     // ---- Part 2: Ghost invoices (no line items) ----
@@ -367,14 +313,11 @@ function check_purchase_chain()
               AND si.id IS NULL
             ORDER BY s.supp_name, st.tran_date";
 
-    echo "<pre>DEBUG [Part2]: Running ghost-invoice query...</pre>\n";
     $result2 = db_query($sql2, 'Check purchase chain — ghost invoices');
-    echo "<pre>DEBUG [Part2]: result=" . ($result2 ? 'OK' : 'FAIL') . "</pre>\n";
     if ($result2) {
         $part2_count = 0;
         while ($r = db_fetch($result2)) {
             $part2_count++;
-            echo "<pre>DEBUG [Part2 Row#$part2_count]: ghost_inv trans_no={$r['trans_no']} supplier={$r['supp_name']} total={$r['total']}</pre>\n";
             $rows[] = array(
                 'row_type'        => 'ghost_inv',
                 'row_key'         => 'ghost_sup_' . $r['trans_no'],
@@ -401,9 +344,6 @@ function check_purchase_chain()
                 'candidate_grn_item_id'   => null,
             );
         }
-        echo "<pre>DEBUG [Part2]: found $part2_count ghost invoices</pre>\n";
-    } else {
-        echo "<pre>DEBUG [Part2]: query FAILED</pre>\n";
     }
 
     // ---- Part 3: Orphaned GRN batches with no invoice items (standalone P6) ----
@@ -427,14 +367,11 @@ function check_purchase_chain()
               AND po.order_no IS NULL
             ORDER BY s.supp_name, gb.delivery_date";
 
-    echo "<pre>DEBUG [Part3]: Running orphaned GRN batch query...</pre>\n";
     $result3 = db_query($sql3, 'Check purchase chain — standalone orphaned GRN');
-    echo "<pre>DEBUG [Part3]: result=" . ($result3 ? 'OK' : 'FAIL') . "</pre>\n";
     if ($result3) {
         $part3_count = 0;
         while ($r = db_fetch($result3)) {
             $part3_count++;
-            echo "<pre>DEBUG [Part3 Row#$part3_count]: grn_batch={$r['grn_batch_id']} supplier={$r['supp_name']} item_code={$r['grn_item_code']}</pre>\n";
             $row = array(
                 'row_type'        => 'orphan_grn',
                 'row_key'         => 'grn_' . $r['grn_batch_id'],
@@ -461,30 +398,82 @@ function check_purchase_chain()
                 'candidate_grn_item_id'   => null,
             );
 
-            echo "<pre>DEBUG [Part3 Row#$part3_count]: calling _integ_candidate_po(supplier_id={$r['supplier_id']}, item_code={$r['grn_item_code']}, grn_date={$r['grn_date']})</pre>\n";
             try {
                 $cand = _integ_candidate_po($r['supplier_id'], $r['grn_item_code'], $r['grn_date']);
             } catch (\Throwable $t) {
-                echo "<pre>DEBUG [Part3 Row#$part3_count]: _integ_candidate_po CRASHED: " . htmlspecialchars($t->getMessage()) . " in " . $t->getFile() . ":" . $t->getLine() . "</pre>\n";
                 $cand = null;
             }
             if ($cand) {
                 $row['candidate_po_id']  = (int)$cand['order_no'];
                 $row['candidate_po_ref'] = $cand['reference'];
-                echo "<pre>DEBUG [Part3 Row#$part3_count]: candidate PO found: order_no={$cand['order_no']} ref={$cand['reference']}</pre>\n";
-            } else {
-                echo "<pre>DEBUG [Part3 Row#$part3_count]: NO candidate PO found</pre>\n";
             }
 
             $rows[] = $row;
         }
-        echo "<pre>DEBUG [Part3]: found $part3_count orphaned GRN batches</pre>\n";
-    } else {
-        echo "<pre>DEBUG [Part3]: query FAILED</pre>\n";
+    }
+
+    // ---- Part 4: Standalone GRN items with valid PO but no invoice items ----
+    $sql4 = "SELECT
+                gb.id            AS grn_batch_id,
+                gb.delivery_date AS grn_date,
+                gb.reference     AS grn_ref,
+                gb.supplier_id,
+                s.supp_name,
+                gi.id            AS grn_item_id,
+                gi.item_code     AS grn_item_code,
+                gi.description   AS grn_desc,
+                gi.qty_recd      AS grn_qty,
+                gi.quantity_inv  AS grn_qty_inv,
+                pod.order_no     AS po_order_no,
+                pod.po_detail_item,
+                pod.item_code    AS po_item_code,
+                pod.quantity_ordered AS po_qty_ordered,
+                po.reference     AS po_ref
+            FROM " . TB_PREF . "grn_batch gb
+            JOIN " . TB_PREF . "suppliers s ON s.supplier_id = gb.supplier_id
+            JOIN " . TB_PREF . "grn_items gi ON gi.grn_batch_id = gb.id
+            JOIN " . TB_PREF . "purch_order_details pod ON pod.po_detail_item = gi.po_detail_item
+            JOIN " . TB_PREF . "purch_orders po ON po.order_no = pod.order_no
+            WHERE gi.quantity_inv < gi.qty_recd - 0.001
+              AND NOT EXISTS (
+                  SELECT 1 FROM " . TB_PREF . "supp_invoice_items si2
+                  WHERE si2.grn_item_id = gi.id
+                    AND si2.supp_trans_type = 20
+              )
+            ORDER BY s.supp_name, gb.delivery_date";
+
+    $result4 = db_query($sql4, 'Check purchase chain — standalone GRN with PO');
+    if ($result4) {
+        while ($r = db_fetch($result4)) {
+            $rows[] = array(
+                'row_type'        => 'standalone_grn',
+                'row_key'         => 'sgrn_' . $r['grn_item_id'],
+                'supplier_id'     => (int)$r['supplier_id'],
+                'supp_name'       => $r['supp_name'],
+                'po_order_no'     => (int)$r['po_order_no'],
+                'po_ref'          => $r['po_ref'],
+                'po_item_code'    => $r['po_item_code'],
+                'grn_batch_id'    => (int)$r['grn_batch_id'],
+                'grn_item_id'     => (int)$r['grn_item_id'],
+                'grn_ref'         => $r['grn_ref'],
+                'grn_date'        => $r['grn_date'],
+                'grn_item_code'   => $r['grn_item_code'],
+                'grn_qty'         => (float)$r['grn_qty'],
+                'inv_trans_no'    => null,
+                'inv_date'        => null,
+                'inv_ref'         => null,
+                'inv_stock_id'    => null,
+                'inv_qty'         => 0.0,
+                'inv_total'       => 0.0,
+                'candidate_po_id'         => null,
+                'candidate_po_ref'        => null,
+                'candidate_grn_batch_id'  => null,
+                'candidate_grn_item_id'   => null,
+            );
+        }
     }
 
     $finalCount = count($rows);
-    echo "<pre>DEBUG [check_purchase_chain]: EXIT returning " . $finalCount . " rows</pre>\n";
     return $rows;
 }
 
@@ -508,7 +497,6 @@ function check_purchase_chain()
 function check_sales_chain()
 {
     $rows = array();
-    echo "<pre>DEBUG [check_sales_chain]: ENTERED</pre>\n";
 
     // ---- Part 1: Orphaned deliveries (S4) + missing stock moves (S5) ----
     $sql = "SELECT
@@ -550,35 +538,19 @@ function check_sales_chain()
               )
             ORDER BY dm.name, dt.tran_date, dtd.id";
 
-    echo "<pre>DEBUG [SCHAIN Part1]: Running query...</pre>\n";
     $result = db_query($sql, 'Check sales chain — deliveries');
-    echo "<pre>DEBUG [SCHAIN Part1]: result=" . ($result ? 'OK' : 'FAIL') . "</pre>\n";
     if ($result) {
         $part1_count = 0;
-        echo "<pre>DEBUG [SCHAIN Part1]: db_num_rows=" . db_num_rows($result) . "</pre>\n";
         while ($r = db_fetch($result)) {
             $part1_count++;
             $soMissing  = ($r['so_order_no'] < 1 || $r['so_order_no'] === null || $r['so_ref'] === null);
             $stockMissing = ($r['stock_move_id'] === null && $r['del_detail_id'] !== null);
 
-            echo "<pre>DEBUG [SCHAIN Part1 Row#$part1_count]:"
-                . " del_trans_no=" . var_export($r['del_trans_no'], true)
-                . " so_order_no=" . var_export($r['so_order_no'], true)
-                . " so_ref=" . var_export($r['so_ref'], true)
-                . " stock_move_id=" . var_export($r['stock_move_id'], true)
-                . " del_detail_id=" . var_export($r['del_detail_id'], true)
-                . " soMissing=" . var_export($soMissing, true)
-                . " stockMissing=" . var_export($stockMissing, true)
-                . "</pre>\n";
-
             if ($soMissing) {
                 $rowType = 'orphan_del';
-                echo "<pre>DEBUG [SCHAIN Part1 Row#$part1_count]: -> orphan_del</pre>\n";
             } elseif ($stockMissing) {
                 $rowType = 'missing_stock';
-                echo "<pre>DEBUG [SCHAIN Part1 Row#$part1_count]: -> missing_stock</pre>\n";
             } else {
-                echo "<pre>DEBUG [SCHAIN Part1 Row#$part1_count]: -> HEALTHY, skipping</pre>\n";
                 continue;
             }
 
@@ -600,22 +572,15 @@ function check_sales_chain()
             );
 
             if ($rowType === 'orphan_del' && $r['del_item_code']) {
-                echo "<pre>DEBUG [SCHAIN Part1 Row#$part1_count]: calling _integ_candidate_so(debtor_no={$r['debtor_no']}, stock_id={$r['del_item_code']}, del_date={$r['del_date']})</pre>\n";
                 $cand = _integ_candidate_so($r['debtor_no'], $r['del_item_code'], $r['del_date']);
                 if ($cand) {
                     $row['candidate_so_id']  = (int)$cand['order_no'];
                     $row['candidate_so_ref'] = $cand['reference'];
-                    echo "<pre>DEBUG [SCHAIN Part1 Row#$part1_count]: candidate SO found: order_no={$cand['order_no']}</pre>\n";
-                } else {
-                    echo "<pre>DEBUG [SCHAIN Part1 Row#$part1_count]: NO candidate SO found</pre>\n";
                 }
             }
 
             $rows[] = $row;
         }
-        echo "<pre>DEBUG [SCHAIN Part1]: processed $part1_count rows from query</pre>\n";
-    } else {
-        echo "<pre>DEBUG [SCHAIN Part1]: query FAILED</pre>\n";
     }
 
     // ---- Part 2: Ghost customer invoices (S3) ----
@@ -637,14 +602,11 @@ function check_sales_chain()
               AND dtd.id IS NULL
             ORDER BY dm.name, dt.tran_date";
 
-    echo "<pre>DEBUG [SCHAIN Part2]: Running ghost invoice query...</pre>\n";
     $result2 = db_query($sql2, 'Check sales chain — ghost invoices');
-    echo "<pre>DEBUG [SCHAIN Part2]: result=" . ($result2 ? 'OK' : 'FAIL') . "</pre>\n";
     if ($result2) {
         $part2_count = 0;
         while ($r = db_fetch($result2)) {
             $part2_count++;
-            echo "<pre>DEBUG [SCHAIN Part2 Row#$part2_count]: ghost_inv trans_no={$r['trans_no']} customer={$r['customer_name']}</pre>\n";
             $rows[] = array(
                 'row_type'       => 'ghost_inv',
                 'row_key'        => 'ghost_cus_' . $r['trans_no'],
@@ -666,13 +628,9 @@ function check_sales_chain()
                 'candidate_so_ref' => null,
             );
         }
-        echo "<pre>DEBUG [SCHAIN Part2]: found $part2_count ghost invoices</pre>\n";
-    } else {
-        echo "<pre>DEBUG [SCHAIN Part2]: query FAILED</pre>\n";
     }
 
     $finalCount = count($rows);
-    echo "<pre>DEBUG [check_sales_chain]: EXIT returning " . $finalCount . " rows</pre>\n";
     return $rows;
 }
 
@@ -1024,25 +982,12 @@ function _chain_do_disassociate($db, $invoiceItemId)
     $item = $items ? $items[0] : null;
     $grnItemId = $item ? (int)$item['grn_item_id'] : 0;
 
-    // Clear GRN↔Inv link via adapter
-    $db->execute("UPDATE {$prefix}supp_invoice_items SET grn_item_id = NULL WHERE id = ?", [$invoiceItemId]);
-
-    // If GRN exists and has no PO, also clear PO↔GRN link
-    if ($grnItemId) {
-        $rows = $db->query(
-            "SELECT gi.grn_batch_id, gb.purch_order_no
-             FROM {$prefix}grn_items gi
-             JOIN {$prefix}grn_batch gb ON gb.id = gi.grn_batch_id
-             WHERE gi.id = ?",
-            [$grnItemId]
-        );
-        if (!empty($rows)) {
-            $grnRow = $rows[0];
-            if (!$grnRow['purch_order_no']) {
-                $db->execute("UPDATE {$prefix}grn_items SET po_detail_item = NULL WHERE id = ?", [$grnItemId]);
-            }
-        }
-    }
+    // Clear both GRN and PO links from the invoice item.
+    // The PO↔GRN relationship stays intact — only the invoice is detached.
+    $db->execute(
+        "UPDATE {$prefix}supp_invoice_items SET grn_item_id = NULL, po_detail_item_id = NULL WHERE id = ?",
+        [$invoiceItemId]
+    );
 
     $grnRepo = new \FrontAccounting\Repository\GrnItemsRepository($db);
     $grnRepo->recalcQtyInv();
