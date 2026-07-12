@@ -1016,26 +1016,30 @@ function _chain_do_match_grn_inv($db, $invoiceItemId, $candBatchId, $candItemId)
  */
 function _chain_do_disassociate($db, $invoiceItemId)
 {
-    // Load current links
-    $sql = "SELECT grn_item_id FROM " . TB_PREF . "supp_invoice_items WHERE id = $invoiceItemId";
-    $r = db_query($sql, 'Load invoice item links');
-    $grnItemId = ($r && ($row = db_fetch($r))) ? (int)$row['grn_item_id'] : 0;
+    $prefix = $db->getTablePrefix();
 
-    // Clear GRN↔Inv link
-    $db->execute("UPDATE " . TB_PREF . "supp_invoice_items SET grn_item_id = NULL WHERE id = $invoiceItemId");
+    // Load current links using Repository
+    $repo = new \FrontAccounting\Repository\SupplierInvoiceItemRepository($db);
+    $items = $repo->findWhere(array('id' => $invoiceItemId));
+    $item = $items ? $items[0] : null;
+    $grnItemId = $item ? (int)$item['grn_item_id'] : 0;
+
+    // Clear GRN↔Inv link via adapter
+    $db->execute("UPDATE {$prefix}supp_invoice_items SET grn_item_id = NULL WHERE id = ?", [$invoiceItemId]);
 
     // If GRN exists and has no PO, also clear PO↔GRN link
     if ($grnItemId) {
-        $sql2 = "SELECT gi.grn_batch_id, gb.purch_order_no
-                 FROM " . TB_PREF . "grn_items gi
-                 JOIN " . TB_PREF . "grn_batch gb ON gb.id = gi.grn_batch_id
-                 WHERE gi.id = $grnItemId";
-        $r2 = db_query($sql2, 'Check GRN PO link');
-        if ($r2 && ($grnRow = db_fetch($r2))) {
-            $grnBatchId = (int)$grnRow['grn_batch_id'];
+        $rows = $db->query(
+            "SELECT gi.grn_batch_id, gb.purch_order_no
+             FROM {$prefix}grn_items gi
+             JOIN {$prefix}grn_batch gb ON gb.id = gi.grn_batch_id
+             WHERE gi.id = ?",
+            [$grnItemId]
+        );
+        if (!empty($rows)) {
+            $grnRow = $rows[0];
             if (!$grnRow['purch_order_no']) {
-                $db->execute("UPDATE " . TB_PREF . "grn_items SET po_detail_item = NULL WHERE id = $grnItemId");
-                // Keep GRN batch purch_order_no as-is (might be valid but item link is broken)
+                $db->execute("UPDATE {$prefix}grn_items SET po_detail_item = NULL WHERE id = ?", [$grnItemId]);
             }
         }
     }
