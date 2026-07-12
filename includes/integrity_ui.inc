@@ -130,11 +130,6 @@ function integ_fix_button($check_id)
     if (empty($fix_funcs[$check_id])) {
         return;
     }
-    if (!user_check_access('SA_DATAINTEGRITY_FIX')) {
-        echo "<br>\n";
-        echo "<span style='color:#999;font-size:0.9em'>" . _('Fix not available &mdash; contact admin for SA_DATAINTEGRITY_FIX permission.') . "</span>\n";
-        return;
-    }
     echo "<br>\n";
     echo "<input type='hidden' name='_fix_check' value='" . htmlspecialchars($check_id) . "'>\n";
     submit('_do_fix', _('Recalculate / Fix'), true,

@@ -992,6 +992,9 @@ function _chain_do_disassociate($db, $invoiceItemId)
     $grnRepo = new \FrontAccounting\Repository\GrnItemsRepository($db);
     $grnRepo->recalcQtyInv();
 
+    $podRepo = new \FrontAccounting\Repository\PurchOrderDetailsRepository($db);
+    $podRepo->recalcQtyInvoiced();
+
     $msg = sprintf(_('Disassociated invoice item #%d from GRN item #%d.'), $invoiceItemId, $grnItemId);
     $popupUrl = _integ_invoice_popup_url_for_item($invoiceItemId);
     return array('message' => $msg, 'popup_url' => $popupUrl);
