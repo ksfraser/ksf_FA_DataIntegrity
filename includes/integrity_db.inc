@@ -238,10 +238,12 @@ function check_purchase_grn_over_invoiced()
             g.quantity_inv                      AS qty_invoiced_stored,
             COALESCE(inv_sum.inv_qty, 0)        AS qty_invoiced_actual,
             COALESCE(cn_sum.cn_qty, 0)          AS qty_credited,
+            -- cn_qty is already negative (FA negates it for ST_SUPPCREDIT),
+            -- so net = inv_qty + cn_qty (e.g. 1 + (-1) = 0)
             COALESCE(inv_sum.inv_qty, 0)
-                - COALESCE(cn_sum.cn_qty, 0)    AS net_invoiced,
+                + COALESCE(cn_sum.cn_qty, 0)    AS net_invoiced,
             COALESCE(inv_sum.inv_qty, 0)
-                - COALESCE(cn_sum.cn_qty, 0)
+                + COALESCE(cn_sum.cn_qty, 0)
                 - g.qty_recd                    AS over_by
         FROM &TB_PREF&grn_items g
         JOIN &TB_PREF&grn_batch gb  ON g.grn_batch_id = gb.id
@@ -258,7 +260,7 @@ function check_purchase_grn_over_invoiced()
             WHERE supp_trans_type = 21
             GROUP BY grn_item_id
         ) cn_sum ON cn_sum.grn_item_id = g.id
-        WHERE COALESCE(inv_sum.inv_qty, 0) - COALESCE(cn_sum.cn_qty, 0) > g.qty_recd + " . INTEG_DELTA . "
+        WHERE COALESCE(inv_sum.inv_qty, 0) + COALESCE(cn_sum.cn_qty, 0) > g.qty_recd + " . INTEG_DELTA . "
         ORDER BY s.supp_name, gb.delivery_date";
 
     return db_query($sql, 'Check P4: Over-invoiced GRN lines (net of credit notes)');
@@ -688,6 +690,157 @@ function check_sales_delivery_missing_stock_moves()
         ORDER BY dm.name, dt.tran_date";
 
     return db_query($sql, 'Check S5: Deliveries with no stock moves');
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * CHECK S6 &mdash; Sales orders with lines not yet fully delivered.
+ *
+ * Shows healthy SOs still awaiting delivery (partial or full).
+ * Supports optional filtering by customer debtors_master.debtor_no
+ * and/or cust_branch.branch_code for CRM module reuse.
+ *
+ * @param  int|null $debtorNo   Optional customer debtor_no filter
+ * @param  int|null $branchCode Optional branch code filter
+ * @return resource
+ * @since  2.5.0
+ */
+function check_sales_so_not_delivered($debtorNo = null, $branchCode = null)
+{
+    $where  = " AND so.trans_type = 30\n";
+    $where .= $debtorNo   ? " AND so.debtor_no   = " . (int)$debtorNo   . "\n" : '';
+    $where .= $branchCode ? " AND so.branch_code = " . (int)$branchCode . "\n" : '';
+
+    $sql = "
+        SELECT
+            sod.order_no,
+            so.reference        AS so_ref,
+            so.ord_date,
+            dm.debtor_no,
+            dm.name             AS customer_name,
+            sod.stk_code,
+            sod.description,
+            sod.quantity        AS qty_ordered,
+            sod.qty_sent,
+            sod.quantity - sod.qty_sent AS qty_outstanding,
+            sod.unit_price
+        FROM &TB_PREF&sales_order_details sod
+        JOIN &TB_PREF&sales_orders so
+            ON so.order_no   = sod.order_no
+           AND so.trans_type = sod.trans_type
+        JOIN &TB_PREF&debtors_master dm
+            ON dm.debtor_no = so.debtor_no
+        WHERE sod.quantity > sod.qty_sent + " . INTEG_DELTA . "
+          $where
+        ORDER BY dm.name, so.reference";
+
+    return db_query($sql, 'Check S6: Sales orders not delivered');
+}
+
+/**
+ * CHECK S7 &mdash; Delivery-note items not yet fully invoiced.
+ *
+ * Shows debtor_trans_details rows from delivery notes (type 13) where
+ * the qty_done exceeds the total invoiced qty on the same sales-order
+ * detail line (via src_id).  Supports optional customer/branch filter.
+ *
+ * @param  int|null $debtorNo   Optional customer debtor_no filter
+ * @param  int|null $branchCode Optional branch code filter
+ * @return resource
+ * @since  2.5.0
+ */
+function check_sales_delivery_not_invoiced($debtorNo = null, $branchCode = null)
+{
+    $where  = " AND dtd.debtor_trans_type = 13\n";
+    $where .= $debtorNo   ? " AND dt.debtor_no    = " . (int)$debtorNo   . "\n" : '';
+    $where .= $branchCode ? " AND dt.branch_code  = " . (int)$branchCode . "\n" : '';
+
+    $sql = "
+        SELECT
+            dt.trans_no           AS delivery_no,
+            dt.reference          AS delivery_ref,
+            dt.tran_date          AS delivery_date,
+            dt.order_             AS sales_order_no,
+            so.reference          AS so_ref,
+            dt.debtor_no,
+            dm.name               AS customer_name,
+            dtd.stock_id,
+            dtd.description,
+            dtd.qty_done          AS qty_delivered,
+            COALESCE(inv_sum.qty_invoiced, 0) AS qty_invoiced,
+            dtd.qty_done - COALESCE(inv_sum.qty_invoiced, 0) AS uninvoiced_qty,
+            dtd.unit_price
+        FROM &TB_PREF&debtor_trans_details dtd
+        JOIN &TB_PREF&debtor_trans dt
+            ON dt.trans_no = dtd.debtor_trans_no
+           AND dt.type     = dtd.debtor_trans_type
+        JOIN &TB_PREF&debtors_master dm
+            ON dm.debtor_no = dt.debtor_no
+        LEFT JOIN &TB_PREF&sales_orders so
+            ON so.order_no   = dt.order_
+           AND so.trans_type = 30
+        LEFT JOIN (
+            SELECT src_id, SUM(quantity) AS qty_invoiced
+            FROM &TB_PREF&debtor_trans_details
+            WHERE debtor_trans_type = 10
+            GROUP BY src_id
+        ) inv_sum ON inv_sum.src_id = dtd.src_id
+        WHERE dtd.debtor_trans_type = 13
+          AND dt.ov_amount != 0
+          AND dtd.qty_done > COALESCE(inv_sum.qty_invoiced, 0) + " . INTEG_DELTA . "
+          $where
+        ORDER BY dm.name, dt.tran_date";
+
+    return db_query($sql, 'Check S7: Delivery items not invoiced');
+}
+
+/**
+ * CHECK S8 &mdash; Customer invoices not yet fully paid or credited (returned).
+ *
+ * Shows debtor_trans type 10 invoices where alloc < total.
+ * Supports optional customer/branch filter.
+ *
+ * @param  int|null $debtorNo   Optional customer debtor_no filter
+ * @param  int|null $branchCode Optional branch code filter
+ * @return resource
+ * @since  2.5.0
+ */
+function check_sales_invoice_unpaid($debtorNo = null, $branchCode = null)
+{
+    $where  = " AND dt.type = 10\n";
+    $where .= $debtorNo   ? " AND dt.debtor_no   = " . (int)$debtorNo   . "\n" : '';
+    $where .= $branchCode ? " AND dt.branch_code = " . (int)$branchCode . "\n" : '';
+
+    $sql = "
+        SELECT
+            dt.trans_no            AS inv_no,
+            dt.reference,
+            dt.tran_date,
+            dt.due_date,
+            dt.debtor_no,
+            dm.name                AS customer_name,
+            dt.ov_amount,
+            dt.ov_gst,
+            dt.ov_freight,
+            dt.ov_freight_tax,
+            dt.ov_discount,
+            dt.alloc,
+            dt.ov_amount + dt.ov_gst + dt.ov_freight
+                + dt.ov_freight_tax + dt.ov_discount  AS total,
+            dt.ov_amount + dt.ov_gst + dt.ov_freight
+                + dt.ov_freight_tax + dt.ov_discount - dt.alloc AS unpaid
+        FROM &TB_PREF&debtor_trans dt
+        JOIN &TB_PREF&debtors_master dm
+            ON dm.debtor_no = dt.debtor_no
+        WHERE dt.type = 10
+          AND dt.ov_amount != 0
+          AND dt.alloc < dt.ov_amount + dt.ov_gst + dt.ov_freight
+              + dt.ov_freight_tax + dt.ov_discount - " . INTEG_DELTA . "
+          $where
+        ORDER BY dm.name, dt.tran_date";
+
+    return db_query($sql, 'Check S8: Customer invoices unpaid');
 }
 
 // ===========================================================================
@@ -1416,6 +1569,9 @@ function count_all_integrity_issues()
         'S3' => 'check_sales_ghost_invoices',
         'S4' => 'check_sales_orphaned_deliveries',
         'S5' => 'check_sales_delivery_missing_stock_moves',
+        'S6' => 'check_sales_so_not_delivered',
+        'S7' => 'check_sales_delivery_not_invoiced',
+        'S8' => 'check_sales_invoice_unpaid',
         'SCHAIN' => 'check_sales_chain',
         'A1' => 'check_alloc_supplier_drift',
         'A2' => 'check_alloc_customer_drift',
@@ -1463,6 +1619,9 @@ function get_check_labels()
         'S3' => _('Ghost customer invoices (no line items)'),
         'S4' => _('Orphaned delivery notes (missing sales order)'),
         'S5' => _('Delivery notes with no stock moves'),
+        'S6' => _('Sales orders not delivered (outstanding)'),
+        'S7' => _('Delivery items not invoiced'),
+        'S8' => _('Customer invoices not paid or credited'),
         'PCHAIN' => _('Purchase chain — broken links (replaces P5/P6/P7)'),
         'SCHAIN' => _('Sales chain — broken links (replaces S3/S4/S5)'),
         'A1' => _('Supplier alloc drift (alloc vs supp_allocations)'),
@@ -1498,6 +1657,9 @@ function get_fix_functions()
         'S3' => null,  // ghost invoices: manual per-row fix (see SCHAIN)
         'S4' => null,  // orphaned deliveries: manual per-row fix (see SCHAIN)
         'S5' => null,  // missing stock moves: manual per-row fix (see SCHAIN)
+        'S6' => null,  // view-only — no auto-fix (healthy in-progress chain)
+        'S7' => null,  // view-only — no auto-fix (healthy in-progress chain)
+        'S8' => null,  // view-only — no auto-fix (healthy in-progress chain)
         'SCHAIN' => null, // per-row chain fix actions (no bulk)
         'A1' => 'fix_alloc_supplier_drift',
         'A2' => 'fix_alloc_customer_drift',
@@ -1535,6 +1697,9 @@ function get_fix_descriptions()
         'S3' => _('Customer invoice headers with no line items (ghost invoices). Use per-row Void on the SCHAIN tab.'),
         'S4' => _('Delivery notes whose order_ references a sales order that no longer exists. Use per-row fix actions on the SCHAIN tab.'),
         'S5' => _('Delivery notes with no matching stock_moves entries. Use per-row fix actions on the SCHAIN tab.'),
+        'S6' => _('Sales orders with line items still awaiting delivery. These are healthy in-progress chains — no fix needed.'),
+        'S7' => _('Delivery-note items where the delivered quantity has not yet been fully invoiced. Healthy in-progress chains — no fix needed.'),
+        'S8' => _('Customer invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
         'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO → Delivery → Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
         'A1' => _('Recalculates supp_trans.alloc from the sum of supp_allocations.'),
         'A2' => _('Recalculates debtor_trans.alloc from the sum of cust_allocations.'),

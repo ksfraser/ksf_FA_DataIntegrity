@@ -34,6 +34,9 @@ $tabs = array(
     'S3'     => _('S3 – Ghost invoices'),
     'S4'     => _('S4 – Orphaned deliveries'),
     'S5'     => _('S5 – No stock moves'),
+    'S6'     => _('S6 – Undelivered SOs'),
+    'S7'     => _('S7 – Uninvoiced deliveries'),
+    'S8'     => _('S8 – Unpaid invoices'),
     'SCHAIN' => _('SCHAIN – Broken chain'),
 );
 
@@ -43,6 +46,9 @@ $check_funcs = array(
     'S3' => 'check_sales_ghost_invoices',
     'S4' => 'check_sales_orphaned_deliveries',
     'S5' => 'check_sales_delivery_missing_stock_moves',
+    'S6' => 'check_sales_so_not_delivered',
+    'S7' => 'check_sales_delivery_not_invoiced',
+    'S8' => 'check_sales_invoice_unpaid',
 );
 
 $labels = get_check_labels();

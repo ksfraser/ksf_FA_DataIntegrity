@@ -260,6 +260,9 @@ function integ_render_check_result($check_id, $result)
         'S3' => 'integ_render_s3',
         'S4' => 'integ_render_s4',
         'S5' => 'integ_render_s5',
+        'S6' => 'integ_render_s6',
+        'S7' => 'integ_render_s7',
+        'S8' => 'integ_render_s8',
         'A1' => 'integ_render_a1',
         'A2' => 'integ_render_a2',
         'A3' => 'integ_render_a3',
@@ -1061,6 +1064,134 @@ function integ_render_s5($result)
         label_cell(number_format($row['total'], 2));
         label_cell(integ_view_link(INTEG_ST_CUSTDELIVERY, $row['trans_no']));
         label_cell(integ_edit_link(INTEG_ST_CUSTDELIVERY, $row['trans_no']));
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render S6 &mdash; Sales orders not yet fully delivered.
+ *
+ * @param  resource $result  DB result from check_sales_so_not_delivered()
+ * @return void
+ * @since  2.5.0
+ */
+function integ_render_s6($result)
+{
+    $cols = array(
+        _('Order #'), _('Reference'), _('Date'), _('Customer'),
+        _('Item Code'), _('Description'),
+        _('Qty Ordered'), _('Qty Sent'), _('Outstanding'),
+        _('Unit Price'), _('View Order'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        alt_table_row_color($k);
+        label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['order_no'], '#' . $row['order_no']));
+        label_cell(htmlspecialchars($row['so_ref']));
+        label_cell($row['ord_date']);
+        label_cell(htmlspecialchars($row['customer_name']));
+        label_cell(htmlspecialchars($row['stk_code']));
+        label_cell(htmlspecialchars($row['description']));
+        label_cell(number_format($row['qty_ordered'], 2));
+        label_cell(number_format($row['qty_sent'], 2));
+        label_cell('<span style="color:#a50">' . number_format($row['qty_outstanding'], 2) . '</span>');
+        label_cell(number_format($row['unit_price'], 4));
+        label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['order_no']));
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render S7 &mdash; Delivery-note items not yet fully invoiced.
+ *
+ * @param  resource $result  DB result from check_sales_delivery_not_invoiced()
+ * @return void
+ * @since  2.5.0
+ */
+function integ_render_s7($result)
+{
+    $cols = array(
+        _('Delivery #'), _('Delivery Ref'), _('Date'), _('Customer'),
+        _('SO Ref'), _('Item Code'), _('Description'),
+        _('Qty Delivered'), _('Qty Invoiced'), _('Uninvoiced'),
+        _('View Delivery'), _('View SO'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        alt_table_row_color($k);
+        label_cell(integ_view_link(INTEG_ST_CUSTDELIVERY, $row['delivery_no'], '#' . $row['delivery_no']));
+        label_cell(htmlspecialchars($row['delivery_ref']));
+        label_cell($row['delivery_date']);
+        label_cell(htmlspecialchars($row['customer_name']));
+        label_cell(htmlspecialchars($row['so_ref']));
+        label_cell(htmlspecialchars($row['stock_id']));
+        label_cell(htmlspecialchars($row['description']));
+        label_cell(number_format($row['qty_delivered'], 2));
+        label_cell(number_format($row['qty_invoiced'], 2));
+        label_cell('<span style="color:#a50">' . number_format($row['uninvoiced_qty'], 2) . '</span>');
+        label_cell(integ_view_link(INTEG_ST_CUSTDELIVERY, $row['delivery_no']));
+        label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['sales_order_no']));
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render S8 &mdash; Customer invoices not yet paid or credited.
+ *
+ * @param  resource $result  DB result from check_sales_invoice_unpaid()
+ * @return void
+ * @since  2.5.0
+ */
+function integ_render_s8($result)
+{
+    $cols = array(
+        _('Invoice #'), _('Reference'), _('Date'), _('Due Date'),
+        _('Customer'),
+        _('Amount'), _('GST'), _('Freight'), _('Total'), _('Allocated'), _('Unpaid'),
+        _('View Invoice'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        $total  = (float)$row['total'];
+        $unpaid = (float)$row['unpaid'];
+        alt_table_row_color($k);
+        label_cell(integ_view_link(INTEG_ST_SALESINVOICE, $row['inv_no'], '#' . $row['inv_no']));
+        label_cell(htmlspecialchars($row['reference']));
+        label_cell($row['tran_date']);
+        label_cell($row['due_date']);
+        label_cell(htmlspecialchars($row['customer_name']));
+        label_cell(number_format($row['ov_amount'], 2));
+        label_cell(number_format($row['ov_gst'], 2));
+        label_cell(number_format($row['ov_freight'], 2));
+        label_cell(number_format($total, 2));
+        label_cell(number_format($row['alloc'], 2));
+        label_cell('<span style="color:' . ($unpaid > 0 ? '#c00' : '#080') . '">'
+            . number_format($unpaid, 2) . '</span>');
+        label_cell(integ_view_link(INTEG_ST_SALESINVOICE, $row['inv_no']));
         end_row();
     }
 

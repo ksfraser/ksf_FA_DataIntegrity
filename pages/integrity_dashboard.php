@@ -124,9 +124,9 @@ foreach ($purchase_checks as $id) {
 }
 
 // Sales chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1–S5, SCHAIN)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1–S8, SCHAIN)') . "</td></tr>\n";
 
-$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5', 'SCHAIN');
+$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'SCHAIN');
 foreach ($sales_checks as $id) {
     alt_table_row_color($k);
     label_cell('<strong>' . $id . '</strong>');
