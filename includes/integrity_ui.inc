@@ -1363,7 +1363,6 @@ function _chain_cell_grn($row)
  */
 function _chain_cell_grn_inv_link($row, $key)
 {
-    $hasFix = user_check_access('SA_DATAINTEGRITY_FIX');
     $code = $row['row_type'];
 
     if ($row['inv_trans_no'] && $row['grn_batch_id']
@@ -1373,9 +1372,6 @@ function _chain_cell_grn_inv_link($row, $key)
 
     // Item mismatch &mdash; red with Disassociate button
     if ($code === 'item_mismatch') {
-        if (!$hasFix) {
-            return '<span style="color:#c00;font-size:0.9em">' . _('Mismatch') . '</span>';
-        }
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
              . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
              . ' onclick="return confirm(\'' . _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.') . '\')">'
@@ -1385,9 +1381,6 @@ function _chain_cell_grn_inv_link($row, $key)
 
     // Orphaned invoice with candidate GRN &mdash; orange Match button
     if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
-        if (!$hasFix) {
-            return '<span style="color:#e80;font-size:0.9em">' . _('Candidate GRN #') . (int)$row['candidate_grn_batch_id'] . '</span>';
-        }
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_grn_inv"'
              . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
              . _('Match') . '</button>';
@@ -1460,49 +1453,38 @@ function _chain_cell_invoice($row)
  */
 function _chain_cell_actions($row, $key)
 {
-    $hasFix = user_check_access('SA_DATAINTEGRITY_FIX');
     $code = $row['row_type'];
     $parts = array();
 
     if ($code === 'ghost_inv') {
-        if (!$hasFix) {
-            $parts[] = '<span style="color:#c00;font-size:0.9em">' . _('Ghost') . '</span>';
-        } else {
-            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
-                     . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
-                     . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
-                     . _('Void') . '</button>';
-        }
+        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
+                 . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
+                 . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
+                 . _('Void') . '</button>';
     }
 
     if ($code === 'orphan_grn') {
-        if ($hasFix) {
-            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po"'
-                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                     . _('Add PO') . '</button>';
-        }
+        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po"'
+                 . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
+                 . _('Add PO') . '</button>';
     }
 
     if ($code === 'orphan_inv') {
-        if (!$hasFix) {
-            $parts[] = '<span style="color:#999;font-size:0.9em">' . _('Orphaned') . '</span>';
+        if ($row['candidate_po_id']) {
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po"'
+                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
+                     . _('Add GRN (Assoc PO)') . '</button>';
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po_inv"'
+                     . ' style="padding:2px 8px;background:#060;color:#fff;border:1px solid #040;border-radius:2px;cursor:pointer;font-size:11px">'
+                     . _('Add GRN (Assoc PO/Inv)') . '</button>';
         } else {
-            if ($row['candidate_po_id']) {
-                $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po"'
-                         . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                         . _('Add GRN') . '</button>';
-                $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po_inv"'
-                         . ' style="padding:2px 8px;background:#060;color:#fff;border:1px solid #040;border-radius:2px;cursor:pointer;font-size:11px">'
-                         . _('Add GRN + Link') . '</button>';
-            } else {
-                $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po_grn"'
-                         . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                         . _('Add PO + GRN') . '</button>';
-            }
+            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po_grn"'
+                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
+                     . _('Add PO + GRN') . '</button>';
         }
     }
 
-    // View invoice popup link (always visible)
+    // View invoice popup link
     if ($row['inv_trans_no']) {
         $url = _integ_invoice_popup_url($row['inv_trans_no']);
         $parts[] = '<a href="' . htmlspecialchars($url) . '" target="_blank" style="padding:2px 6px">'
@@ -1716,9 +1698,6 @@ function integ_handle_chain_fix_post($chainCheckId)
 {
     if (!isset($_POST['_fix_action']) || !is_array($_POST['_fix_action'])) {
         return null;
-    }
-    if (!user_check_access('SA_DATAINTEGRITY_FIX')) {
-        return array('message' => _('Fix not applied &mdash; missing SA_DATAINTEGRITY_FIX permission.'), 'popup_url' => null);
     }
 
     $rowKey = key($_POST['_fix_action']);
