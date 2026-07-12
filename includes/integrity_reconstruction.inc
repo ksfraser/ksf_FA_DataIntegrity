@@ -201,7 +201,7 @@ function check_purchase_chain()
             LEFT JOIN " . TB_PREF . "grn_items g ON g.id = si.grn_item_id
             LEFT JOIN " . TB_PREF . "grn_batch gb ON gb.id = g.grn_batch_id
             LEFT JOIN " . TB_PREF . "purch_order_details pod
-                ON pod.po_detail_item = COALESCE(g.po_detail_item, si.po_detail_item_id)
+                ON pod.po_detail_item = g.po_detail_item
             LEFT JOIN " . TB_PREF . "purch_orders po ON po.order_no = pod.order_no
             WHERE si.supp_trans_type = 20
               AND st.ov_amount != 0

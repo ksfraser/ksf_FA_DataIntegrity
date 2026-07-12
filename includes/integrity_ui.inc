@@ -1279,7 +1279,7 @@ function _chain_cell_po($row)
         if ($row['row_type'] === 'orphan_inv' && $row['candidate_po_id']) {
             $bg = '#ffd'; // light yellow &mdash; has candidate PO
         }
-        $text = integ_view_link(INTEG_ST_PURCHORDER, $row['po_order_no'], '#' . $row['po_order_no']);
+        $text = integ_edit_link(INTEG_ST_PURCHORDER, $row['po_order_no'], sprintf(_('Edit PO #%d'), $row['po_order_no']));
         if ($row['po_ref']) {
             $text .= '<br><small>' . htmlspecialchars($row['po_ref']) . '</small>';
         }
@@ -1324,7 +1324,7 @@ function _chain_cell_grn($row)
         } elseif ($code === 'item_mismatch') {
             $bg = '#ffc'; // yellow &mdash; linked to PO but item mismatch with invoice
         }
-        $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']);
+        $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], sprintf(_('View GRN #%d'), $row['grn_batch_id']));
         if ($row['grn_item_code']) {
             $text .= '<br><small>' . htmlspecialchars($row['grn_item_code']) . '</small>';
         }
@@ -1336,7 +1336,7 @@ function _chain_cell_grn($row)
 
     if ($code === 'orphan_grn') {
         // Standalone orphaned GRN &mdash; show details even without invoice
-        $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']);
+        $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], sprintf(_('View GRN #%d'), $row['grn_batch_id']));
         $text .= '<br><small>' . htmlspecialchars($row['grn_item_code']) . '</small>';
         if ($row['grn_qty'] > 0) {
             $text .= '<br><small>' . _('Qty:') . ' ' . number_format($row['grn_qty'], 2) . '</small>';
@@ -1394,9 +1394,12 @@ function _chain_cell_grn_inv_link($row, $key)
         return '<span style="color:#c00">' . _('Broken') . '</span>';
     }
 
-    // Standalone GRN (valid PO, no invoice) &mdash; no invoice linked
+    // Standalone GRN (valid PO, no invoice) &mdash; Create Invoice link
     if ($code === 'standalone_grn') {
-        return '<span style="color:#c00">' . _('No Invoice') . '</span>';
+        global $path_to_root;
+        $url = $path_to_root . '/purchasing/supplier_invoice.php?New=1';
+        return '<a href="' . htmlspecialchars($url) . '" target="_blank" style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none">'
+             . _('Create Invoice') . '</a>';
     }
 
     return '<span style="color:#999">&mdash;</span>';
@@ -1412,7 +1415,7 @@ function _chain_cell_invoice($row)
     if ($code === 'ghost_inv') {
         // Ghost invoice &mdash; red background
         $bg = '#fdd';
-        $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+        $text = integ_edit_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], sprintf(_('Edit Invoice #%d'), $row['inv_trans_no']));
         $text .= '<br><small>' . _('GHOST &mdash; no line items') . '</small>';
         if ($row['inv_total'] > 0) {
             $text .= '<br><small>' . _('Total:') . ' ' . number_format($row['inv_total'], 2) . '</small>';
@@ -1423,7 +1426,7 @@ function _chain_cell_invoice($row)
     if ($code === 'item_mismatch') {
         // Item mismatch &mdash; red
         $bg = '#fdd';
-        $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+        $text = integ_edit_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], sprintf(_('Edit Invoice #%d'), $row['inv_trans_no']));
         $text .= '<br><small>' . _('Item:') . ' ' . htmlspecialchars($row['inv_stock_id']) . '</small>';
         $text .= '<br><small style="color:#c00">' . _('MISMATCH: GRN says') . ' ' . htmlspecialchars($row['grn_item_code']) . '</small>';
         return "<div style='background:$bg;padding:2px 4px'>$text</div>";
@@ -1432,7 +1435,7 @@ function _chain_cell_invoice($row)
     if ($code === 'orphan_inv') {
         // Orphaned &mdash; orange if candidate, red if no candidate
         $bg = $row['candidate_grn_batch_id'] ? '#fdb' : '#fdd';
-        $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+        $text = integ_edit_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], sprintf(_('Edit Invoice #%d'), $row['inv_trans_no']));
         if ($row['inv_stock_id']) {
             $text .= '<br><small>' . htmlspecialchars($row['inv_stock_id']) . '</small>';
         }
@@ -1451,7 +1454,7 @@ function _chain_cell_invoice($row)
     }
 
     // Healthy invoice
-    $text = integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
+    $text = integ_edit_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], sprintf(_('Edit Invoice #%d'), $row['inv_trans_no']));
     if ($row['inv_stock_id']) {
         $text .= '<br><small>' . htmlspecialchars($row['inv_stock_id']) . '</small>';
     }
@@ -1492,13 +1495,6 @@ function _chain_cell_actions($row, $key)
                      . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
                      . _('Add PO + GRN') . '</button>';
         }
-    }
-
-    // View invoice popup link
-    if ($row['inv_trans_no']) {
-        $url = _integ_invoice_popup_url($row['inv_trans_no']);
-        $parts[] = '<a href="' . htmlspecialchars($url) . '" target="_blank" style="padding:2px 6px">'
-                 . _('View Invoice') . '</a>';
     }
 
     return implode('<br>', $parts);
@@ -1574,7 +1570,7 @@ function integ_render_sales_chain($rows)
 function _sales_cell_so($row)
 {
     if ($row['so_order_no']) {
-        $text = integ_view_link(INTEG_ST_SALESORDER, $row['so_order_no'], '#' . $row['so_order_no']);
+        $text = integ_edit_link(INTEG_ST_SALESORDER, $row['so_order_no'], sprintf(_('Edit SO #%d'), $row['so_order_no']));
         if ($row['so_ref']) {
             $text .= '<br><small>' . htmlspecialchars($row['so_ref']) . '</small>';
         }
@@ -1615,7 +1611,7 @@ function _sales_cell_delivery($row)
 
     if ($row['del_trans_no']) {
         $bg = ($type === 'orphan_del' || $type === 'missing_stock') ? '#ffc' : '#dfd';
-        $text = integ_view_link(INTEG_ST_CUSTDELIVERY, $row['del_trans_no'], '#' . $row['del_trans_no']);
+        $text = integ_edit_link(INTEG_ST_CUSTDELIVERY, $row['del_trans_no'], sprintf(_('Edit Delivery #%d'), $row['del_trans_no']));
         if ($row['del_item_code']) {
             $text .= '<br><small>' . htmlspecialchars($row['del_item_code']) . '</small>';
         }
@@ -1674,12 +1670,6 @@ function _sales_cell_actions($row, $key)
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_stock_moves"'
                  . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
                  . _('Create Stock Moves') . '</button>';
-    }
-
-    if ($row['del_trans_no']) {
-        $url = $GLOBALS['path_to_root'] . '/sales/customer_delivery.php?ModifyDelivery=' . (int)$row['del_trans_no'];
-        $parts[] = '<a href="' . htmlspecialchars($url) . '" target="_blank" style="padding:2px 6px">'
-                 . _('Edit Delivery') . '</a>';
     }
 
     return implode('<br>', $parts);
