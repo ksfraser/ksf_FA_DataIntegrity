@@ -252,6 +252,9 @@ function integ_render_check_result($check_id, $result)
         'P5' => 'integ_render_p5',
         'P6' => 'integ_render_p6',
         'P7' => 'integ_render_p7',
+        'P8' => 'integ_render_p8',
+        'P9' => 'integ_render_p9',
+        'P10' => 'integ_render_p10',
         'S1' => 'integ_render_s1',
         'S2' => 'integ_render_s2',
         'S3' => 'integ_render_s3',
@@ -581,8 +584,7 @@ function integ_render_p3($result)
 }
 
 /**
- * Render P4 &mdash; GRN lines where quantity_inv > qty_recd (over-invoiced).
- * No auto-fix available; view link provided.
+ * Render P4 &mdash; GRN lines over-invoiced (net of supplier credit notes).
  *
  * @param  resource $result  DB result from check_purchase_grn_over_invoiced()
  * @return void
@@ -594,7 +596,8 @@ function integ_render_p4($result)
 
     $cols = array(
         _('GRN Batch'), _('Date'), _('Supplier'), _('Item Code'), _('Description'),
-        _('Qty Recv\'d'), _('Qty Invoiced'), _('Over By'),
+        _('Qty Recv\'d'), _('Invoiced (stored)'), _('Credited'),
+        _('Net Invoiced'), _('Over By'),
         _('Create Credit Note'),
         _('View GRN'), _('View PO'),
     );
@@ -610,7 +613,9 @@ function integ_render_p4($result)
         label_cell(htmlspecialchars($row['item_code']));
         label_cell(htmlspecialchars($row['description']));
         label_cell(number_format($row['qty_recd'], 2));
-        label_cell(number_format($row['qty_invoiced'], 2));
+        label_cell(number_format($row['qty_invoiced_stored'], 2));
+        label_cell(number_format($row['qty_credited'], 2));
+        label_cell(number_format($row['net_invoiced'], 2));
         label_cell('<span style="color:red">' . number_format($row['over_by'], 4) . '</span>');
 
         // Credit-note link: open FA supplier credit with supplier pre-filled
@@ -735,6 +740,133 @@ function integ_render_p7($result)
         label_cell(number_format($row['alloc'], 2));
         label_cell(integ_view_link(INTEG_ST_SUPPINVOICE, $row['trans_no']));
         label_cell(integ_edit_link(INTEG_ST_SUPPINVOICE, $row['trans_no']));
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render P8 &mdash; Purchase order lines not yet received.
+ *
+ * @param  resource $result  DB result from check_purchase_po_not_received()
+ * @return void
+ * @since  2.5.0
+ */
+function integ_render_p8($result)
+{
+    $cols = array(
+        _('PO #'), _('Reference'), _('Date'), _('Supplier'),
+        _('Item Code'), _('Description'),
+        _('Qty Ordered'), _('Qty Received'), _('Outstanding'),
+        _('Unit Price'), _('View PO'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        alt_table_row_color($k);
+        label_cell(integ_edit_link(INTEG_ST_PURCHORDER, $row['po_no'], '#' . $row['po_no']));
+        label_cell(htmlspecialchars($row['po_ref']));
+        label_cell($row['ord_date']);
+        label_cell(htmlspecialchars($row['supp_name']));
+        label_cell(htmlspecialchars($row['item_code']));
+        label_cell(htmlspecialchars($row['description']));
+        label_cell(number_format($row['quantity_ordered'], 2));
+        label_cell(number_format($row['quantity_received'], 2));
+        label_cell('<span style="color:#a50">' . number_format($row['qty_outstanding'], 2) . '</span>');
+        label_cell(number_format($row['unit_price'], 4));
+        label_cell(integ_edit_link(INTEG_ST_PURCHORDER, $row['po_no']));
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render P9 &mdash; GRN items not yet invoiced.
+ *
+ * @param  resource $result  DB result from check_purchase_grn_not_invoiced()
+ * @return void
+ * @since  2.5.0
+ */
+function integ_render_p9($result)
+{
+    $cols = array(
+        _('GRN Batch'), _('Date'), _('Supplier'), _('Item Code'), _('Description'),
+        _('Qty Received'), _('Qty Invoiced'), _('Uninvoiced'),
+        _('View GRN'), _('View PO'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        alt_table_row_color($k);
+        label_cell(integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']));
+        label_cell($row['delivery_date']);
+        label_cell(htmlspecialchars($row['supp_name']));
+        label_cell(htmlspecialchars($row['item_code']));
+        label_cell(htmlspecialchars($row['description']));
+        label_cell(number_format($row['qty_recd'], 2));
+        label_cell(number_format($row['quantity_inv'], 2));
+        label_cell('<span style="color:#a50">' . number_format($row['uninvoiced_qty'], 2) . '</span>');
+        label_cell(integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id']));
+        label_cell(integ_view_link(INTEG_ST_PURCHORDER, $row['purch_order_no']));
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render P10 &mdash; Supplier invoices not yet paid or credited.
+ *
+ * @param  resource $result  DB result from check_purchase_invoice_unpaid()
+ * @return void
+ * @since  2.5.0
+ */
+function integ_render_p10($result)
+{
+    global $path_to_root;
+
+    $cols = array(
+        _('Invoice #'), _('Reference'), _('Supp Reference'), _('Date'), _('Due Date'),
+        _('Supplier'),
+        _('Amount'), _('GST'), _('Total'), _('Allocated'), _('Unpaid'),
+        _('View Invoice'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        $total  = (float)$row['total'];
+        $unpaid = (float)$row['unpaid'];
+        alt_table_row_color($k);
+        label_cell(integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_no'], '#' . $row['inv_no']));
+        label_cell(htmlspecialchars($row['inv_ref']));
+        label_cell(htmlspecialchars($row['supp_reference']));
+        label_cell($row['tran_date']);
+        label_cell($row['due_date']);
+        label_cell(htmlspecialchars($row['supp_name']));
+        label_cell(number_format($row['ov_amount'], 2));
+        label_cell(number_format($row['ov_gst'], 2));
+        label_cell(number_format($total, 2));
+        label_cell(number_format($row['alloc'], 2));
+        label_cell('<span style="color:' . ($unpaid > 0 ? '#c00' : '#080') . '">'
+            . number_format($unpaid, 2) . '</span>');
+        label_cell(integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_no']));
         end_row();
     }
 

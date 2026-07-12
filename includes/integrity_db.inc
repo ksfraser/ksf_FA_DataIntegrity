@@ -235,15 +235,33 @@ function check_purchase_grn_over_invoiced()
             g.item_code,
             g.description,
             g.qty_recd,
-            g.quantity_inv  AS qty_invoiced,
-            g.quantity_inv - g.qty_recd AS over_by
+            g.quantity_inv                      AS qty_invoiced_stored,
+            COALESCE(inv_sum.inv_qty, 0)        AS qty_invoiced_actual,
+            COALESCE(cn_sum.cn_qty, 0)          AS qty_credited,
+            COALESCE(inv_sum.inv_qty, 0)
+                - COALESCE(cn_sum.cn_qty, 0)    AS net_invoiced,
+            COALESCE(inv_sum.inv_qty, 0)
+                - COALESCE(cn_sum.cn_qty, 0)
+                - g.qty_recd                    AS over_by
         FROM &TB_PREF&grn_items g
         JOIN &TB_PREF&grn_batch gb  ON g.grn_batch_id = gb.id
         JOIN &TB_PREF&suppliers s   ON gb.supplier_id  = s.supplier_id
-        WHERE g.quantity_inv > g.qty_recd + " . INTEG_DELTA . "
+        LEFT JOIN (
+            SELECT grn_item_id, SUM(quantity) AS inv_qty
+            FROM &TB_PREF&supp_invoice_items
+            WHERE supp_trans_type = 20
+            GROUP BY grn_item_id
+        ) inv_sum ON inv_sum.grn_item_id = g.id
+        LEFT JOIN (
+            SELECT grn_item_id, SUM(quantity) AS cn_qty
+            FROM &TB_PREF&supp_invoice_items
+            WHERE supp_trans_type = 21
+            GROUP BY grn_item_id
+        ) cn_sum ON cn_sum.grn_item_id = g.id
+        WHERE COALESCE(inv_sum.inv_qty, 0) - COALESCE(cn_sum.cn_qty, 0) > g.qty_recd + " . INTEG_DELTA . "
         ORDER BY s.supp_name, gb.delivery_date";
 
-    return db_query($sql, 'Check P4: Over-invoiced GRN lines');
+    return db_query($sql, 'Check P4: Over-invoiced GRN lines (net of credit notes)');
 }
 
 // ---------------------------------------------------------------------------
@@ -353,6 +371,105 @@ function check_purchase_ghost_invoices()
         ORDER BY s.supp_name, st.tran_date";
 
     return db_query($sql, 'Check P7: Supplier invoices with no line items');
+}
+
+/**
+ * CHECK P8 — Purchase order detail lines not yet received.
+ * Shows healthy POs still awaiting delivery (partial or full).
+ *
+ * @return resource
+ * @since  2.5.0
+ */
+function check_purchase_po_not_received()
+{
+    $sql = "
+        SELECT
+            pod.order_no              AS po_no,
+            po.reference              AS po_ref,
+            po.ord_date,
+            s.supplier_id,
+            s.supp_name,
+            pod.po_detail_item,
+            pod.item_code,
+            pod.description,
+            pod.quantity_ordered,
+            pod.quantity_received,
+            pod.quantity_ordered - pod.quantity_received AS qty_outstanding,
+            pod.unit_price,
+            pod.qty_invoiced
+        FROM &TB_PREF&purch_order_details pod
+        JOIN &TB_PREF&purch_orders po        ON po.order_no = pod.order_no
+        JOIN &TB_PREF&suppliers s            ON s.supplier_id = po.supplier_id
+        WHERE pod.quantity_ordered > pod.quantity_received + " . INTEG_DELTA . "
+        ORDER BY s.supp_name, po.order_no";
+
+    return db_query($sql, 'Check P8: Purchase orders not received');
+}
+
+/**
+ * CHECK P9 — GRN items not yet fully invoiced.
+ * Shows GRN items where received quantity exceeds invoiced quantity.
+ *
+ * @return resource
+ * @since  2.5.0
+ */
+function check_purchase_grn_not_invoiced()
+{
+    $sql = "
+        SELECT
+            g.id                AS grn_item_id,
+            gb.id               AS grn_batch_id,
+            gb.delivery_date,
+            gb.reference        AS grn_ref,
+            gb.purch_order_no,
+            s.supplier_id,
+            s.supp_name,
+            g.item_code,
+            g.description,
+            g.qty_recd,
+            g.quantity_inv,
+            g.qty_recd - g.quantity_inv AS uninvoiced_qty
+        FROM &TB_PREF&grn_batch gb
+        JOIN &TB_PREF&grn_items g    ON g.grn_batch_id = gb.id
+        JOIN &TB_PREF&suppliers s    ON s.supplier_id = gb.supplier_id
+        WHERE g.qty_recd > g.quantity_inv + " . INTEG_DELTA . "
+        ORDER BY s.supp_name, gb.delivery_date";
+
+    return db_query($sql, 'Check P9: GRN items not invoiced');
+}
+
+/**
+ * CHECK P10 — Supplier invoices not yet fully paid or credited.
+ * Shows invoices where alloc < total amount (unpaid balance remains).
+ *
+ * @return resource
+ * @since  2.5.0
+ */
+function check_purchase_invoice_unpaid()
+{
+    $sql = "
+        SELECT
+            st.trans_no            AS inv_no,
+            st.reference           AS inv_ref,
+            st.supp_reference,
+            st.tran_date,
+            st.due_date,
+            s.supplier_id,
+            s.supp_name,
+            st.ov_amount,
+            st.ov_gst,
+            st.ov_discount,
+            st.alloc,
+            st.ov_amount + st.ov_gst + st.ov_discount AS total,
+            st.ov_amount + st.ov_gst + st.ov_discount - st.alloc AS unpaid
+        FROM &TB_PREF&supp_trans st
+        JOIN &TB_PREF&suppliers s ON s.supplier_id = st.supplier_id
+        WHERE st.type = 20
+          AND st.ov_amount != 0
+          AND st.alloc < st.ov_amount + st.ov_gst + st.ov_discount - " . INTEG_DELTA . "
+        ORDER BY s.supp_name, st.tran_date";
+
+    return db_query($sql, 'Check P10: Supplier invoices unpaid');
 }
 
 // ===========================================================================
@@ -1290,6 +1407,9 @@ function count_all_integrity_issues()
         'P5' => 'check_purchase_orphaned_invoice_items',
         'P6' => 'check_purchase_orphaned_grn_batches',
         'P7' => 'check_purchase_ghost_invoices',
+        'P8' => 'check_purchase_po_not_received',
+        'P9' => 'check_purchase_grn_not_invoiced',
+        'P10' => 'check_purchase_invoice_unpaid',
         'PCHAIN' => 'check_purchase_chain',
         'S1' => 'check_sales_sod_qty_sent_mismatch',
         'S2' => 'check_sales_sod_invoiced_mismatch',
@@ -1331,10 +1451,13 @@ function get_check_labels()
         'P1' => _('GRN quantity_inv drift (direct invoice bug)'),
         'P2' => _('PO line qty_invoiced drift'),
         'P3' => _('PO line quantity_received drift'),
-        'P4' => _('GRN lines over-invoiced'),
+        'P4' => _('GRN lines over-invoiced (net of supplier credits)'),
         'P5' => _('Orphaned supplier invoice items (missing GRN)'),
         'P6' => _('Orphaned GRN batches (missing purchase order)'),
         'P7' => _('Ghost supplier invoices (no line items)'),
+        'P8' => _('Purchase orders not received (outstanding)'),
+        'P9' => _('GRN items not invoiced'),
+        'P10' => _('Supplier invoices not paid or credited'),
         'S1' => _('Sales order line qty_sent drift'),
         'S2' => _('Sales order line invoiced qty drift'),
         'S3' => _('Ghost customer invoices (no line items)'),
@@ -1366,6 +1489,9 @@ function get_fix_functions()
         'P5' => null,  // orphaned invoice items: manual per-row fix (see PCHAIN)
         'P6' => null,  // orphaned GRN batches: manual per-row fix (see PCHAIN)
         'P7' => null,  // ghost invoices: manual per-row fix (see PCHAIN)
+        'P8' => null,  // view-only — no auto-fix (healthy in-progress chain)
+        'P9' => null,  // view-only — no auto-fix (healthy in-progress chain)
+        'P10' => null,  // view-only — no auto-fix (healthy in-progress chain)
         'PCHAIN' => null,  // per-row chain fix actions (no bulk)
         'S1' => 'fix_sales_sod_qty_sent',
         'S2' => 'fix_sales_sod_invoiced',
@@ -1400,6 +1526,9 @@ function get_fix_descriptions()
         'P5' => _('Supp invoice items whose grn_item_id references a GRN item that no longer exists. Use per-row fix actions on the PCHAIN tab.'),
         'P6' => _('GRN batches whose purch_order_no references a purchase order that no longer exists. Use per-row fix actions on the PCHAIN tab.'),
         'P7' => _('Supplier invoice headers with no line items (ghost invoices). Use per-row Void on the PCHAIN tab.'),
+        'P8' => _('Purchase orders with line items still awaiting delivery. These are healthy in-progress chains — no fix needed.'),
+        'P9' => _('Goods-received notes where the received quantity has not yet been fully invoiced. Healthy in-progress chains — no fix needed.'),
+        'P10' => _('Supplier invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
         'PCHAIN' => _('Consolidated purchase chain view (replaces P5/P6/P7). Each row shows PO → GRN → Invoice. Green cells are healthy. Orange cells have a candidate match — click Match to link. Yellow cells have an issue with an Add button. Red cells are orphaned with no candidate, or have item mismatches. Ghost invoices show a Void button.'),
         'S1' => _('Recalculates sales_order_details.qty_sent from delivery note detail quantities.'),
         'S2' => _('Recalculates sales_order_details.invoiced from customer invoice detail quantities.'),

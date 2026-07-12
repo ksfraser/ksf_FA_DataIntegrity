@@ -105,9 +105,9 @@ start_table(TABLESTYLE, "width='85%'");
 table_header(array(_('Check'), _('Description'), _('Issues'), _('Auto-fix?'), _('Detail Page')));
 
 // Purchase chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1–P7, PCHAIN)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1–P10, PCHAIN)') . "</td></tr>\n";
 
-$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'PCHAIN');
+$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'PCHAIN');
 $k = 0;
 foreach ($purchase_checks as $id) {
     alt_table_row_color($k);

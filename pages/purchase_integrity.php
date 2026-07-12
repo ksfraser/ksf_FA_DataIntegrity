@@ -36,6 +36,9 @@ $tabs = array(
     'P5'     => _('P5 – Orphaned inv items'),
     'P6'     => _('P6 – Orphaned GRN batches'),
     'P7'     => _('P7 – Ghost invoices'),
+    'P8'     => _('P8 – Unreceived POs'),
+    'P9'     => _('P9 – Uninvoiced GRNs'),
+    'P10'    => _('P10 – Unpaid invoices'),
     'PCHAIN' => _('PCHAIN – Broken chain'),
 );
 
@@ -47,6 +50,9 @@ $check_funcs = array(
     'P5' => 'check_purchase_orphaned_invoice_items',
     'P6' => 'check_purchase_orphaned_grn_batches',
     'P7' => 'check_purchase_ghost_invoices',
+    'P8' => 'check_purchase_po_not_received',
+    'P9' => 'check_purchase_grn_not_invoiced',
+    'P10' => 'check_purchase_invoice_unpaid',
 );
 
 $labels = get_check_labels();
