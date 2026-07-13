@@ -1,10 +1,10 @@
 <?php
 /**
- * purchase_integrity.php — Purchase chain integrity detail page
+ * purchase_integrity.php &#8212; Purchase chain integrity detail page
  *
- * Shows tabbed detail views for checks P1–P7 + PCHAIN.  Each tab runs only the active
- * check query.  P1–P4 have auto-fix functions (Recalculate/Fix button).
- * P5–P7 show raw SQL results (view-only, per-row fixes on PCHAIN tab).
+ * Shows tabbed detail views for checks P1&#8212;P7 + PCHAIN.  Each tab runs only the active
+ * check query.  P1&#8212;P4 have auto-fix functions (Recalculate/Fix button).
+ * P5&#8212;P7 show raw SQL results (view-only, per-row fixes on PCHAIN tab).
  * PCHAIN shows the consolidated chain view with per-row Add/Match/Disassociate/Void.
  *
  * PHP 5.6+ compatible.
@@ -29,17 +29,18 @@ $chain_fix  = integ_handle_chain_fix_post('PCHAIN');
 
 // ---- Tab definitions ----
 $tabs = array(
-    'P1'     => _('P1 – GRN qty_inv'),
-    'P2'     => _('P2 – PO qty_invoiced'),
-    'P3'     => _('P3 – PO qty_received'),
-    'P4'     => _('P4 – Over-invoiced'),
-    'P5'     => _('P5 – Orphaned inv items'),
-    'P6'     => _('P6 – Orphaned GRN batches'),
-    'P7'     => _('P7 – Ghost invoices'),
-    'P8'     => _('P8 – Unreceived POs'),
-    'P9'     => _('P9 – Uninvoiced GRNs'),
-    'P10'    => _('P10 – Unpaid invoices'),
-    'PCHAIN' => _('PCHAIN – Broken chain'),
+    'P1'     => _('P1 &#8212; GRN qty_inv'),
+    'P2'     => _('P2 &#8212; PO qty_invoiced'),
+    'P3'     => _('P3 &#8212; PO qty_received'),
+    'P4'     => _('P4 &#8212; Over-invoiced'),
+    'P5'     => _('P5 &#8212; Orphaned inv items'),
+    'P6'     => _('P6 &#8212; Orphaned GRN batches'),
+    'P7'     => _('P7 &#8212; Ghost invoices'),
+    'P8'     => _('P8 &#8212; Unreceived POs'),
+    'P9'     => _('P9 &#8212; Uninvoiced GRNs'),
+    'P10'    => _('P10 &#8212; Unpaid invoices'),
+    'P11'    => _('P11 &#8212; Zero-charged GRN items'),
+    'PCHAIN' => _('PCHAIN &#8212; Broken chain'),
 );
 
 $check_funcs = array(
@@ -53,6 +54,7 @@ $check_funcs = array(
     'P8' => 'check_purchase_po_not_received',
     'P9' => 'check_purchase_grn_not_invoiced',
     'P10' => 'check_purchase_invoice_unpaid',
+    'P11' => 'check_purchase_voided_grn_items',
 );
 
 $labels = get_check_labels();
@@ -69,7 +71,7 @@ integ_page_nav('purchase');
 // ---- Show fix result notification ----
 if ($fix_result !== null) {
     if ($fix_result['rows_fixed'] < 0) {
-        display_warning(_('Fix not applied &mdash; you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
+        display_warning(_('Fix not applied &#8212; you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
     } else {
         display_notification(sprintf(
             _('Fix %s applied: %d row(s) recalculated.'),
@@ -84,7 +86,7 @@ echo "<p><a href='integrity_dashboard.php'>&laquo; " . _('Back to Dashboard') . 
 
 start_form();
 
-// Determine active tab — respect incoming ?tab= GET parameter for dashboard links
+// Determine active tab &#8212; respect incoming ?tab= GET parameter for dashboard links
 if (isset($_GET['tab']) && isset($tabs[$_GET['tab']]) && !isset($_POST['_pu_sel'])) {
     $_POST['_pu_sel'] = $_GET['tab'];
 }
@@ -95,12 +97,12 @@ $active = get_post('_pu_sel', 'P1');
 
 // ---- Check description ----
 if (isset($labels[$active])) {
-    echo "<p><em>" . htmlspecialchars($labels[$active]) . "</em></p>\n";
+    echo "<p><em>" . $labels[$active] . "</em></p>\n";
 }
 
 // ---- Run the active check and render its result table ----
 if ($active === 'PCHAIN') {
-    // Consolidated chain view — returns array, not db result
+    // Consolidated chain view &#8212; returns array, not db result
     error_log('PCHAIN: about to call check_purchase_chain()');
     $chainRows = check_purchase_chain();
     $count = count($chainRows);

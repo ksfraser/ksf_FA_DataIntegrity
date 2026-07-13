@@ -1,6 +1,6 @@
 <?php
 /**
- * integrity_reconstruction.inc — Data-reconstruction fix functions
+ * integrity_reconstruction.inc &#8212; Data-reconstruction fix functions
  *
  * Consolidated chain-view actions for purchase (PCHAIN) and sales (SCHAIN)
  * tabs.  Each row in the chain table represents one broken link; per-row
@@ -38,7 +38,7 @@ class ChainRecalcScope
 
 /**
  * Run all relevant recalculations for the entities listed in the scope.
- * Every recalc is idempotent — only rows with actual drift are updated.
+ * Every recalc is idempotent &#8212; only rows with actual drift are updated.
  *
  * @param  FrontAccounting\Db\DbAdapterInterface $db
  * @param  ChainRecalcScope|null                 $scope
@@ -204,8 +204,8 @@ function _integ_candidate_so($debtorNo, $stockId, $delDate)
  * Run all purchase chain issue checks and return a unified array of rows.
  *
  * Each row has:
- *   row_type        — 'orphan_inv' | 'orphan_grn' | 'item_mismatch' | 'ghost_inv'
- *   row_key         — unique string for matching POST actions
+ *   row_type        &#8212; 'orphan_inv' | 'orphan_grn' | 'item_mismatch' | 'ghost_inv'
+ *   row_key         &#8212; unique string for matching POST actions
  *   supplier_id, supp_name
  *   po_order_no, po_ref, po_item_code
  *   grn_batch_id, grn_item_id, grn_ref, grn_date, grn_item_code, grn_qty
@@ -272,7 +272,7 @@ function check_purchase_chain()
             ORDER BY s.supp_name, st.tran_date";
 
     error_log('PCHAIN_FUNC: Part 1 SQL: ' . $sql);
-    $result = db_query($sql, 'Check purchase chain — orphaned items');
+    $result = db_query($sql, 'Check purchase chain &#8212; orphaned items');
     error_log('PCHAIN_FUNC: Part 1 result=' . ($result ? 'OK' : 'FAIL'));
     if ($result) {
         $part1_count = 0;
@@ -290,7 +290,7 @@ function check_purchase_chain()
             } elseif (!$poExists && $r['grn_po_no'] !== null) {
                 $rowType = 'orphan_grn';
             } else {
-                continue; // healthy chain — skip
+                continue; // healthy chain &#8212; skip
             }
 
             $row = array(
@@ -370,7 +370,7 @@ function check_purchase_chain()
               AND si.id IS NULL
             ORDER BY s.supp_name, st.tran_date";
 
-    $result2 = db_query($sql2, 'Check purchase chain — ghost invoices');
+    $result2 = db_query($sql2, 'Check purchase chain &#8212; ghost invoices');
     if ($result2) {
         $part2_count = 0;
         while ($r = db_fetch($result2)) {
@@ -424,7 +424,7 @@ function check_purchase_chain()
               AND po.order_no IS NULL
             ORDER BY s.supp_name, gb.delivery_date";
 
-    $result3 = db_query($sql3, 'Check purchase chain — standalone orphaned GRN');
+    $result3 = db_query($sql3, 'Check purchase chain &#8212; standalone orphaned GRN');
     if ($result3) {
         $part3_count = 0;
         while ($r = db_fetch($result3)) {
@@ -499,7 +499,7 @@ function check_purchase_chain()
               )
             ORDER BY s.supp_name, gb.delivery_date";
 
-    $result4 = db_query($sql4, 'Check purchase chain — standalone GRN with PO');
+    $result4 = db_query($sql4, 'Check purchase chain &#8212; standalone GRN with PO');
     if ($result4) {
         while ($r = db_fetch($result4)) {
             $rows[] = array(
@@ -542,7 +542,7 @@ function check_purchase_chain()
  * Run all sales chain issue checks and return a unified array.
  *
  * Each row:
- *   row_type — 'orphan_del' | 'missing_stock' | 'ghost_inv'
+ *   row_type &#8212; 'orphan_del' | 'missing_stock' | 'ghost_inv'
  *   debtor_no, customer_name
  *   so_order_no, so_ref, so_item_code
  *   del_trans_no, del_date, del_ref, del_item_code, del_qty
@@ -554,8 +554,9 @@ function check_purchase_chain()
 function check_sales_chain()
 {
     $rows = array();
+    error_log('SCHAIN: entered check_sales_chain()');
 
-    // ---- Part 1: Orphaned deliveries (S4) + missing stock moves (S5) ----
+    // ---- Part 1: Orphaned deliveries (S4) + missing stock moves (S5) + ghost deliveries ----
     $sql = "SELECT
                 dt.trans_no               AS del_trans_no,
                 dt.type                   AS del_type,
@@ -565,7 +566,7 @@ function check_sales_chain()
                 dt.debtor_no,
                 dm.name                   AS customer_name,
                 dtd.id                    AS del_detail_id,
-                dtd.stk_code              AS del_item_code,
+                dtd.stock_id              AS del_item_code,
                 dtd.description           AS del_desc,
                 dtd.qty_done              AS del_qty,
                 dtd.unit_price,
@@ -585,27 +586,32 @@ function check_sales_chain()
                 ON sod.id = dtd.src_id
             LEFT JOIN " . TB_PREF . "stock_moves sm
                 ON sm.trans_no = dt.trans_no AND sm.type = dt.type
-                AND sm.stock_id = dtd.stk_code
+                    AND sm.stock_id = dtd.stock_id
             WHERE dt.type = 13
               AND dt.ov_amount != 0
               AND (
-                  dt.order_ < 1
+                  dt.order_ IS NULL
+                  OR dt.order_ < 1
                   OR (dt.order_ > 0 AND so.order_no IS NULL)
-                  OR (dtd.id IS NOT NULL AND sm.trans_id IS NULL)
+                  OR sm.trans_id IS NULL
               )
             ORDER BY dm.name, dt.tran_date, dtd.id";
 
-    $result = db_query($sql, 'Check sales chain — deliveries');
+    error_log('SCHAIN: Part 1 SQL prepared');
+    $result = db_query($sql, 'Check sales chain &#8212; deliveries');
+    error_log('SCHAIN: Part 1 result=' . ($result ? 'OK' : 'FAIL'));
     if ($result) {
         $part1_count = 0;
         while ($r = db_fetch($result)) {
             $part1_count++;
+            error_log('SCHAIN: Part1 row#' . $part1_count . ' del=' . $r['del_trans_no'] . ' order_=' . var_export($r['so_order_no'], true) . ' stock_move=' . var_export($r['stock_move_id'], true) . ' del_detail=' . var_export($r['del_detail_id'], true));
+
             $soMissing  = ($r['so_order_no'] < 1 || $r['so_order_no'] === null || $r['so_ref'] === null);
-            $stockMissing = ($r['stock_move_id'] === null && $r['del_detail_id'] !== null);
+            $stkMissing = ($r['stock_move_id'] === null);
 
             if ($soMissing) {
                 $rowType = 'orphan_del';
-            } elseif ($stockMissing) {
+            } elseif ($stkMissing) {
                 $rowType = 'missing_stock';
             } else {
                 continue;
@@ -659,7 +665,7 @@ function check_sales_chain()
               AND dtd.id IS NULL
             ORDER BY dm.name, dt.tran_date";
 
-    $result2 = db_query($sql2, 'Check sales chain — ghost invoices');
+    $result2 = db_query($sql2, 'Check sales chain &#8212; ghost invoices');
     if ($result2) {
         $part2_count = 0;
         while ($r = db_fetch($result2)) {
@@ -692,7 +698,7 @@ function check_sales_chain()
 }
 
 // ===========================================================================
-// PER-ROW FIX ACTION HANDLERS — PURCHASE CHAIN
+// PER-ROW FIX ACTION HANDLERS &#8212; PURCHASE CHAIN
 // ===========================================================================
 
 /**
@@ -712,9 +718,9 @@ function fix_purchase_chain_row($rowKey, $action)
     $db = integ_db_adapter();
 
     // Row key formats:
-    //   inv_item_{id}     — orphaned invoice item
-    //   ghost_sup_{id}    — ghost supplier invoice
-    //   grn_{batch_id}    — standalone orphaned GRN batch
+    //   inv_item_{id}     &#8212; orphaned invoice item
+    //   ghost_sup_{id}    &#8212; ghost supplier invoice
+    //   grn_{batch_id}    &#8212; standalone orphaned GRN batch
     if (strpos($rowKey, 'inv_item_') === 0) {
         $invoiceItemId = (int)$parts[2];
 
@@ -817,6 +823,86 @@ function fix_sales_chain_row($rowKey, $action)
     return array('message' => _('Unhandled row: ') . $rowKey, 'popup_url' => null);
 }
 
+// ---------------------------------------------------------------------------
+
+/**
+ * Handle a per-row fix action for SCUST (customer consistency).
+ *
+ * Actions:
+ *   'use_so_cust'    — update debtor_no/branch_code to match the linked SO
+ *   'use_branch_cust' — update debtor_no to match the branch's customer owner
+ *   'apply_cust'     — apply debtor_no/branch_code from _scust_new_debtor/_scust_new_branch POST
+ *
+ * @param  string $rowKey  e.g. 'scust_13_123'
+ * @param  string $action
+ * @return array  ['message'=>string, 'popup_url'=>string|null]
+ */
+function fix_sales_customer_row($rowKey, $action)
+{
+    $parts = explode('_', $rowKey);
+    if (count($parts) < 3 || $parts[0] !== 'scust') {
+        return array('message' => _('Invalid row key: ') . $rowKey, 'popup_url' => null);
+    }
+
+    $type     = (int)$parts[1];
+    $transNo  = (int)$parts[2];
+    $db       = integ_db_adapter();
+
+    // Load current transaction debtor/branch
+    $sql = "SELECT debtor_no, branch_code, order_ FROM " . TB_PREF . "debtor_trans
+            WHERE trans_no = $transNo AND type = $type";
+    $r = db_query($sql, 'Load trans for SCUST fix');
+    if (!$r || !($trans = db_fetch($r))) {
+        return array('message' => _('Transaction not found: #') . $transNo, 'popup_url' => null);
+    }
+
+    if ($action === 'use_so_cust') {
+        // Update debtor_no/branch_code to match the referenced SO
+        $soSql = "SELECT debtor_no, branch_code FROM " . TB_PREF . "sales_orders
+                  WHERE order_no = " . (int)$trans['order_'] . " AND trans_type = 30";
+        $sr = db_query($soSql, 'Load SO for SCUST fix');
+        if (!$sr || !($so = db_fetch($sr))) {
+            return array('message' => _('Linked SO not found for trans #') . $transNo, 'popup_url' => null);
+        }
+        $db->execute("UPDATE " . TB_PREF . "debtor_trans
+                      SET debtor_no = " . (int)$so['debtor_no'] . ",
+                          branch_code = " . (int)$so['branch_code'] . "
+                      WHERE trans_no = $transNo AND type = $type");
+        return array('message' => sprintf(_('Trans #%d updated: debtor_no=%d, branch_code=%d (from SO #%d).'),
+            $transNo, (int)$so['debtor_no'], (int)$so['branch_code'], (int)$trans['order_']), 'popup_url' => null);
+    }
+
+    if ($action === 'use_branch_cust') {
+        // Update debtor_no to match the branch's customer owner
+        $brSql = "SELECT debtor_no FROM " . TB_PREF . "cust_branch
+                  WHERE branch_code = " . (int)$trans['branch_code'];
+        $br = db_query($brSql, 'Load branch for SCUST fix');
+        if (!$br || !($branch = db_fetch($br))) {
+            return array('message' => _('Branch not found for branch_code ') . (int)$trans['branch_code'], 'popup_url' => null);
+        }
+        $db->execute("UPDATE " . TB_PREF . "debtor_trans
+                      SET debtor_no = " . (int)$branch['debtor_no'] . "
+                      WHERE trans_no = $transNo AND type = $type");
+        return array('message' => sprintf(_('Trans #%d updated: debtor_no=%d (from branch owner).'),
+            $transNo, (int)$branch['debtor_no']), 'popup_url' => null);
+    }
+
+    if ($action === 'apply_cust') {
+        $newDebtor   = isset($_POST['_scust_new_debtor'])  ? (int)$_POST['_scust_new_debtor'] : 0;
+        $newBranch   = isset($_POST['_scust_new_branch'])  ? (int)$_POST['_scust_new_branch'] : 0;
+        if (!$newDebtor) {
+            return array('message' => _('No customer selected.'), 'popup_url' => null);
+        }
+        $db->execute("UPDATE " . TB_PREF . "debtor_trans
+                      SET debtor_no = $newDebtor, branch_code = $newBranch
+                      WHERE trans_no = $transNo AND type = $type");
+        return array('message' => sprintf(_('Trans #%d updated: debtor_no=%d, branch_code=%d.'),
+            $transNo, $newDebtor, $newBranch), 'popup_url' => null);
+    }
+
+    return array('message' => _('Unknown SCUST action: ') . $action, 'popup_url' => null);
+}
+
 // ===========================================================================
 // INTERNAL FIX ACTION IMPLEMENTATIONS
 // ===========================================================================
@@ -851,10 +937,10 @@ function _chain_do_add_po_from_grn($db, $grnBatchId)
     $poNo    = $po['order_no'];
     $podItem = $po['po_detail_item'];
 
-    // Link GRN batch → PO
+    // Link GRN batch &#8594; PO
     $db->execute("UPDATE " . TB_PREF . "grn_batch SET purch_order_no = $poNo WHERE id = $grnBatchId");
 
-    // Link GRN items → PO details
+    // Link GRN items &#8594; PO details
     if ($podItem) {
         $db->execute("UPDATE " . TB_PREF . "grn_items SET po_detail_item = $podItem WHERE grn_batch_id = $grnBatchId");
     }
@@ -889,7 +975,7 @@ function _chain_do_add_grn($db, $item, $assocPoNo = null, $alsoLinkInv = false)
     }
 
     if ($assocPoNo) {
-        // PO exists — find its detail line ID for linking
+        // PO exists &#8212; find its detail line ID for linking
         $podSql = "SELECT po_detail_item FROM " . TB_PREF . "purch_order_details
                    WHERE order_no = $assocPoNo AND item_code = '" . db_escape($stockId) . "'
                    LIMIT 1";
@@ -902,7 +988,7 @@ function _chain_do_add_grn($db, $item, $assocPoNo = null, $alsoLinkInv = false)
         $grnBatchId = _integ_create_grn($db, $assocPoNo, $supplierId, $date, 'Auto-reconstructed for invoice item #' . $itemId);
         $grnItemId  = _integ_create_grn_item($db, $grnBatchId, $podItem, $stockId, $item['description'], $qty, $price);
     } else {
-        // No PO — create GRN only
+        // No PO &#8212; create GRN only
         $grnBatchId = _integ_create_grn($db, 0, $supplierId, $date, 'Auto-reconstructed for invoice item #' . $itemId);
         $grnItemId  = _integ_create_grn_item($db, $grnBatchId, 0, $stockId, $item['description'], $qty, $price);
     }
@@ -1026,7 +1112,7 @@ function _chain_do_disassociate($db, $invoiceItemId)
     $grnItemId = $item ? (int)$item['grn_item_id'] : 0;
 
     // Clear both GRN and PO links from the invoice item.
-    // The PO↔GRN relationship stays intact — only the invoice is detached.
+    // The PO↔GRN relationship stays intact &#8212; only the invoice is detached.
     $db->execute(
         "UPDATE {$prefix}supp_invoice_items SET grn_item_id = NULL, po_detail_item_id = NULL WHERE id = ?",
         [$invoiceItemId]
@@ -1068,7 +1154,7 @@ function _chain_do_void_ghost_customer($db, $transNo)
 }
 
 // ===========================================================================
-// INTERNAL FIX ACTION IMPLEMENTATIONS — SALES
+// INTERNAL FIX ACTION IMPLEMENTATIONS &#8212; SALES
 // ===========================================================================
 
 /**
@@ -1077,7 +1163,7 @@ function _chain_do_void_ghost_customer($db, $transNo)
 function _chain_do_sales_add_so($db, $delTransNo)
 {
     // Load delivery details
-    $sql = "SELECT dt.*, dtd.stk_code, dtd.description, dtd.qty_done, dtd.unit_price
+    $sql = "SELECT dt.*, dtd.stock_id, dtd.description, dtd.qty_done, dtd.unit_price
             FROM " . TB_PREF . "debtor_trans dt
             JOIN " . TB_PREF . "debtor_trans_details dtd
                 ON dtd.debtor_trans_no = dt.trans_no AND dtd.debtor_trans_type = dt.type
@@ -1093,13 +1179,13 @@ function _chain_do_sales_add_so($db, $delTransNo)
         $del['debtor_no'],
         $del['tran_date'],
         'Auto-reconstructed from orphaned delivery #' . $delTransNo,
-        $del['stk_code'],
+        $del['stock_id'],
         $del['description'],
         (float)$del['qty_done'],
         (float)$del['unit_price']
     );
 
-    // Link delivery → SO
+    // Link delivery &#8594; SO
     $db->execute("UPDATE " . TB_PREF . "debtor_trans SET order_ = $soNo WHERE trans_no = $delTransNo AND type = 13");
 
     _chain_recalc_all($db);
@@ -1116,14 +1202,14 @@ function _chain_do_sales_match_so($db, $delTransNo, $soNo)
     $db->execute("UPDATE " . TB_PREF . "debtor_trans SET order_ = $soNo WHERE trans_no = $delTransNo AND type = 13");
 
     // Link delivery detail src_id to SO detail
-    $sql = "SELECT dtd.id, dtd.stk_code
+    $sql = "SELECT dtd.id, dtd.stock_id
             FROM " . TB_PREF . "debtor_trans_details dtd
             WHERE dtd.debtor_trans_no = $delTransNo AND dtd.debtor_trans_type = 13";
     $r = db_query($sql, 'Get delivery details');
     if ($r) {
         while ($dd = db_fetch($r)) {
             $sql2 = "SELECT id FROM " . TB_PREF . "sales_order_details
-                     WHERE order_no = $soNo AND trans_type = 30 AND stk_code = '" . db_escape($dd['stk_code']) . "'
+                     WHERE order_no = $soNo AND trans_type = 30 AND stk_code = '" . db_escape($dd['stock_id']) . "'
                      LIMIT 1";
             $r2 = db_query($sql2, 'Find SO detail');
             if ($r2 && ($sod = db_fetch($r2))) {
@@ -1154,7 +1240,7 @@ function _chain_do_sales_add_stock_moves($db, $delTransNo)
                   SELECT 1 FROM " . TB_PREF . "stock_moves sm
                   WHERE sm.trans_no = dtd.debtor_trans_no
                     AND sm.type = dtd.debtor_trans_type
-                    AND sm.stock_id = dtd.stk_code
+                AND sm.stock_id = dtd.stock_id
               )";
     $r = db_query($sql, 'Load delivery details for stock move creation');
     if (!$r) {
@@ -1171,7 +1257,7 @@ function _chain_do_sales_add_stock_moves($db, $delTransNo)
 
         $db->execute("INSERT INTO " . TB_PREF . "stock_moves
             (stock_id, type, trans_no, tran_date, debtor_no, loc_code, qty, price, standard_cost)
-            VALUES ('" . db_escape($dd['stk_code']) . "', 13, $delTransNo,
+            VALUES ('" . db_escape($dd['stock_id']) . "', 13, $delTransNo,
                     '" . db_escape($dd['tran_date']) . "',
                     " . (int)$dd['debtor_no'] . ",
                     '" . db_escape($locCode) . "',
@@ -1184,7 +1270,7 @@ function _chain_do_sales_add_stock_moves($db, $delTransNo)
 }
 
 // ===========================================================================
-// EXISTING BULK FIX FUNCTIONS (P5/P6/P7/S3/S4/S5) — kept for backward compat
+// EXISTING BULK FIX FUNCTIONS (P5/P6/P7/S3/S4/S5) &#8212; kept for backward compat
 // but now delegates to the consolidated chain logic.
 // ===========================================================================
 
@@ -1411,7 +1497,7 @@ function _integ_create_so($db, $debtorNo, $date, $ref, $itemCode, $description, 
         'from_stk' => '',
     ));
 
-    // Create SO detail line — need to figure out the id since it's referenced by delivery notes
+    // Create SO detail line &#8212; need to figure out the id since it's referenced by delivery notes
     $sodRepo = new \FrontAccounting\Repository\SalesOrderDetailRepository($db);
     $sodId = $sodRepo->insert(array(
         'order_no' => $soNo,

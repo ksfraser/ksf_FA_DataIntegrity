@@ -1,10 +1,10 @@
 <?php
 /**
- * integrity_report.php — Print-friendly data integrity summary report
+ * integrity_report.php &#8212; Print-friendly data integrity summary report
  *
- * Runs all checks (P1–P7, PCHAIN, S1–S5, SCHAIN, A1–A5) and renders a single-page HTML document suitable for
+ * Runs all checks (P1&#8212;P7, PCHAIN, S1&#8212;S5, SCHAIN, A1&#8212;A5) and renders a single-page HTML document suitable for
  * browser printing or PDF export.  Does NOT use FA's page()/end_page() chrome
- * so there is no navigation bar — just a clean printable table.
+ * so there is no navigation bar &#8212; just a clean printable table.
  *
  * PHP 5.6+ compatible.
  *
@@ -20,7 +20,7 @@ include_once($path_to_root . "/includes/session.inc");
 
 $module_root = dirname(dirname(__FILE__));
 include_once($module_root . "/includes/integrity_db.inc");
-// integrity_ui.inc requires FA HTML helpers — include ui.inc first
+// integrity_ui.inc requires FA HTML helpers &#8212; include ui.inc first
 include_once($path_to_root . "/includes/ui.inc");
 include_once($module_root . "/includes/integrity_ui.inc");
 
@@ -92,7 +92,7 @@ h3          { font-size: 12px; margin-top: 16px; }
     <a href="javascript:window.print()"><?php echo _('Print / Save as PDF'); ?></a>
 </div>
 
-<h1><?php echo _('FrontAccounting — Data Integrity Report'); ?></h1>
+<h1><?php echo _('FrontAccounting &#8212; Data Integrity Report'); ?></h1>
 <p class="meta">
     <?php echo _('Generated:'); ?> <?php echo htmlspecialchars($report_date); ?>
     &nbsp;&nbsp;|&nbsp;&nbsp;
@@ -118,18 +118,18 @@ h3          { font-size: 12px; margin-top: 16px; }
     <tbody>
         <?php
         $groups = array(
-            _('Purchase Chain (P1–P7, PCHAIN)') => array('P1','P2','P3','P4','P5','P6','P7','PCHAIN'),
-            _('Sales Chain (S1–S5, SCHAIN)')    => array('S1','S2','S3','S4','S5','SCHAIN'),
-            _('Allocations (A1–A5)')    => array('A1','A2','A3','A4','A5'),
+            _('Purchase Chain (P1&#8212;P11, PCHAIN)') => array('P1','P2','P3','P4','P5','P6','P7','P8','P9','P10','P11','PCHAIN'),
+            _('Sales Chain (S1&#8212;S8, SCHAIN, SCUST)') => array('S1','S2','S3','S4','S5','S6','S7','S8','SCHAIN','SCUST'),
+            _('Allocations (A1&#8212;A6)')              => array('A1','A2','A3','A4','A5','A6'),
         );
         foreach ($groups as $group_name => $ids) {
             echo "<tr class='group-header'><td colspan='4'>"
-                . htmlspecialchars($group_name) . "</td></tr>\n";
+                . $group_name . "</td></tr>\n";
             foreach ($ids as $id) {
                 $n = (int)$counts[$id];
                 echo "<tr>"
                     . "<td><strong>" . $id . "</strong></td>"
-                    . "<td>" . htmlspecialchars($labels[$id]) . "</td>"
+                    . "<td>" . $labels[$id] . "</td>"
                     . "<td class='" . ($n === 0 ? 'ok' : 'fail') . "'>" . $n . "</td>"
                     . "<td>" . ($fixes[$id] ? _('Yes') : _('Manual')) . "</td>"
                     . "</tr>\n";
@@ -147,12 +147,12 @@ h3          { font-size: 12px; margin-top: 16px; }
 <?php
 integ_render_pipeline_summary(
     $pu_pipeline,
-    _('Purchase Chain (PO → GRN → Invoice → Payment)'),
+    _('Purchase Chain (PO &#8594; GRN &#8594; Invoice &#8594; Payment)'),
     integ_purchase_pipeline_rows()
 );
 integ_render_pipeline_summary(
     $sa_pipeline,
-    _('Sales Chain (SO → Delivery → Invoice → Payment)'),
+    _('Sales Chain (SO &#8594; Delivery &#8594; Invoice &#8594; Payment)'),
     integ_sales_pipeline_rows()
 );
 ?>
@@ -167,8 +167,8 @@ integ_render_pipeline_summary(
 <h2><?php echo _('Issue Details'); ?></h2>
 <p><?php echo _('Only checks with one or more issues are shown below.'); ?></p>
 
-<?php
-// Map check IDs to their db check functions
+        <?php
+// Map check IDs to their check functions
 $check_funcs = array(
     'P1' => 'check_purchase_grn_qty_inv_mismatch',
     'P2' => 'check_purchase_pod_qty_invoiced_mismatch',
@@ -177,20 +177,28 @@ $check_funcs = array(
     'P5' => 'check_purchase_orphaned_invoice_items',
     'P6' => 'check_purchase_orphaned_grn_batches',
     'P7' => 'check_purchase_ghost_invoices',
+    'P8' => 'check_purchase_po_not_received',
+    'P9' => 'check_purchase_grn_not_invoiced',
+    'P10' => 'check_purchase_invoice_unpaid',
+    'P11' => 'check_purchase_voided_grn_items',
     'S1' => 'check_sales_sod_qty_sent_mismatch',
     'S2' => 'check_sales_sod_invoiced_mismatch',
     'S3' => 'check_sales_ghost_invoices',
     'S4' => 'check_sales_orphaned_deliveries',
     'S5' => 'check_sales_delivery_missing_stock_moves',
+    'S6' => 'check_sales_so_not_delivered',
+    'S7' => 'check_sales_delivery_not_invoiced',
+    'S8' => 'check_sales_invoice_unpaid',
     'A1' => 'check_alloc_supplier_drift',
     'A2' => 'check_alloc_customer_drift',
     'A3' => 'check_alloc_over_allocated',
     'A4' => 'check_alloc_orphaned_supplier_allocs',
     'A5' => 'check_alloc_orphaned_customer_allocs',
+    'A6' => 'check_alloc_unallocated_supplier_payments',
 );
 
 foreach ($checks_with_issues as $check_id) {
-    echo "<h3>" . $check_id . " — " . htmlspecialchars($labels[$check_id]) . "</h3>\n";
+    echo "<h3>" . $check_id . " &#8212; " . $labels[$check_id] . "</h3>\n";
     echo "<p><em>" . sprintf(_('%d issue(s) found.'), (int)$counts[$check_id]);
     if (isset($fixes[$check_id]) && $fixes[$check_id]) {
         echo " " . _('Auto-fix available on detail page.');
@@ -199,15 +207,24 @@ foreach ($checks_with_issues as $check_id) {
     }
     echo "</em></p>\n";
 
-    // PCHAIN/SCHAIN use the interactive per-row fix view — not rendered in the report
+    // PCHAIN/SCHAIN use interactive per-row fix view &#8212; not rendered in the report
     if ($check_id === 'PCHAIN' || $check_id === 'SCHAIN') {
         echo "<p>" . _('See the integrity dashboard detail page for interactive per-row fixes.') . "</p>\n";
         continue;
     }
 
+    if (!isset($check_funcs[$check_id])) {
+        echo "<p>" . _('Detail view not available for this check in the report.') . "</p>\n";
+        continue;
+    }
+
     $result = call_user_func($check_funcs[$check_id]);
     integ_render_check_result($check_id, $result);
-    db_free_result($result);
+
+    // Some checks return arrays (post-processed), some return db result resources
+    if (!is_array($result)) {
+        db_free_result($result);
+    }
 }
 ?>
 <?php endif; ?>

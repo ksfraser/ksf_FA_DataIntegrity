@@ -1,8 +1,8 @@
 <?php
 /**
- * allocation_integrity.php — Allocation integrity detail page
+ * allocation_integrity.php &#8212; Allocation integrity detail page
  *
- * Shows tabbed detail views for checks A1–A5.  Each tab runs only the active
+ * Shows tabbed detail views for checks A1&#8212;A5.  Each tab runs only the active
  * check query.  Checks that have an auto-fix function show a "Recalculate/Fix"
  * button that POSTs back to this page.
  *
@@ -35,12 +35,12 @@ if (isset($_POST['_quick_alloc'])) {
 
 // ---- Tab definitions ----
 $tabs = array(
-    'A1' => _('A1 – Supplier alloc drift'),
-    'A2' => _('A2 – Customer alloc drift'),
-    'A3' => _('A3 – Over-allocated'),
-    'A4' => _('A4 – Orphaned supp allocs'),
-    'A5' => _('A5 – Orphaned cust allocs'),
-    'A6' => _('A6 – Unallocated payments'),
+    'A1' => _('A1 &#8212; Supplier alloc drift'),
+    'A2' => _('A2 &#8212; Customer alloc drift'),
+    'A3' => _('A3 &#8212; Over-allocated'),
+    'A4' => _('A4 &#8212; Orphaned supp allocs'),
+    'A5' => _('A5 &#8212; Orphaned cust allocs'),
+    'A6' => _('A6 &#8212; Unallocated payments'),
 );
 
 $check_funcs = array(
@@ -66,7 +66,7 @@ integ_page_nav('allocation');
 // ---- Show fix result notification ----
 if ($fix_result !== null) {
     if ($fix_result['rows_fixed'] < 0) {
-        display_warning(_('Fix not applied &mdash; you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
+        display_warning(_('Fix not applied &#8212; you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
     } else {
         display_notification(sprintf(
             _('Fix %s applied: %d row(s) recalculated.'),
@@ -89,7 +89,7 @@ if ($quick_alloc_result !== null) {
     } elseif ($status === 'no_match') {
         display_warning(sprintf(_('Payment #%d has no matching unpaid invoice from this supplier.'), $pno));
     } elseif ($status === 'multiple_matches') {
-        display_warning(sprintf(_('Payment #%d matches multiple invoices — use the Allocate link to choose.'), $pno));
+        display_warning(sprintf(_('Payment #%d matches multiple invoices &#8212; use the Allocate link to choose.'), $pno));
     }
 }
 
@@ -109,7 +109,7 @@ $active = get_post('_al_sel', 'A1');
 
 // ---- Check description ----
 if (isset($labels[$active])) {
-    echo "<p><em>" . htmlspecialchars($labels[$active]) . "</em></p>\n";
+    echo "<p><em>" . $labels[$active] . "</em></p>\n";
 }
 
 // ---- Run the active check and render its result table ----

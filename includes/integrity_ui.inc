@@ -1,6 +1,6 @@
 <?php
 /**
- * integrity_ui.inc &mdash; UI helpers for KSF FA DataIntegrity
+ * integrity_ui.inc &#8212; UI helpers for KSF FA DataIntegrity
  *
  * Provides view/edit link builders, per-check result table renderers, fix
  * action buttons, and the fix-POST handler.  All output uses FA's own HTML
@@ -55,7 +55,7 @@ function integ_type_name($type)
 
 /**
  * Render a horizontal navigation bar for the Data Integrity module pages.
- * Call once after page() — replaces reliance on FA's left-side sidebar.
+ * Call once after page() &#8212; replaces reliance on FA's left-side sidebar.
  *
  * @param string $activePage  Identifier of the active page:
  *                            'dashboard', 'purchase', 'sales', 'allocation', 'report'
@@ -255,6 +255,7 @@ function integ_render_check_result($check_id, $result)
         'P8' => 'integ_render_p8',
         'P9' => 'integ_render_p9',
         'P10' => 'integ_render_p10',
+        'P11' => 'integ_render_p11',
         'S1' => 'integ_render_s1',
         'S2' => 'integ_render_s2',
         'S3' => 'integ_render_s3',
@@ -289,10 +290,10 @@ function integ_render_check_result($check_id, $result)
  *
  * The $rows parameter is an ordered array of display rows, each describing
  * one pipeline stage bucket.  Each element is an associative array with:
- *   'key'     &mdash; key into $data (from get_purchase/sales_pipeline_counts())
- *   'label'   &mdash; human-readable stage description
- *   'style'   &mdash; 'good' | 'warn' | 'bad' | 'normal' | 'anomalous'
- *   'note'    &mdash; optional short tooltip / parenthetical
+ *   'key'     &#8212; key into $data (from get_purchase/sales_pipeline_counts())
+ *   'label'   &#8212; human-readable stage description
+ *   'style'   &#8212; 'good' | 'warn' | 'bad' | 'normal' | 'anomalous'
+ *   'note'    &#8212; optional short tooltip / parenthetical
  *
  * Percentage columns are computed relative to $data['total'].
  *
@@ -314,7 +315,7 @@ function integ_render_pipeline_summary($data, $title, $rows)
         'warn'      => '#996600',// amber
         'bad'       => '#c00',   // red
         'normal'    => '#333',   // neutral (open / in-progress)
-        'anomalous' => '#800080',// purple &mdash; should never happen
+        'anomalous' => '#800080',// purple &#8212; should never happen
     );
 
     start_table(TABLESTYLE, "width='70%'");
@@ -360,7 +361,7 @@ function integ_purchase_pipeline_rows()
     return array(
         array(
             'key'   => 'complete_clean',
-            'label' => _('Complete & clean (PO → GRN → Invoice → Payment, counters agree)'),
+            'label' => _('Complete & clean (PO &#8594; GRN &#8594; Invoice &#8594; Payment, counters agree)'),
             'style' => 'good',
             'note'  => _('All stages present, all counter values verified'),
         ),
@@ -386,7 +387,7 @@ function integ_purchase_pipeline_rows()
             'key'   => 'received_not_invoiced',
             'label' => _('GRN received, not yet invoiced'),
             'style' => 'warn',
-            'note'  => _('May include Direct Invoice timeout failures &mdash; check P1 tab'),
+            'note'  => _('May include Direct Invoice timeout failures &#8212; check P1 tab'),
         ),
         array(
             'key'   => 'open_po',
@@ -398,7 +399,7 @@ function integ_purchase_pipeline_rows()
             'key'   => 'anomalous',
             'label' => _('Anomalous (payment exists but no invoice traced)'),
             'style' => 'anomalous',
-            'note'  => _('Should be 0 &mdash; investigate immediately'),
+            'note'  => _('Should be 0 &#8212; investigate immediately'),
         ),
     );
 }
@@ -415,7 +416,7 @@ function integ_sales_pipeline_rows()
     return array(
         array(
             'key'   => 'complete_clean',
-            'label' => _('Complete & clean (SO → Delivery → Invoice → Payment, counters agree)'),
+            'label' => _('Complete & clean (SO &#8594; Delivery &#8594; Invoice &#8594; Payment, counters agree)'),
             'style' => 'good',
             'note'  => _('All stages present, all counter values verified'),
         ),
@@ -453,17 +454,17 @@ function integ_sales_pipeline_rows()
             'key'   => 'anomalous',
             'label' => _('Anomalous (payment exists but no invoice traced)'),
             'style' => 'anomalous',
-            'note'  => _('Should be 0 &mdash; investigate immediately'),
+            'note'  => _('Should be 0 &#8212; investigate immediately'),
         ),
     );
 }
 
 // ---------------------------------------------------------------------------
-// Per-check render functions &mdash; PURCHASE
+// Per-check render functions &#8212; PURCHASE
 // ---------------------------------------------------------------------------
 
 /**
- * Render P1 &mdash; grn_items.quantity_inv drift vs actual supp_invoice_items.
+ * Render P1 &#8212; grn_items.quantity_inv drift vs actual supp_invoice_items.
  *
  * @param  resource $result  DB result from check_purchase_grn_qty_inv_mismatch()
  * @return void
@@ -504,7 +505,7 @@ function integ_render_p1($result)
 }
 
 /**
- * Render P2 &mdash; purch_order_details.qty_invoiced drift.
+ * Render P2 &#8212; purch_order_details.qty_invoiced drift.
  *
  * @param  resource $result  DB result from check_purchase_pod_qty_invoiced_mismatch()
  * @return void
@@ -546,7 +547,7 @@ function integ_render_p2($result)
 }
 
 /**
- * Render P3 &mdash; purch_order_details.quantity_received drift vs GRN items.
+ * Render P3 &#8212; purch_order_details.quantity_received drift vs GRN items.
  *
  * @param  resource $result  DB result from check_purchase_pod_qty_received_mismatch()
  * @return void
@@ -587,7 +588,7 @@ function integ_render_p3($result)
 }
 
 /**
- * Render P4 &mdash; GRN lines over-invoiced (net of supplier credit notes).
+ * Render P4 &#8212; GRN lines over-invoiced (net of supplier credit notes).
  *
  * @param  resource $result  DB result from check_purchase_grn_over_invoiced()
  * @return void
@@ -639,7 +640,7 @@ function integ_render_p4($result)
 }
 
 /**
- * Render P5 &mdash; supp_invoice_items with no matching grn_items row.
+ * Render P5 &#8212; supp_invoice_items with no matching grn_items row.
  *
  * @param  resource $result  DB result from check_purchase_orphaned_invoice_items()
  * @return void
@@ -678,7 +679,7 @@ function integ_render_p5($result)
 }
 
 /**
- * Render P6 &mdash; grn_batch rows whose parent purch_order_no is missing.
+ * Render P6 &#8212; grn_batch rows whose parent purch_order_no is missing.
  *
  * @param  resource $result  DB result from check_purchase_orphaned_grn_batches()
  * @return void
@@ -715,7 +716,7 @@ function integ_render_p6($result)
 }
 
 /**
- * Render P7 &mdash; Supplier invoice headers with no supp_invoice_items lines.
+ * Render P7 &#8212; Supplier invoice headers with no supp_invoice_items lines.
  *
  * @param  resource $result  DB result from check_purchase_ghost_invoices()
  * @return void
@@ -753,7 +754,7 @@ function integ_render_p7($result)
 }
 
 /**
- * Render P8 &mdash; Purchase order lines not yet received.
+ * Render P8 &#8212; Purchase order lines not yet received.
  *
  * @param  resource $result  DB result from check_purchase_po_not_received()
  * @return void
@@ -796,7 +797,7 @@ function integ_render_p8($result)
 }
 
 /**
- * Render P9 &mdash; GRN items not yet invoiced.
+ * Render P9 &#8212; GRN items not yet invoiced.
  *
  * @param  resource $result  DB result from check_purchase_grn_not_invoiced()
  * @return void
@@ -837,7 +838,7 @@ function integ_render_p9($result)
 }
 
 /**
- * Render P10 &mdash; Supplier invoices not yet paid or credited.
+ * Render P10 &#8212; Supplier invoices not yet paid or credited.
  *
  * @param  resource $result  DB result from check_purchase_invoice_unpaid()
  * @return void
@@ -885,12 +886,78 @@ function integ_render_p10($result)
     end_table(1);
 }
 
+/**
+ * Render P11 &#8212; Supplier invoices with zero-charged GRN items + active GL.
+ *
+ * Each row is labelled with a pattern:
+ *   "Voided"    &#8212; all GRN items have qty=0,price=0 (line-level void)
+ *   "Zero-cost" &#8212; all GRN items have qty>0,price=0 (non-stock receipt tracking)
+ *   "Mixed"     &#8212; combination of voided and zero-cost lines
+ *
+ * @param  resource $result  DB result from check_purchase_voided_grn_items()
+ * @return void
+ * @since  2.5.0
+ */
+function integ_render_p11($result)
+{
+    $cols = array(
+        _('Invoice #'), _('Supplier'), _('Reference'), _('Date'),
+        _('Total'), _('Pattern'),
+        _('GRN Lines'), _('Voided'), _('Zero-cost'), _('Active'),
+        _('Total Charged'), _('GL Lines'), _('GL Debit Total'),
+        _('View Invoice'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    while ($row = db_fetch($result)) {
+        $total_items  = (int)$row['grn_item_count'];
+        $voided       = (int)$row['voided_count'];
+        $zero_cost    = (int)$row['zero_cost_count'];
+        $active       = (int)$row['active_charged_count'];
+
+        if ($voided == $total_items) {
+            $pattern = _('Voided');
+            $pstyle  = 'color:red';
+        } elseif ($zero_cost == $total_items) {
+            $pattern = _('Zero-cost');
+            $pstyle  = 'color:#a50';
+        } else {
+            $pattern = _('Mixed');
+            $pstyle  = 'color:#800080';
+        }
+
+        alt_table_row_color($k);
+        label_cell(integ_view_link(INTEG_ST_SUPPINVOICE, $row['trans_no'], '#' . $row['trans_no']));
+        label_cell(htmlspecialchars($row['supp_name']));
+        label_cell(htmlspecialchars($row['reference']));
+        label_cell($row['tran_date']);
+        label_cell(number_format($row['total_amount'], 2));
+        label_cell('<span style="font-weight:bold;' . $pstyle . '">' . $pattern . '</span>');
+        label_cell($total_items);
+        label_cell('<span style="color:' . ($voided > 0 ? 'red' : '#999') . '">' . $voided . '</span>');
+        label_cell('<span style="color:' . ($zero_cost > 0 ? '#a50' : '#999') . '">' . $zero_cost . '</span>');
+        label_cell('<span style="color:' . ($active > 0 ? 'green' : '#999') . '">' . $active . '</span>');
+        label_cell(number_format($row['total_charged'], 2));
+        label_cell((int)$row['gl_line_count']);
+        label_cell(number_format($row['gl_debit_total'], 2));
+        label_cell(integ_view_link(INTEG_ST_SUPPINVOICE, $row['trans_no']));
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
 // ---------------------------------------------------------------------------
-// Per-check render functions &mdash; SALES
+// Per-check render functions &#8212; SALES
 // ---------------------------------------------------------------------------
 
 /**
- * Render S1 &mdash; sales_order_details.qty_sent drift vs delivery note details.
+ * Render S1 &#8212; sales_order_details.qty_sent drift vs delivery note details.
  *
  * @param  resource $result  DB result from check_sales_sod_qty_sent_mismatch()
  * @return void
@@ -901,6 +968,7 @@ function integ_render_s1($result)
     $cols = array(
         _('Order #'), _('Order Ref'), _('Customer'), _('Item Code'), _('Description'),
         _('Qty Ordered'), _('qty_sent stored'), _('qty_sent actual'), _('Discrepancy'),
+        _('Deliveries'), _('Voided Del'), _('Likely Cause'),
         _('View Order'),
     );
     start_table(TABLESTYLE, "width='98%'");
@@ -920,6 +988,10 @@ function integ_render_s1($result)
         $disc = $row['discrepancy'];
         label_cell('<span style="color:' . ($disc == 0 ? 'green' : 'red') . '">'
             . number_format($disc, 4) . '</span>');
+        label_cell((int)$row['del_count']);
+        $vd = (int)$row['voided_del_count'];
+        label_cell('<span style="color:' . ($vd > 0 ? 'red' : '#999') . '">' . $vd . '</span>');
+        label_cell(htmlspecialchars($row['likely_cause']));
         label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['order_no']));
         end_row();
     }
@@ -931,7 +1003,7 @@ function integ_render_s1($result)
 }
 
 /**
- * Render S2 &mdash; sales_order_details.invoiced drift vs customer invoice details.
+ * Render S2 &#8212; sales_order_details.invoiced drift vs customer invoice details.
  *
  * @param  resource $result  DB result from check_sales_sod_invoiced_mismatch()
  * @return void
@@ -942,6 +1014,8 @@ function integ_render_s2($result)
     $cols = array(
         _('Order #'), _('Order Ref'), _('Customer'), _('Item Code'), _('Description'),
         _('Qty Ordered'), _('invoiced stored'), _('invoiced actual'), _('Discrepancy'),
+        _('Inv Lines'), _('Voided Inv'), _('Credit Notes'), _('Credit Qty'),
+        _('Likely Cause'),
         _('View Order'),
     );
     start_table(TABLESTYLE, "width='98%'");
@@ -961,6 +1035,12 @@ function integ_render_s2($result)
         $disc = $row['discrepancy'];
         label_cell('<span style="color:' . ($disc == 0 ? 'green' : 'red') . '">'
             . number_format($disc, 4) . '</span>');
+        label_cell((int)$row['inv_count']);
+        $vi = (int)$row['voided_inv_count'];
+        label_cell('<span style="color:' . ($vi > 0 ? 'red' : '#999') . '">' . $vi . '</span>');
+        label_cell((int)$row['cn_count']);
+        label_cell(number_format($row['cn_qty_total'], 2));
+        label_cell(htmlspecialchars($row['likely_cause']));
         label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['order_no']));
         end_row();
     }
@@ -972,7 +1052,7 @@ function integ_render_s2($result)
 }
 
 /**
- * Render S3 &mdash; Customer invoices with no debtor_trans_details lines.
+ * Render S3 &#8212; Customer invoices with no debtor_trans_details lines.
  *
  * @param  resource $result  DB result from check_sales_ghost_invoices()
  * @return void
@@ -1009,7 +1089,7 @@ function integ_render_s3($result)
 }
 
 /**
- * Render S4 &mdash; Delivery notes whose parent sales order is missing.
+ * Render S4 &#8212; Delivery notes whose parent sales order is missing.
  *
  * @param  resource $result  DB result from check_sales_orphaned_deliveries()
  * @return void
@@ -1045,7 +1125,7 @@ function integ_render_s4($result)
 }
 
 /**
- * Render S5 &mdash; Delivery notes with no stock_moves entries.
+ * Render S5 &#8212; Delivery notes with no stock_moves entries.
  *
  * @param  resource $result  DB result from check_sales_delivery_missing_stock_moves()
  * @return void
@@ -1080,7 +1160,7 @@ function integ_render_s5($result)
 }
 
 /**
- * Render S6 &mdash; Sales orders not yet fully delivered.
+ * Render S6 &#8212; Sales orders not yet fully delivered.
  *
  * @param  resource $result  DB result from check_sales_so_not_delivered()
  * @return void
@@ -1092,7 +1172,10 @@ function integ_render_s6($result)
         _('Order #'), _('Reference'), _('Date'), _('Customer'),
         _('Item Code'), _('Description'),
         _('Qty Ordered'), _('Qty Sent'), _('Outstanding'),
-        _('Unit Price'), _('View Order'),
+        _('Unit Price'),
+        _('Direct Inv Matches'),
+        _('Void Inv'),
+        _('View Order'),
     );
     start_table(TABLESTYLE, "width='98%'");
     table_header($cols);
@@ -1111,6 +1194,24 @@ function integ_render_s6($result)
         label_cell(number_format($row['qty_sent'], 2));
         label_cell('<span style="color:#a50">' . number_format($row['qty_outstanding'], 2) . '</span>');
         label_cell(number_format($row['unit_price'], 4));
+
+        $mc = (int)$row['match_count'];
+        if ($mc > 0) {
+            label_cell('<span style="color:#a50;font-size:0.9em">' . $row['possible_matches'] . '</span>');
+            $firstInv = (int)$row['first_match_inv_no'];
+            if ($firstInv) {
+                $voidUrl = $GLOBALS['path_to_root']
+                    . '/gl/void_transaction.php?type=10&trans_no=' . $firstInv;
+                label_cell('<a href="' . htmlspecialchars($voidUrl) . '" target="_blank" style="color:red;font-weight:bold">'
+                    . _('Void') . '</a>');
+            } else {
+                label_cell('');
+            }
+        } else {
+            label_cell('<span style="color:#999">' . _('None') . '</span>');
+            label_cell('');
+        }
+
         label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['order_no']));
         end_row();
         $k++;
@@ -1123,7 +1224,7 @@ function integ_render_s6($result)
 }
 
 /**
- * Render S7 &mdash; Delivery-note items not yet fully invoiced.
+ * Render S7 &#8212; Delivery-note items not yet fully invoiced.
  *
  * @param  resource $result  DB result from check_sales_delivery_not_invoiced()
  * @return void
@@ -1167,7 +1268,7 @@ function integ_render_s7($result)
 }
 
 /**
- * Render S8 &mdash; Customer invoices not yet paid or credited.
+ * Render S8 &#8212; Customer invoices not yet paid or credited.
  *
  * @param  resource $result  DB result from check_sales_invoice_unpaid()
  * @return void
@@ -1214,11 +1315,11 @@ function integ_render_s8($result)
 }
 
 // ---------------------------------------------------------------------------
-// Per-check render functions &mdash; ALLOCATIONS
+// Per-check render functions &#8212; ALLOCATIONS
 // ---------------------------------------------------------------------------
 
 /**
- * Render A1 &mdash; supp_trans.alloc drift vs supp_allocations sum.
+ * Render A1 &#8212; supp_trans.alloc drift vs supp_allocations sum.
  *
  * @param  resource $result  DB result from check_alloc_supplier_drift()
  * @return void
@@ -1229,6 +1330,7 @@ function integ_render_a1($result)
     $cols = array(
         _('Trans #'), _('Type'), _('Date'), _('Supp Ref'), _('Reference'),
         _('Supplier'), _('Total'), _('alloc stored'), _('alloc actual'), _('Discrepancy'),
+        _('Likely Cause'),
         _('View'),
     );
     start_table(TABLESTYLE, "width='98%'");
@@ -1249,6 +1351,7 @@ function integ_render_a1($result)
         $disc = $row['discrepancy'];
         label_cell('<span style="color:' . ($disc == 0 ? 'green' : 'red') . '">'
             . number_format($disc, 4) . '</span>');
+        label_cell(htmlspecialchars($row['likely_cause']));
         label_cell(integ_view_link($row['type'], $row['trans_no']));
         end_row();
     }
@@ -1260,7 +1363,7 @@ function integ_render_a1($result)
 }
 
 /**
- * Render A2 &mdash; debtor_trans.alloc drift vs cust_allocations sum.
+ * Render A2 &#8212; debtor_trans.alloc drift vs cust_allocations sum.
  *
  * @param  resource $result  DB result from check_alloc_customer_drift()
  * @return void
@@ -1271,6 +1374,7 @@ function integ_render_a2($result)
     $cols = array(
         _('Trans #'), _('Type'), _('Date'), _('Reference'),
         _('Customer'), _('Total'), _('alloc stored'), _('alloc actual'), _('Discrepancy'),
+        _('Likely Cause'),
         _('View'),
     );
     start_table(TABLESTYLE, "width='98%'");
@@ -1290,6 +1394,7 @@ function integ_render_a2($result)
         $disc = $row['discrepancy'];
         label_cell('<span style="color:' . ($disc == 0 ? 'green' : 'red') . '">'
             . number_format($disc, 4) . '</span>');
+        label_cell(htmlspecialchars($row['likely_cause']));
         label_cell(integ_view_link($row['type'], $row['trans_no']));
         end_row();
     }
@@ -1301,7 +1406,7 @@ function integ_render_a2($result)
 }
 
 /**
- * Render A3 &mdash; Transactions where alloc exceeds the absolute transaction amount.
+ * Render A3 &#8212; Transactions where alloc exceeds the absolute transaction amount.
  *
  * @param  resource $result  DB result from check_alloc_over_allocated()
  * @return void
@@ -1340,7 +1445,7 @@ function integ_render_a3($result)
 }
 
 /**
- * Render A4 &mdash; Orphaned supp_allocations rows.
+ * Render A4 &#8212; Orphaned supp_allocations rows.
  *
  * @param  resource $result  DB result from check_alloc_orphaned_supplier_allocs()
  * @return void
@@ -1364,12 +1469,22 @@ function integ_render_a4($result)
         label_cell($row['date_alloc']);
         label_cell(number_format($row['amt'], 2));
         label_cell(integ_type_name($row['trans_type_from']));
-        label_cell(integ_view_link($row['trans_type_from'], $row['trans_no_from'], '#' . $row['trans_no_from']));
-        label_cell('<span style="color:' . ($row['from_missing'] === 'YES' ? 'red' : 'green') . '">'
+        $from_missing = $row['from_missing'] === 'YES';
+        if ($from_missing) {
+            label_cell('<span style="color:red">#' . (int)$row['trans_no_from'] . ' (' . _('missing') . ')</span>');
+        } else {
+            label_cell(integ_view_link($row['trans_type_from'], $row['trans_no_from'], '#' . $row['trans_no_from']));
+        }
+        label_cell('<span style="color:' . ($from_missing ? 'red' : 'green') . '">'
             . htmlspecialchars($row['from_missing']) . '</span>');
         label_cell(integ_type_name($row['trans_type_to']));
-        label_cell(integ_view_link($row['trans_type_to'], $row['trans_no_to'], '#' . $row['trans_no_to']));
-        label_cell('<span style="color:' . ($row['to_missing'] === 'YES' ? 'red' : 'green') . '">'
+        $to_missing = $row['to_missing'] === 'YES';
+        if ($to_missing) {
+            label_cell('<span style="color:red">#' . (int)$row['trans_no_to'] . ' (' . _('missing') . ')</span>');
+        } else {
+            label_cell(integ_view_link($row['trans_type_to'], $row['trans_no_to'], '#' . $row['trans_no_to']));
+        }
+        label_cell('<span style="color:' . ($to_missing ? 'red' : 'green') . '">'
             . htmlspecialchars($row['to_missing']) . '</span>');
         end_row();
     }
@@ -1381,28 +1496,7 @@ function integ_render_a4($result)
 }
 
 /**
- * Return an HTML anchor to FA's supplier allocation page for a given payment.
- *
- * @param  int    $payment_no   Supplier payment transaction number
- * @param  int    $supplier_id  Supplier ID
- * @param  string $label        Link text (default 'Allocate')
- * @return string  HTML anchor
- * @since  1.0.0
- */
-function integ_alloc_link($payment_no, $supplier_id, $label = '')
-{
-    global $path_to_root;
-
-    if ($label === '') {
-        $label = _('Allocate');
-    }
-    $url = $path_to_root . '/purchasing/allocations/supplier_allocate.php?trans_no='
-        . (int)$payment_no . '&trans_type=22&supplier_id=' . (int)$supplier_id;
-    return '<a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($label) . '</a>';
-}
-
-/**
- * Render A5 &mdash; Orphaned cust_allocations rows.
+ * Render A5 &#8212; Orphaned cust_allocations rows.
  *
  * @param  resource $result  DB result from check_alloc_orphaned_customer_allocs()
  * @return void
@@ -1426,12 +1520,22 @@ function integ_render_a5($result)
         label_cell($row['date_alloc']);
         label_cell(number_format($row['amt'], 2));
         label_cell(integ_type_name($row['trans_type_from']));
-        label_cell(integ_view_link($row['trans_type_from'], $row['trans_no_from'], '#' . $row['trans_no_from']));
-        label_cell('<span style="color:' . ($row['from_missing'] === 'YES' ? 'red' : 'green') . '">'
+        $from_missing = $row['from_missing'] === 'YES';
+        if ($from_missing) {
+            label_cell('<span style="color:red">#' . (int)$row['trans_no_from'] . ' (' . _('missing') . ')</span>');
+        } else {
+            label_cell(integ_view_link($row['trans_type_from'], $row['trans_no_from'], '#' . $row['trans_no_from']));
+        }
+        label_cell('<span style="color:' . ($from_missing ? 'red' : 'green') . '">'
             . htmlspecialchars($row['from_missing']) . '</span>');
         label_cell(integ_type_name($row['trans_type_to']));
-        label_cell(integ_view_link($row['trans_type_to'], $row['trans_no_to'], '#' . $row['trans_no_to']));
-        label_cell('<span style="color:' . ($row['to_missing'] === 'YES' ? 'red' : 'green') . '">'
+        $to_missing = $row['to_missing'] === 'YES';
+        if ($to_missing) {
+            label_cell('<span style="color:red">#' . (int)$row['trans_no_to'] . ' (' . _('missing') . ')</span>');
+        } else {
+            label_cell(integ_view_link($row['trans_type_to'], $row['trans_no_to'], '#' . $row['trans_no_to']));
+        }
+        label_cell('<span style="color:' . ($to_missing ? 'red' : 'green') . '">'
             . htmlspecialchars($row['to_missing']) . '</span>');
         end_row();
     }
@@ -1443,7 +1547,7 @@ function integ_render_a5($result)
 }
 
 /**
- * Render A6 &mdash; Unallocated supplier payments.
+ * Render A6 &#8212; Unallocated supplier payments.
  *
  * Each row shows payment details.  When match_count = 1 a "Quick Allocate"
  * submit button is rendered alongside the standard Allocation link.
@@ -1473,7 +1577,7 @@ function integ_render_a6($result)
 
         $mc = (int)$row['match_count'];
         if ($mc === 0) {
-            label_cell('<span style="color:#999">' . _('None &mdash; manual allocate required') . '</span>');
+            label_cell('<span style="color:#999">' . _('None &#8212; manual allocate required') . '</span>');
         } elseif ($mc === 1) {
             label_cell('<span style="color:#060">' . _('1 invoice matches exactly') . '</span>');
         } else {
@@ -1501,7 +1605,7 @@ function integ_render_a6($result)
 }
 
 // ===========================================================================
-// CONSOLIDATED CHAIN VIEW &mdash; purchase (replaces P5/P6/P7)
+// CONSOLIDATED CHAIN VIEW &#8212; purchase (replaces P5/P6/P7)
 // ===========================================================================
 
 /**
@@ -1578,9 +1682,9 @@ function integ_render_purchase_chain($rows)
 function _chain_cell_po($row)
 {
     if ($row['po_order_no']) {
-        $bg = '#dfd'; // green &mdash; exists
+        $bg = '#dfd'; // green &#8212; exists
         if ($row['row_type'] === 'orphan_inv' && $row['candidate_po_id']) {
-            $bg = '#ffd'; // light yellow &mdash; has candidate PO
+            $bg = '#ffd'; // light yellow &#8212; has candidate PO
         }
         $text = integ_edit_link(INTEG_ST_PURCHORDER, $row['po_order_no'], sprintf(_('Edit PO #%d'), $row['po_order_no']));
         if ($row['po_ref']) {
@@ -1591,7 +1695,7 @@ function _chain_cell_po($row)
         }
         return "<div style='background:$bg;padding:2px 4px'>$text</div>";
     }
-    return '<span style="color:#999">' . _('&mdash;') . '</span>';
+    return '<span style="color:#999">' . _('&#8212;') . '</span>';
 }
 
 /**
@@ -1601,7 +1705,7 @@ function _chain_cell_po_grn_link($row, $key)
 {
     $code = $row['row_type'];
 
-    // Linked &mdash; green check
+    // Linked &#8212; green check
     if ($row['po_order_no'] && $row['grn_batch_id']) {
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
@@ -1610,7 +1714,7 @@ function _chain_cell_po_grn_link($row, $key)
         return '<span style="color:#c00">' . _('Missing PO') . '</span>';
     }
 
-    return '<span style="color:#999">&mdash;</span>';
+    return '<span style="color:#999">&#8212;</span>';
 }
 
 /**
@@ -1623,9 +1727,9 @@ function _chain_cell_grn($row)
     if ($row['grn_batch_id']) {
         $bg = '#dfd';
         if ($code === 'orphan_grn') {
-            $bg = '#ffc'; // yellow &mdash; has invoice link but no PO
+            $bg = '#ffc'; // yellow &#8212; has invoice link but no PO
         } elseif ($code === 'item_mismatch') {
-            $bg = '#ffc'; // yellow &mdash; linked to PO but item mismatch with invoice
+            $bg = '#ffc'; // yellow &#8212; linked to PO but item mismatch with invoice
         }
         $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], sprintf(_('View GRN #%d'), $row['grn_batch_id']));
         if ($row['grn_item_code']) {
@@ -1638,7 +1742,7 @@ function _chain_cell_grn($row)
     }
 
     if ($code === 'orphan_grn') {
-        // Standalone orphaned GRN &mdash; show details even without invoice
+        // Standalone orphaned GRN &#8212; show details even without invoice
         $text = integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], sprintf(_('View GRN #%d'), $row['grn_batch_id']));
         $text .= '<br><small>' . htmlspecialchars($row['grn_item_code']) . '</small>';
         if ($row['grn_qty'] > 0) {
@@ -1647,9 +1751,9 @@ function _chain_cell_grn($row)
         return "<div style='background:#ffc;padding:2px 4px'>$text</div>";
     }
 
-    // No GRN &mdash; orphaned invoice item
+    // No GRN &#8212; orphaned invoice item
     if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
-        $bg = '#fdb'; // orange &mdash; candidate found
+        $bg = '#fdb'; // orange &#8212; candidate found
         $text = sprintf(_('Candidate GRN #%d'), $row['candidate_grn_batch_id']);
         return "<div style='background:$bg;padding:2px 4px'>$text</div>";
     }
@@ -1658,7 +1762,7 @@ function _chain_cell_grn($row)
         return '<span style="color:#c00">' . _('Missing GRN') . '</span>';
     }
 
-    return '<span style="color:#999">&mdash;</span>';
+    return '<span style="color:#999">&#8212;</span>';
 }
 
 /**
@@ -1673,7 +1777,7 @@ function _chain_cell_grn_inv_link($row, $key)
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
 
-    // Item mismatch &mdash; red with Disassociate button
+    // Item mismatch &#8212; red with Disassociate button
     if ($code === 'item_mismatch') {
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
              . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
@@ -1682,7 +1786,7 @@ function _chain_cell_grn_inv_link($row, $key)
         return $btn;
     }
 
-    // Orphaned invoice with candidate GRN &mdash; orange Match button
+    // Orphaned invoice with candidate GRN &#8212; orange Match button
     if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_grn_inv"'
              . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
@@ -1692,12 +1796,12 @@ function _chain_cell_grn_inv_link($row, $key)
         return $btn;
     }
 
-    // Orphaned invoice with no candidate &mdash; red
+    // Orphaned invoice with no candidate &#8212; red
     if ($code === 'orphan_inv') {
         return '<span style="color:#c00">' . _('Broken') . '</span>';
     }
 
-    // Standalone GRN (valid PO, no invoice) &mdash; Create Invoice link
+    // Standalone GRN (valid PO, no invoice) &#8212; Create Invoice link
     if ($code === 'standalone_grn') {
         global $path_to_root;
         $url = $path_to_root . '/purchasing/supplier_invoice.php?New=1';
@@ -1705,7 +1809,7 @@ function _chain_cell_grn_inv_link($row, $key)
              . _('Create Invoice') . '</a>';
     }
 
-    return '<span style="color:#999">&mdash;</span>';
+    return '<span style="color:#999">&#8212;</span>';
 }
 
 /**
@@ -1716,10 +1820,10 @@ function _chain_cell_invoice($row)
     $code = $row['row_type'];
 
     if ($code === 'ghost_inv') {
-        // Ghost invoice &mdash; red background
+        // Ghost invoice &#8212; red background
         $bg = '#fdd';
         $text = integ_edit_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], sprintf(_('Edit Invoice #%d'), $row['inv_trans_no']));
-        $text .= '<br><small>' . _('GHOST &mdash; no line items') . '</small>';
+        $text .= '<br><small>' . _('GHOST &#8212; no line items') . '</small>';
         if ($row['inv_total'] > 0) {
             $text .= '<br><small>' . _('Total:') . ' ' . number_format($row['inv_total'], 2) . '</small>';
         }
@@ -1727,7 +1831,7 @@ function _chain_cell_invoice($row)
     }
 
     if ($code === 'item_mismatch') {
-        // Item mismatch &mdash; red
+        // Item mismatch &#8212; red
         $bg = '#fdd';
         $text = integ_edit_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], sprintf(_('Edit Invoice #%d'), $row['inv_trans_no']));
         $text .= '<br><small>' . _('Item:') . ' ' . htmlspecialchars($row['inv_stock_id']) . '</small>';
@@ -1736,7 +1840,7 @@ function _chain_cell_invoice($row)
     }
 
     if ($code === 'orphan_inv') {
-        // Orphaned &mdash; orange if candidate, red if no candidate
+        // Orphaned &#8212; orange if candidate, red if no candidate
         $bg = $row['candidate_grn_batch_id'] ? '#fdb' : '#fdd';
         $text = integ_edit_link(INTEG_ST_SUPPINVOICE, $row['inv_trans_no'], sprintf(_('Edit Invoice #%d'), $row['inv_trans_no']));
         if ($row['inv_stock_id']) {
@@ -1747,13 +1851,13 @@ function _chain_cell_invoice($row)
     }
 
     if ($code === 'orphan_grn') {
-        // Standalone GRN with no invoice &mdash; blank cell
-        return '<span style="color:#999">&mdash;</span>';
+        // Standalone GRN with no invoice &#8212; blank cell
+        return '<span style="color:#999">&#8212;</span>';
     }
 
     if ($code === 'standalone_grn') {
-        // Valid PO+GRN with no invoice &mdash; blank cell
-        return '<span style="color:#999">' . _('&mdash;') . '</span>';
+        // Valid PO+GRN with no invoice &#8212; blank cell
+        return '<span style="color:#999">' . _('&#8212;') . '</span>';
     }
 
     // Healthy invoice
@@ -1804,7 +1908,7 @@ function _chain_cell_actions($row, $key)
 }
 
 // ===========================================================================
-// CONSOLIDATED CHAIN VIEW &mdash; sales (replaces S3/S4/S5)
+// CONSOLIDATED CHAIN VIEW &#8212; sales (replaces S3/S4/S5)
 // ===========================================================================
 
 /**
@@ -1882,7 +1986,7 @@ function _sales_cell_so($row)
         }
         return "<div style='background:#dfd;padding:2px 4px'>$text</div>";
     }
-    return '<span style="color:#999">&mdash;</span>';
+    return '<span style="color:#999">&#8212;</span>';
 }
 
 function _sales_cell_so_del_link($row, $key)
@@ -1905,7 +2009,7 @@ function _sales_cell_so_del_link($row, $key)
         return '<span style="color:#c00">' . _('Missing SO') . '</span>';
     }
 
-    return '<span style="color:#999">&mdash;</span>';
+    return '<span style="color:#999">&#8212;</span>';
 }
 
 function _sales_cell_delivery($row)
@@ -1926,11 +2030,11 @@ function _sales_cell_delivery($row)
 
     if ($type === 'ghost_inv') {
         $text = integ_view_link(INTEG_ST_SALESINVOICE, $row['inv_trans_no'], '#' . $row['inv_trans_no']);
-        $text .= '<br><small style="color:#c00">' . _('GHOST &mdash; no items') . '</small>';
+        $text .= '<br><small style="color:#c00">' . _('GHOST &#8212; no items') . '</small>';
         return "<div style='background:#fdd;padding:2px 4px'>$text</div>";
     }
 
-    return '<span style="color:#999">&mdash;</span>';
+    return '<span style="color:#999">&#8212;</span>';
 }
 
 function _sales_cell_stock($row, $key)
@@ -1941,7 +2045,7 @@ function _sales_cell_stock($row, $key)
     if ($row['del_trans_no'] && $row['row_type'] !== 'missing_stock') {
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
-    return '<span style="color:#999">&mdash;</span>';
+    return '<span style="color:#999">&#8212;</span>';
 }
 
 function _sales_cell_actions($row, $key)
@@ -2027,4 +2131,282 @@ function integ_handle_chain_fix_post($chainCheckId)
     }
 
     return array('message' => _('Unknown chain: ') . $chainCheckId, 'popup_url' => null);
+}
+
+// ---------------------------------------------------------------------------
+
+/**
+ * Render the SCUST customer/branch consistency check results.
+ *
+ * Shows each inconsistent transaction with three fix buttons:
+ *   "Use SO" — update debtor/branch from linked SO
+ *   "Use Branch" — update debtor from branch owner
+ *   "Set Customer" — inline dropdown to pick customer/branch
+ *
+ * @param array $rows  Result from check_sales_customer_mismatch()
+ */
+function integ_render_sales_customer_mismatch($rows)
+{
+    $cols = array(
+        _('Trans'),
+        _('Date'),
+        _('Charge To'),
+        _('Branch'),
+        _('SO'),
+        _('Issue'),
+        _('Actions'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    if (empty($rows)) {
+        integ_no_issues_row(count($cols));
+        end_table(1);
+        return;
+    }
+
+    // ---- Manual trans lookup form ----
+    echo "<div style='margin:8px 0;padding:6px;background:#f0f0f0;border:1px solid #ccc'>\n";
+    echo "<strong>" . _('Manual lookup:') . "</strong><br>\n";
+    echo _('Trans #:') . " <input type='text' name='_scust_lookup_no' size='8' value='"
+        . (isset($_POST['_scust_lookup_no']) ? htmlspecialchars($_POST['_scust_lookup_no']) : '') . "'>\n";
+    echo " <select name='_scust_lookup_type'>\n";
+    echo "  <option value='13'" . (isset($_POST['_scust_lookup_type']) && $_POST['_scust_lookup_type'] == '13' ? ' selected' : '') . ">" . _('Delivery') . "</option>\n";
+    echo "  <option value='10'" . (isset($_POST['_scust_lookup_type']) && $_POST['_scust_lookup_type'] == '10' ? ' selected' : '') . ">" . _('Invoice') . "</option>\n";
+    echo " </select>\n";
+    echo " <button type='submit' name='_scust_lookup' value='1' style='padding:2px 6px'>" . _('Load') . "</button>\n";
+    echo "</div>\n";
+
+    // ---- Show looked-up trans for manual fix ----
+    if (isset($_POST['_scust_lookup']) && $_POST['_scust_lookup'] && !empty($_POST['_scust_lookup_no'])) {
+        $lookupNo = (int)$_POST['_scust_lookup_no'];
+        $lookupType = (int)$_POST['_scust_lookup_type'];
+        $lr = db_query("SELECT dt.trans_no, dt.type, dt.tran_date, dt.reference,
+                               dt.debtor_no, charge_to.name AS charge_to_name,
+                               dt.branch_code, cb.br_name AS branch_name,
+                               dt.order_ AS so_order_no
+                        FROM " . TB_PREF . "debtor_trans dt
+                        JOIN " . TB_PREF . "debtors_master charge_to ON charge_to.debtor_no = dt.debtor_no
+                        LEFT JOIN " . TB_PREF . "cust_branch cb ON cb.branch_code = dt.branch_code
+                        WHERE dt.trans_no = $lookupNo AND dt.type = $lookupType", 'SCUST lookup');
+        if ($lr && ($lrRow = db_fetch($lr))) {
+            $lkKey = 'scust_' . $lrRow['type'] . '_' . $lrRow['trans_no'];
+            $isEditing = (isset($_POST['_scust_edit_key']) && $_POST['_scust_edit_key'] === $lkKey);
+            echo "<table class='tablestyle' style='width:98%'>\n";
+            echo "<tr><th>" . _('Trans') . "</th><th>" . _('Date') . "</th><th>" . _('Charge To') . "</th><th>" . _('Branch') . "</th><th>" . _('Actions') . "</th></tr>\n";
+            $typeLabel = ($lrRow['type'] == 13) ? 'DN' : (($lrRow['type'] == 10) ? 'INV' : '#' . $lrRow['type']);
+            $transText = $typeLabel . ' #' . $lrRow['trans_no'];
+            if ($lrRow['reference']) {
+                $transText .= '<br><small>' . htmlspecialchars($lrRow['reference']) . '</small>';
+            }
+            echo "<tr class='even'><td>$transText</td><td>" . $lrRow['tran_date'] . "</td>";
+            echo "<td>" . htmlspecialchars($lrRow['charge_to_name']) . " (#" . (int)$lrRow['debtor_no'] . ")</td>";
+            echo "<td>" . htmlspecialchars($lrRow['branch_name'] ?: '#' . $lrRow['branch_code']) . "</td>";
+            echo "<td>";
+            if ($isEditing) {
+                $custOptions = _build_customer_options($lrRow['debtor_no']);
+                $branchOptions = _build_branch_options($lrRow['debtor_no']);
+                echo "<div style='border:1px solid #e80;background:#fff8e0;padding:4px'>";
+                echo "<label>" . _('Customer:') . "<br><select name='_scust_new_debtor' style='width:180px'>$custOptions</select></label>";
+                echo "<br><label>" . _('Branch:') . "<br><select name='_scust_new_branch' style='width:80px'>$branchOptions</select></label>";
+                echo "<br><button type='submit' name='_fix_action[$lkKey]' value='apply_cust'"
+                    . " style='padding:2px 6px;background:#080;color:#fff;border:none;margin-top:3px'>" . _('Apply') . "</button>";
+                echo " <button type='submit' name='_scust_cancel' value='1' style='padding:2px 6px'>" . _('Cancel') . "</button>";
+                echo "</div>";
+            } else {
+                echo "<button type='submit' name='_fix_action[$lkKey]' value='set_cust'"
+                    . " style='padding:2px 6px;background:#080;color:#fff;border:none'>" . _('Set Customer') . "</button>";
+            }
+            echo "</td></tr></table>\n";
+        } else {
+            echo "<p style='color:#c00'>" . _('Transaction not found.') . "</p>\n";
+        }
+    }
+
+    $editKey = isset($_POST['_scust_edit_key']) ? $_POST['_scust_edit_key'] : '';
+    $k = 0;
+
+    foreach ($rows as $r) {
+        $typeLabel = ($r['type'] == 13) ? 'DN' : (($r['type'] == 10) ? 'INV' : '#' . $r['type']);
+        $rowKey    = 'scust_' . $r['type'] . '_' . $r['trans_no'];
+        $isEditing = ($editKey === $rowKey);
+
+        alt_table_row_color($k);
+
+        // Trans
+        $transText = $typeLabel . ' #' . $r['trans_no'];
+        if ($r['reference']) {
+            $transText .= '<br><small>' . htmlspecialchars($r['reference']) . '</small>';
+        }
+        label_cell($transText);
+
+        // Date
+        label_cell($r['tran_date']);
+
+        // Charge To (current)
+        $chargeText = htmlspecialchars($r['charge_to_name']);
+        if ((int)$r['charge_to_no'] != (int)$r['branch_owner_no']
+            && $r['branch_owner_no'] !== null) {
+            $chargeText .= '<br><small style="color:#c00">' . _('Should be: ')
+                . htmlspecialchars($r['branch_owner_name']) . '</small>';
+        }
+        label_cell($chargeText);
+
+        // Branch
+        $branchText = htmlspecialchars($r['branch_name'] ?: '#' . $r['branch_code']);
+        if ($r['so_branch_code'] !== null && (int)$r['branch_code'] != (int)$r['so_branch_code']) {
+            $branchText .= '<br><small style="color:#c00">' . _('SO branch: ')
+                . (int)$r['so_branch_code'] . '</small>';
+        }
+        label_cell($branchText);
+
+        // SO
+        if ($r['so_order_no']) {
+            $soText = '#' . $r['so_order_no'];
+            if ($r['so_ref']) {
+                $soText .= '<br><small>' . htmlspecialchars($r['so_ref']) . '</small>';
+            }
+            if ($r['so_customer_name']) {
+                $soText .= '<br><small>' . htmlspecialchars($r['so_customer_name']) . '</small>';
+            }
+        } else {
+            $soText = '<span style="color:#999">&#8212;</span>';
+        }
+        label_cell($soText);
+
+        // Issue
+        $issueMap = array(
+            'branch_owner_mismatch'  => _('Branch belongs to different customer'),
+            'so_customer_mismatch'   => _('SO has different customer'),
+            'so_branch_mismatch'     => _('SO has different branch'),
+            'unknown'                => _('Unknown'),
+        );
+        $issueText = isset($issueMap[$r['issue_type']]) ? $issueMap[$r['issue_type']] : $r['issue_type'];
+        label_cell('<span style="color:#c00">' . $issueText . '</span>');
+
+        // Actions
+        if ($isEditing) {
+            // Show inline customer/branch selector
+            $custOptions = _build_customer_options($r['charge_to_no']);
+            $branchOptions = _build_branch_options($r['charge_to_no']);
+
+            $actionHtml = '<div style="border:1px solid #e80;background:#fff8e0;padding:4px;margin:2px">';
+            $actionHtml .= '<label>' . _('Customer:') . '<br>';
+            $actionHtml .= '<select name="_scust_new_debtor" style="width:180px">' . $custOptions . '</select></label>';
+            $actionHtml .= '<br><label>' . _('Branch:') . '<br>';
+            $actionHtml .= '<select name="_scust_new_branch" style="width:80px">' . $branchOptions . '</select></label>';
+            $actionHtml .= '<br>';
+            $actionHtml .= '<button type="submit" name="_fix_action[' . $rowKey . ']" value="apply_cust"'
+                       . ' style="padding:2px 6px;background:#080;color:#fff;border:none;margin-top:3px">'
+                       . _('Apply') . '</button>';
+            $actionHtml .= ' <button type="submit" name="_scust_cancel" value="1"'
+                       . ' style="padding:2px 6px">' . _('Cancel') . '</button>';
+            $actionHtml .= '</div>';
+            label_cell($actionHtml);
+        } else {
+            $parts = array();
+
+            // Use SO customer button
+            if ($r['so_order_no'] && $r['so_debtor_no']
+                && (int)$r['so_debtor_no'] != (int)$r['charge_to_no']) {
+                $parts[] = '<button type="submit" name="_fix_action[' . $rowKey . ']" value="use_so_cust"'
+                         . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+                         . _('Use SO') . '</button>';
+            }
+
+            // Use branch customer button
+            if ($r['branch_owner_no'] !== null
+                && (int)$r['branch_owner_no'] != (int)$r['charge_to_no']) {
+                $parts[] = '<button type="submit" name="_fix_action[' . $rowKey . ']" value="use_branch_cust"'
+                         . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+                         . _('Use Branch') . '</button>';
+            }
+
+            // Set Customer button — triggers inline edit on reload
+            $parts[] = '<button type="submit" name="_fix_action[' . $rowKey . ']" value="set_cust"'
+                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . _('Set Customer') . '</button>';
+
+            label_cell(implode('<br>', $parts));
+        }
+
+        end_row();
+    }
+
+    end_table(1);
+}
+
+/**
+ * Build <option> HTML for the customer dropdown.
+ */
+function _build_customer_options($selectedNo)
+{
+    $sql = "SELECT debtor_no, name FROM " . TB_PREF . "debtors_master ORDER BY name";
+    $r = db_query($sql, 'Load customers for SCUST dropdown');
+    $out = '';
+    if ($r) {
+        while ($row = db_fetch($r)) {
+            $sel = ((int)$row['debtor_no'] === (int)$selectedNo) ? ' selected' : '';
+            $out .= '<option value="' . (int)$row['debtor_no'] . '"' . $sel . '>'
+                  . htmlspecialchars($row['name']) . ' (#' . (int)$row['debtor_no'] . ')</option>';
+        }
+    }
+    return $out;
+}
+
+/**
+ * Build <option> HTML for branch dropdown.
+ */
+function _build_branch_options($debtorNo)
+{
+    $where = $debtorNo ? " WHERE debtor_no = " . (int)$debtorNo : '';
+    $sql = "SELECT branch_code, br_name AS branch_name, debtor_no FROM " . TB_PREF . "cust_branch$where ORDER BY branch_code";
+    $r = db_query($sql, 'Load branches for SCUST dropdown');
+    $out = '';
+    if ($r) {
+        while ($row = db_fetch($r)) {
+            $sel = ((int)$row['branch_code'] === (int)$debtorNo) ? ' selected' : '';
+            $out .= '<option value="' . (int)$row['branch_code'] . '"' . $sel . '>'
+                  . (int)$row['branch_code'] . ' - ' . htmlspecialchars($row['branch_name']) . '</option>';
+        }
+    }
+    return $out;
+}
+
+/**
+ * Handle per-row fix action POST for SCUST.
+ *
+ * @return array|null ['message'=>string, 'popup_url'=>string|null] or null
+ */
+function integ_handle_scust_fix_post()
+{
+    // Cancel inline edit
+    if (isset($_POST['_scust_cancel'])) {
+        unset($_POST['_scust_edit_key']);
+        return null;
+    }
+
+    if (!isset($_POST['_fix_action']) || !is_array($_POST['_fix_action'])) {
+        return null;
+    }
+
+    $rowKey = key($_POST['_fix_action']);
+    $action = current($_POST['_fix_action']);
+
+    if ($action === 'set_cust') {
+        $_POST['_scust_edit_key'] = $rowKey;
+        return null;
+    }
+
+    if ($action === 'apply_cust') {
+        $result = fix_sales_customer_row($rowKey, $action);
+        unset($_POST['_scust_edit_key']);
+        return $result;
+    }
+
+    if (in_array($action, array('use_so_cust', 'use_branch_cust'), true)) {
+        return fix_sales_customer_row($rowKey, $action);
+    }
+
+    return null;
 }

@@ -1,19 +1,19 @@
 <?php
 /**
- * ksf_FA_DataIntegrity — FrontAccounting module hooks
+ * ksf_FA_DataIntegrity &#8212; FrontAccounting module hooks
  *
  * Registers the Data Integrity application tab with menu items for:
  *   - Dashboard (overall scan summary)
- *   - Purchase Chain (PO → GRN → Invoice → Payment)
- *   - Sales Chain (SO → Delivery → Invoice → Payment)
+ *   - Purchase Chain (PO &#8594; GRN &#8594; Invoice &#8594; Payment)
+ *   - Sales Chain (SO &#8594; Delivery &#8594; Invoice &#8594; Payment)
  *   - Allocations (allocation counter drift)
  *   - Full Report (all checks combined)
  *
  * Security areas:
- *   SA_DATAINTEGRITY_VIEW  — view reports
- *   SA_DATAINTEGRITY_FIX   — apply counter recalculations
+ *   SA_DATAINTEGRITY_VIEW  &#8212; view reports
+ *   SA_DATAINTEGRITY_FIX   &#8212; apply counter recalculations
  *
- * PHP 7.4 compatible — no PHP 8+ syntax.
+ * PHP 7.4 compatible &#8212; no PHP 8+ syntax.
  *
  * @package  Ksfraser\FA\DataIntegrity
  * @since    1.0.0
@@ -80,7 +80,7 @@ class hooks_ksf_FA_DataIntegrity extends hooks
      * sql/install.sql if it is absent.
      *
      * @param int  $company    FA company index
-     * @param bool $check_only When true, only test — do not alter the DB
+     * @param bool $check_only When true, only test &#8212; do not alter the DB
      * @return bool True when the schema is up-to-date (or check_only passed)
      * @since 1.0.0
      */

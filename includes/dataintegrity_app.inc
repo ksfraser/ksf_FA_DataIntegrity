@@ -1,6 +1,6 @@
 <?php
 /**
- * dataintegrity_app.inc — Data Integrity application class
+ * dataintegrity_app.inc &#8212; Data Integrity application class
  *
  * Defined here (not in hooks.php) so that the class is only parsed AFTER
  * FA's application.inc has been loaded.  hooks.php is loaded during

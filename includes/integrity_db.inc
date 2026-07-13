@@ -1,6 +1,6 @@
 <?php
 /**
- * integrity_db.inc — Data integrity check queries for KSF FA DataIntegrity
+ * integrity_db.inc &#8212; Data integrity check queries for KSF FA DataIntegrity
  *
  * Each public function runs a SQL check and returns a db result set (or
  * an integer count when $count_only=true).  All queries use FA's standard
@@ -8,9 +8,9 @@
  * across both MySQL and MariaDB and respect the multi-company table prefix.
  *
  * Naming convention:
- *   check_<area>_<issue>()   — returns result set of offending rows
- *   fix_<area>_<issue>()     — applies a recalculation; returns rows affected
- *   count_<area>_issues()    — returns integer count for dashboard summary
+ *   check_<area>_<issue>()   &#8212; returns result set of offending rows
+ *   fix_<area>_<issue>()     &#8212; applies a recalculation; returns rows affected
+ *   count_<area>_issues()    &#8212; returns integer count for dashboard summary
  *
  * PHP 5.6+ compatible (no short closures, no null-coalescing, no typed props).
  *
@@ -49,7 +49,7 @@ function integ_db_adapter()
 // ===========================================================================
 
 /**
- * CHECK P1 — grn_items.quantity_inv does not match the sum of
+ * CHECK P1 &#8212; grn_items.quantity_inv does not match the sum of
  * supp_invoice_items.quantity for all non-voided invoices referencing that
  * GRN line.
  *
@@ -96,10 +96,10 @@ function check_purchase_grn_qty_inv_mismatch()
 }
 
 /**
- * FIX P1 — Recalculate grn_items.quantity_inv from actual supp_invoice_items.
+ * FIX P1 &#8212; Recalculate grn_items.quantity_inv from actual supp_invoice_items.
  *
  * Safe: only updates rows where a discrepancy exists.  Does NOT touch
- * supp_trans or purch_order_details — run fix_purchase_pod_qty_invoiced()
+ * supp_trans or purch_order_details &#8212; run fix_purchase_pod_qty_invoiced()
  * after this to keep purch_order_details in sync.
  *
  * @return int  Number of rows updated
@@ -113,10 +113,10 @@ function fix_purchase_grn_qty_inv()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK P2 — purch_order_details.qty_invoiced does not match the sum of
+ * CHECK P2 &#8212; purch_order_details.qty_invoiced does not match the sum of
  * supp_invoice_items.quantity for all non-voided invoices on that PO line.
  *
- * Note: update_po() in po_db.inc resets qty_invoiced to 0 on PO edit —
+ * Note: update_po() in po_db.inc resets qty_invoiced to 0 on PO edit &#8212;
  * this check surfaces every PO line that suffered that reset.
  *
  * @return resource
@@ -156,7 +156,7 @@ function check_purchase_pod_qty_invoiced_mismatch()
 }
 
 /**
- * FIX P2 — Recalculate purch_order_details.qty_invoiced from actual invoices.
+ * FIX P2 &#8212; Recalculate purch_order_details.qty_invoiced from actual invoices.
  *
  * @return int
  */
@@ -169,7 +169,7 @@ function fix_purchase_pod_qty_invoiced()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK P3 — purch_order_details.quantity_received does not match the sum
+ * CHECK P3 &#8212; purch_order_details.quantity_received does not match the sum
  * of grn_items.qty_recd for that PO line across all GRN batches.
  *
  * @return resource
@@ -203,7 +203,7 @@ function check_purchase_pod_qty_received_mismatch()
 }
 
 /**
- * FIX P3 — Recalculate purch_order_details.quantity_received from GRN items.
+ * FIX P3 &#8212; Recalculate purch_order_details.quantity_received from GRN items.
  *
  * @return int
  */
@@ -216,8 +216,8 @@ function fix_purchase_pod_qty_received()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK P4 — grn_items.quantity_inv exceeds qty_recd (over-invoiced GRN line).
- * These cannot be auto-fixed — a credit note or manual void is required.
+ * CHECK P4 &#8212; grn_items.quantity_inv exceeds qty_recd (over-invoiced GRN line).
+ * These cannot be auto-fixed &#8212; a credit note or manual void is required.
  *
  * @return resource
  */
@@ -269,7 +269,7 @@ function check_purchase_grn_over_invoiced()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK P5 — supp_invoice_items rows where the referenced grn_item_id no
+ * CHECK P5 &#8212; supp_invoice_items rows where the referenced grn_item_id no
  * longer exists in grn_items (orphaned invoice line).
  *
  * @return resource
@@ -309,7 +309,7 @@ function check_purchase_orphaned_invoice_items()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK P6 — grn_batch rows whose parent purch_order_no no longer exists.
+ * CHECK P6 &#8212; grn_batch rows whose parent purch_order_no no longer exists.
  *
  * @return resource
  */
@@ -341,7 +341,7 @@ function check_purchase_orphaned_grn_batches()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK P7 — Supplier invoices (supp_trans type 20) that have no
+ * CHECK P7 &#8212; Supplier invoices (supp_trans type 20) that have no
  * supp_invoice_items lines.  These are header-only / ghost invoices.
  *
  * @return resource
@@ -376,7 +376,7 @@ function check_purchase_ghost_invoices()
 }
 
 /**
- * CHECK P8 — Purchase order detail lines not yet received.
+ * CHECK P8 &#8212; Purchase order detail lines not yet received.
  * Shows healthy POs still awaiting delivery (partial or full).
  *
  * @return resource
@@ -389,7 +389,7 @@ function check_purchase_po_not_received()
 }
 
 /**
- * CHECK P9 — GRN items not yet fully invoiced.
+ * CHECK P9 &#8212; GRN items not yet fully invoiced.
  * Shows GRN items where received quantity exceeds invoiced quantity.
  *
  * @return resource
@@ -402,7 +402,7 @@ function check_purchase_grn_not_invoiced()
 }
 
 /**
- * CHECK P10 — Supplier invoices not yet fully paid or credited.
+ * CHECK P10 &#8212; Supplier invoices not yet fully paid or credited.
  * Shows invoices where alloc < total amount (unpaid balance remains).
  *
  * @return resource
@@ -414,12 +414,79 @@ function check_purchase_invoice_unpaid()
     return $repo->findUnpaidInvoices();
 }
 
+// ---------------------------------------------------------------------------
+
+/**
+ * CHECK P11 &#8212; Supplier invoices where GRN-linked items have zero total charge
+ * (voided or zero-cost) but GL entries remain, producing "Received Items
+ * Charged" = 0 while the invoice shows a GL total.
+ *
+ * Two patterns are caught:
+ *   1. Voided GRN lines  &#8212; quantity = 0 AND unit_price = 0 (line-level void
+ *      after posting left GL entries orphaned).
+ *   2. Zero-cost GRN lines &#8212; quantity > 0, unit_price = 0 (non-stock items
+ *      tracked via GRN for receipt only; actual cost entered as GL items).
+ *
+ * No auto-fix &#8212; a credit note is the recommended resolution for pattern 1.
+ * Pattern 2 may be legitimate; each invoice should be reviewed.
+ *
+ * @return resource
+ */
+function check_purchase_voided_grn_items()
+{
+    $d = INTEG_DELTA;
+    $sql = "
+        SELECT
+            st.trans_no,
+            st.supplier_id,
+            s.supp_name,
+            st.reference,
+            st.tran_date,
+            ROUND(st.ov_amount + st.ov_gst + st.ov_discount, 4) AS total_amount,
+            COALESCE(grn_stats.item_count, 0)       AS grn_item_count,
+            COALESCE(grn_stats.voided_count, 0)     AS voided_count,
+            COALESCE(grn_stats.zero_cost_count, 0)  AS zero_cost_count,
+            COALESCE(grn_stats.active_charged_count, 0) AS active_charged_count,
+            COALESCE(grn_stats.total_charged, 0)    AS total_charged,
+            COALESCE(gl_stats.line_count, 0)        AS gl_line_count,
+            ROUND(COALESCE(gl_stats.debit_total, 0), 4) AS gl_debit_total
+        FROM &TB_PREF&supp_trans st
+        JOIN &TB_PREF&suppliers s ON st.supplier_id = s.supplier_id
+        LEFT JOIN (
+            SELECT supp_trans_no,
+                   COUNT(*) AS item_count,
+                   SUM(CASE WHEN quantity = 0 AND unit_price = 0 THEN 1 ELSE 0 END) AS voided_count,
+                   SUM(CASE WHEN quantity != 0 AND unit_price = 0 THEN 1 ELSE 0 END) AS zero_cost_count,
+                   SUM(CASE WHEN quantity != 0 AND unit_price != 0 THEN 1 ELSE 0 END) AS active_charged_count,
+                   SUM(quantity * unit_price) AS total_charged
+            FROM &TB_PREF&supp_invoice_items
+            WHERE supp_trans_type = 20 AND grn_item_id IS NOT NULL
+            GROUP BY supp_trans_no
+        ) grn_stats ON grn_stats.supp_trans_no = st.trans_no
+        LEFT JOIN (
+            SELECT type_no,
+                   COUNT(*) AS line_count,
+                   SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END) AS debit_total
+            FROM &TB_PREF&gl_trans
+            WHERE type = 20
+            GROUP BY type_no
+        ) gl_stats ON gl_stats.type_no = st.trans_no
+        WHERE st.type = 20
+          AND st.ov_amount != 0
+          AND COALESCE(grn_stats.item_count, 0) > 0
+          AND ABS(COALESCE(grn_stats.total_charged, 0)) < $d
+          AND COALESCE(gl_stats.line_count, 0) > 0
+        ORDER BY s.supp_name, st.tran_date";
+
+    return db_query($sql, 'Check P11: Zero-charged GRN items with active GL');
+}
+
 // ===========================================================================
 // SALES CHAIN CHECKS
 // ===========================================================================
 
 /**
- * CHECK S1 — sales_order_details.qty_sent does not match the sum of
+ * CHECK S1 &#8212; sales_order_details.qty_sent does not match the sum of
  * debtor_trans_details.qty_done on delivery notes (type 13) linked back
  * to this order line via debtor_trans.order_.
  *
@@ -439,21 +506,31 @@ function check_sales_sod_qty_sent_mismatch()
             sod.description,
             sod.quantity        AS qty_ordered,
             sod.qty_sent        AS qty_sent_stored,
-            COALESCE(del_sum.qty_sent, 0) AS qty_sent_actual,
-            sod.qty_sent - COALESCE(del_sum.qty_sent, 0) AS discrepancy
+            COALESCE(del_sum.qty_sent, 0)         AS qty_sent_actual,
+            sod.qty_sent - COALESCE(del_sum.qty_sent, 0) AS discrepancy,
+            COALESCE(del_sum.del_count, 0)        AS del_count,
+            COALESCE(del_sum.voided_del_count, 0) AS voided_del_count,
+            CASE
+                WHEN sod.qty_sent = 0 AND COALESCE(del_sum.qty_sent, 0) > 0 THEN 'Stored 0 &#8212; stored counter never set'
+                WHEN sod.qty_sent > COALESCE(del_sum.qty_sent, 0) THEN 'Stored too high'
+                WHEN sod.qty_sent < COALESCE(del_sum.qty_sent, 0) THEN 'Stored too low'
+                ELSE ''
+            END AS likely_cause
         FROM &TB_PREF&sales_order_details sod
         JOIN &TB_PREF&sales_orders so
             ON so.order_no   = sod.order_no
            AND so.trans_type = sod.trans_type
         JOIN &TB_PREF&debtors_master dm ON dm.debtor_no = so.debtor_no
         LEFT JOIN (
-            SELECT dtd.src_id, SUM(dtd.qty_done) AS qty_sent
+            SELECT dtd.src_id,
+                   COUNT(*) AS del_count,
+                   SUM(CASE WHEN dt.ov_amount = 0 THEN 1 ELSE 0 END) AS voided_del_count,
+                   SUM(CASE WHEN dt.ov_amount != 0 THEN dtd.qty_done ELSE 0 END) AS qty_sent
             FROM &TB_PREF&debtor_trans_details dtd
             JOIN &TB_PREF&debtor_trans dt
                 ON dt.trans_no = dtd.debtor_trans_no
                AND dt.type     = dtd.debtor_trans_type
             WHERE dtd.debtor_trans_type = 13
-              AND dt.ov_amount != 0
             GROUP BY dtd.src_id
         ) del_sum ON del_sum.src_id = sod.id
         WHERE ABS(sod.qty_sent - COALESCE(del_sum.qty_sent, 0)) > " . INTEG_DELTA . "
@@ -464,7 +541,7 @@ function check_sales_sod_qty_sent_mismatch()
 }
 
 /**
- * FIX S1 — Recalculate sales_order_details.qty_sent from delivery notes.
+ * FIX S1 &#8212; Recalculate sales_order_details.qty_sent from delivery notes.
  *
  * @return int
  */
@@ -477,7 +554,7 @@ function fix_sales_sod_qty_sent()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK S2 — sales_order_details.invoiced does not match the sum of
+ * CHECK S2 &#8212; sales_order_details.invoiced does not match the sum of
  * debtor_trans_details.quantity on customer invoices (type 10) linked to
  * this order line.
  *
@@ -497,23 +574,57 @@ function check_sales_sod_invoiced_mismatch()
             sod.description,
             sod.quantity        AS qty_ordered,
             sod.invoiced        AS qty_inv_stored,
-            COALESCE(inv_sum.qty_invoiced, 0) AS qty_inv_actual,
-            sod.invoiced - COALESCE(inv_sum.qty_invoiced, 0) AS discrepancy
+            COALESCE(inv_sum.qty_invoiced, 0)   AS qty_inv_actual,
+            sod.invoiced - COALESCE(inv_sum.qty_invoiced, 0) AS discrepancy,
+            COALESCE(inv_sum.inv_count, 0)      AS inv_count,
+            COALESCE(inv_sum.voided_inv_count, 0) AS voided_inv_count,
+            COALESCE(cn_sum.cn_count, 0)        AS cn_count,
+            COALESCE(cn_sum.cn_qty_total, 0)    AS cn_qty_total,
+            CASE
+                WHEN sod.invoiced = 0 AND COALESCE(inv_sum.qty_invoiced, 0) > 0 THEN
+                    CASE
+                        WHEN COALESCE(cn_sum.cn_count, 0) > 0 THEN 'Stored 0 &#8212; credit notes exist'
+                        ELSE 'Stored 0 &#8212; stored counter never set'
+                    END
+                WHEN sod.invoiced > COALESCE(inv_sum.qty_invoiced, 0) THEN
+                    CASE
+                        WHEN COALESCE(cn_sum.cn_count, 0) > 0
+                             AND sod.invoiced = COALESCE(inv_sum.qty_invoiced, 0) + ABS(COALESCE(cn_sum.cn_qty_total, 0))
+                        THEN 'Explained by credit notes'
+                        ELSE 'Stored too high'
+                    END
+                WHEN sod.invoiced < COALESCE(inv_sum.qty_invoiced, 0) THEN 'Stored too low'
+                ELSE ''
+            END AS likely_cause
         FROM &TB_PREF&sales_order_details sod
         JOIN &TB_PREF&sales_orders so
             ON so.order_no   = sod.order_no
            AND so.trans_type = sod.trans_type
         JOIN &TB_PREF&debtors_master dm ON dm.debtor_no = so.debtor_no
         LEFT JOIN (
-            SELECT dtd.src_id, SUM(dtd.quantity) AS qty_invoiced
+            SELECT dtd.src_id,
+                   COUNT(*) AS inv_count,
+                   SUM(CASE WHEN dt.ov_amount = 0 THEN 1 ELSE 0 END) AS voided_inv_count,
+                   SUM(CASE WHEN dt.ov_amount != 0 THEN dtd.quantity ELSE 0 END) AS qty_invoiced
             FROM &TB_PREF&debtor_trans_details dtd
             JOIN &TB_PREF&debtor_trans dt
                 ON dt.trans_no = dtd.debtor_trans_no
                AND dt.type     = dtd.debtor_trans_type
             WHERE dtd.debtor_trans_type = 10
-              AND dt.ov_amount != 0
             GROUP BY dtd.src_id
         ) inv_sum ON inv_sum.src_id = sod.id
+        LEFT JOIN (
+            SELECT dtd.src_id,
+                   COUNT(*) AS cn_count,
+                   SUM(dtd.quantity) AS cn_qty_total
+            FROM &TB_PREF&debtor_trans_details dtd
+            JOIN &TB_PREF&debtor_trans dt
+                ON dt.trans_no = dtd.debtor_trans_no
+               AND dt.type     = dtd.debtor_trans_type
+            WHERE dtd.debtor_trans_type = 11
+              AND dt.ov_amount != 0
+            GROUP BY dtd.src_id
+        ) cn_sum ON cn_sum.src_id = sod.id
         WHERE ABS(sod.invoiced - COALESCE(inv_sum.qty_invoiced, 0)) > " . INTEG_DELTA . "
           AND so.trans_type = 30
         ORDER BY dm.name, so.reference";
@@ -522,7 +633,7 @@ function check_sales_sod_invoiced_mismatch()
 }
 
 /**
- * FIX S2 — Recalculate sales_order_details.invoiced from customer invoices.
+ * FIX S2 &#8212; Recalculate sales_order_details.invoiced from customer invoices.
  *
  * @return int
  */
@@ -535,7 +646,7 @@ function fix_sales_sod_invoiced()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK S3 — Customer invoices (type 10) that have no debtor_trans_details
+ * CHECK S3 &#8212; Customer invoices (type 10) that have no debtor_trans_details
  * lines.  Ghost invoices that won't appear on any statement correctly.
  *
  * @return resource
@@ -568,7 +679,7 @@ function check_sales_ghost_invoices()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK S4 — Delivery notes (type 13) whose parent sales order (debtor_trans.order_)
+ * CHECK S4 &#8212; Delivery notes (type 13) whose parent sales order (debtor_trans.order_)
  * no longer exists in sales_orders.
  *
  * @return resource
@@ -602,7 +713,7 @@ function check_sales_orphaned_deliveries()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK S5 — Delivery notes with no matching stock_moves entries.
+ * CHECK S5 &#8212; Delivery notes with no matching stock_moves entries.
  * Indicates a partial-write where the FA transaction was created but
  * inventory was never decremented.
  *
@@ -635,25 +746,95 @@ function check_sales_delivery_missing_stock_moves()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK S6 &mdash; Sales orders with lines not yet fully delivered.
+ * CHECK S6 &#8212; Sales orders with lines not yet fully delivered.
  *
  * Shows healthy SOs still awaiting delivery (partial or full).
  * Supports optional filtering by customer debtors_master.debtor_no
  * and/or cust_branch.branch_code for CRM module reuse.
  *
+ * For each row, enriches with possible "Direct Invoice" matches
+ * (customer invoices created after the SO date that might bypass
+ * the normal SO&#8594;Delivery&#8594;Invoice chain).
+ *
  * @param  int|null $debtorNo   Optional customer debtor_no filter
  * @param  int|null $branchCode Optional branch code filter
- * @return resource
+ * @return array
  * @since  2.5.0
  */
 function check_sales_so_not_delivered($debtorNo = null, $branchCode = null)
 {
+    global $path_to_root;
+
     $repo = new \FrontAccounting\Repository\SalesOrderDetailsRepository(integ_db_adapter());
-    return $repo->findUndeliveredLines($debtorNo, $branchCode);
+
+    if (!empty($debtorNo)) {
+        $rows = $repo->findUndeliveredLines($debtorNo, $branchCode);
+    } else {
+        $rows = $repo->findUndeliveredLines();
+    }
+
+    if (empty($rows)) {
+        return $rows;
+    }
+
+    // Collect unique debtors and their earliest SO date
+    $debtorData = array();
+    foreach ($rows as $r) {
+        $dno = (int)$r['debtor_no'];
+        if (!isset($debtorData[$dno])) {
+            $debtorData[$dno] = array('min_date' => $r['ord_date']);
+        } elseif ($r['ord_date'] < $debtorData[$dno]['min_date']) {
+            $debtorData[$dno]['min_date'] = $r['ord_date'];
+        }
+    }
+
+    // Fetch customer invoices (type 10) for those debtors
+    $ids = implode(',', array_keys($debtorData));
+    $sql = "SELECT debtor_no, trans_no, reference, tran_date
+            FROM &TB_PREF&debtor_trans
+            WHERE type = 10 AND ov_amount != 0
+              AND debtor_no IN ($ids)
+            ORDER BY debtor_no, tran_date";
+    $invResult = db_query($sql, 'S6: find direct invoice matches');
+    $invoicesByDebtor = array();
+    while ($inv = db_fetch($invResult)) {
+        $dno = (int)$inv['debtor_no'];
+        $invoicesByDebtor[$dno][] = $inv;
+    }
+
+    // Enrich each row
+    foreach ($rows as &$row) {
+        $dno = (int)$row['debtor_no'];
+        $matches = array();
+        if (isset($invoicesByDebtor[$dno])) {
+            foreach ($invoicesByDebtor[$dno] as $inv) {
+                if ($inv['tran_date'] >= $row['ord_date']) {
+                    $matches[] = $inv;
+                }
+            }
+        }
+        $row['match_count'] = count($matches);
+        $row['first_match_inv_no'] = !empty($matches) ? (int)$matches[0]['trans_no'] : 0;
+
+        $matchLinks = array();
+        foreach ($matches as $m) {
+            $url = $path_to_root
+                . '/gl/void_transaction.php?type=10&trans_no=' . (int)$m['trans_no'];
+            $matchLinks[] = '<a href="' . htmlspecialchars($url) . '" target="_blank">#'
+                . (int)$m['trans_no'] . ' ' . htmlspecialchars($m['reference'])
+                . ' (' . $m['tran_date'] . ')</a>';
+        }
+        $row['possible_matches'] = !empty($matchLinks)
+            ? implode('<br>', $matchLinks)
+            : '';
+    }
+    unset($row);
+
+    return $rows;
 }
 
 /**
- * CHECK S7 &mdash; Delivery-note items not yet fully invoiced.
+ * CHECK S7 &#8212; Delivery-note items not yet fully invoiced.
  *
  * Shows debtor_trans_details rows from delivery notes (type 13) where
  * the qty_done exceeds the total invoiced qty on the same sales-order
@@ -671,7 +852,7 @@ function check_sales_delivery_not_invoiced($debtorNo = null, $branchCode = null)
 }
 
 /**
- * CHECK S8 &mdash; Customer invoices not yet fully paid or credited (returned).
+ * CHECK S8 &#8212; Customer invoices not yet fully paid or credited (returned).
  *
  * Shows debtor_trans type 10 invoices where alloc < total.
  * Supports optional customer/branch filter.
@@ -687,12 +868,78 @@ function check_sales_invoice_unpaid($debtorNo = null, $branchCode = null)
     return $repo->findUnpaidInvoices($debtorNo, $branchCode);
 }
 
+// ---------------------------------------------------------------------------
+
+/**
+ * CHECK SCUST &#8212; Sales transactions where charge-to customer/branch differs
+ * from the linked SO or from the branch's customer owner.
+ *
+ * Finds deliveries (type=13) and invoices (type=10) where:
+ *   - debtor_no != cust_branch.debtor_no (transaction's branch belongs to a different customer)
+ *   - OR debtor_no != sales_orders.debtor_no (SO has a different customer)
+ *   - OR branch_code != sales_orders.branch_code (SO has a different branch)
+ *
+ * Returns array (post-processed, not a raw db result).
+ *
+ * @return array
+ */
+function check_sales_customer_mismatch()
+{
+    $sql = "SELECT
+                dt.trans_no,
+                dt.type,
+                dt.tran_date,
+                dt.reference,
+                dt.debtor_no                         AS charge_to_no,
+                charge_to.name                       AS charge_to_name,
+                dt.branch_code,
+                cb.branch_code                       AS branch_code_actual,
+                cb.br_name AS branch_name,
+                cb.debtor_no                         AS branch_owner_no,
+                branch_owner.name                    AS branch_owner_name,
+                dt.order_                            AS so_order_no,
+                so.debtor_no                         AS so_debtor_no,
+                so_cust.name                         AS so_customer_name,
+                so.branch_code                       AS so_branch_code,
+                so.reference                         AS so_ref,
+                CASE
+                    WHEN cb.debtor_no IS NOT NULL AND dt.debtor_no != cb.debtor_no THEN 'branch_owner_mismatch'
+                    WHEN dt.order_ > 0 AND so.debtor_no IS NOT NULL AND so.debtor_no != dt.debtor_no THEN 'so_customer_mismatch'
+                    WHEN dt.order_ > 0 AND so.branch_code IS NOT NULL AND so.branch_code != dt.branch_code THEN 'so_branch_mismatch'
+                    ELSE 'unknown'
+                END AS issue_type
+            FROM " . TB_PREF . "debtor_trans dt
+            JOIN " . TB_PREF . "debtors_master charge_to ON charge_to.debtor_no = dt.debtor_no
+            LEFT JOIN " . TB_PREF . "cust_branch cb ON cb.branch_code = dt.branch_code
+            LEFT JOIN " . TB_PREF . "debtors_master branch_owner ON branch_owner.debtor_no = cb.debtor_no
+            LEFT JOIN " . TB_PREF . "sales_orders so ON so.order_no = dt.order_ AND so.trans_type = 30
+            LEFT JOIN " . TB_PREF . "debtors_master so_cust ON so_cust.debtor_no = so.debtor_no
+            WHERE dt.type IN (10, 13)
+              AND dt.ov_amount != 0
+              AND (
+                  (cb.debtor_no IS NOT NULL AND dt.debtor_no != cb.debtor_no)
+                  OR (dt.order_ > 0 AND so.debtor_no IS NOT NULL AND so.debtor_no != dt.debtor_no)
+                  OR (dt.order_ > 0 AND so.branch_code IS NOT NULL AND so.branch_code != dt.branch_code)
+              )
+            ORDER BY charge_to.name, dt.tran_date";
+
+    $result = db_query($sql, 'Check SCUST: customer/branch inconsistency');
+    $rows = array();
+    if ($result) {
+        while ($r = db_fetch($result)) {
+            $rows[] = $r;
+        }
+        db_free_result($result);
+    }
+    return $rows;
+}
+
 // ===========================================================================
-// ALLOCATION CHECKS — both purchase and sales sides
+// ALLOCATION CHECKS &#8212; both purchase and sales sides
 // ===========================================================================
 
 /**
- * CHECK A1 — supp_trans.alloc does not match the sum of supp_allocations.amt
+ * CHECK A1 &#8212; supp_trans.alloc does not match the sum of supp_allocations.amt
  * for that transaction.
  *
  * @param  int|null $supplier_id  Optionally filter to one supplier
@@ -751,7 +998,18 @@ function check_alloc_supplier_drift($supplier_id = null)
             ROUND(COALESCE(sa_sum.total_alloc, 0), 4)           AS alloc_actual,
             ROUND(st.alloc - COALESCE(sa_sum.total_alloc, 0), 4) AS discrepancy,
             s.supplier_id,
-            s.supp_name
+            s.supp_name,
+            CASE
+                WHEN COALESCE(sa_sum.total_alloc, 0) = 0 AND st.alloc > 0 THEN
+                    CASE
+                        WHEN COALESCE(pmts.voided_pmt_count, 0) > 0 THEN 'Voided payment'
+                        WHEN COALESCE(pmts.active_pmt_count, 0)  > 0 THEN 'Active payment exists'
+                        ELSE 'No payments found'
+                    END
+                ELSE ''
+            END AS likely_cause,
+            pmts.voided_pmt_count,
+            pmts.active_pmt_count
         FROM &TB_PREF&supp_trans st
         JOIN &TB_PREF&suppliers s ON st.supplier_id = s.supplier_id
         LEFT JOIN (
@@ -762,6 +1020,15 @@ function check_alloc_supplier_drift($supplier_id = null)
         ) sa_sum ON sa_sum.person_id = st.supplier_id
                AND sa_sum.trans_no   = st.trans_no
                AND sa_sum.type       = st.type
+        LEFT JOIN (
+            SELECT supplier_id,
+                   COUNT(*)                                                        AS payment_count,
+                   SUM(CASE WHEN ov_amount = 0 THEN 1 ELSE 0 END)                 AS voided_pmt_count,
+                   SUM(CASE WHEN ov_amount < 0 THEN 1 ELSE 0 END)                 AS active_pmt_count
+            FROM &TB_PREF&supp_trans
+            WHERE type = 22
+            GROUP BY supplier_id
+        ) pmts ON pmts.supplier_id = st.supplier_id
         WHERE st.ov_amount != 0
           AND ABS(st.alloc - COALESCE(sa_sum.total_alloc, 0)) > " . INTEG_DELTA . "
           $where
@@ -771,7 +1038,7 @@ function check_alloc_supplier_drift($supplier_id = null)
 }
 
 /**
- * FIX A1 — Recalculate supp_trans.alloc from supp_allocations table.
+ * FIX A1 &#8212; Recalculate supp_trans.alloc from supp_allocations table.
  *
  * @return int
  */
@@ -784,7 +1051,7 @@ function fix_alloc_supplier_drift()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK A2 — debtor_trans.alloc does not match the sum of cust_allocations.amt
+ * CHECK A2 &#8212; debtor_trans.alloc does not match the sum of cust_allocations.amt
  * for that customer transaction.
  *
  * @param  int|null $debtor_no  Optionally filter to one customer
@@ -805,7 +1072,18 @@ function check_alloc_customer_drift($debtor_no = null)
             ROUND(COALESCE(ca_sum.total_alloc, 0), 4)            AS alloc_actual,
             ROUND(dt.alloc - COALESCE(ca_sum.total_alloc, 0), 4) AS discrepancy,
             dt.debtor_no,
-            dm.name AS customer_name
+            dm.name AS customer_name,
+            CASE
+                WHEN COALESCE(ca_sum.total_alloc, 0) = 0 AND dt.alloc > 0 THEN
+                    CASE
+                        WHEN COALESCE(pmts.voided_pmt_count, 0) > 0 THEN 'Voided payment'
+                        WHEN COALESCE(pmts.active_pmt_count, 0)  > 0 THEN 'Active payment exists'
+                        ELSE 'No payments found'
+                    END
+                ELSE ''
+            END AS likely_cause,
+            pmts.voided_pmt_count,
+            pmts.active_pmt_count
         FROM &TB_PREF&debtor_trans dt
         JOIN &TB_PREF&debtors_master dm ON dm.debtor_no = dt.debtor_no
         LEFT JOIN (
@@ -816,6 +1094,15 @@ function check_alloc_customer_drift($debtor_no = null)
         ) ca_sum ON ca_sum.person_id = dt.debtor_no
                AND ca_sum.trans_no   = dt.trans_no
                AND ca_sum.type       = dt.type
+        LEFT JOIN (
+            SELECT debtor_no,
+                   COUNT(*)                                                        AS payment_count,
+                   SUM(CASE WHEN ov_amount = 0 THEN 1 ELSE 0 END)                 AS voided_pmt_count,
+                   SUM(CASE WHEN ov_amount < 0 THEN 1 ELSE 0 END)                 AS active_pmt_count
+            FROM &TB_PREF&debtor_trans
+            WHERE type = 12
+            GROUP BY debtor_no
+        ) pmts ON pmts.debtor_no = dt.debtor_no
         WHERE dt.ov_amount != 0
           AND ABS(dt.alloc - COALESCE(ca_sum.total_alloc, 0)) > " . INTEG_DELTA . "
           $where
@@ -825,7 +1112,7 @@ function check_alloc_customer_drift($debtor_no = null)
 }
 
 /**
- * FIX A2 — Recalculate debtor_trans.alloc from cust_allocations.
+ * FIX A2 &#8212; Recalculate debtor_trans.alloc from cust_allocations.
  *
  * @return int
  */
@@ -838,8 +1125,8 @@ function fix_alloc_customer_drift()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK A3 — Transactions where alloc exceeds the absolute transaction amount
- * (over-allocated — mathematically impossible without a data error).
+ * CHECK A3 &#8212; Transactions where alloc exceeds the absolute transaction amount
+ * (over-allocated &#8212; mathematically impossible without a data error).
  *
  * @return resource
  */
@@ -889,7 +1176,7 @@ function check_alloc_over_allocated()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK A4 — Orphaned supp_allocations rows where either the from-transaction
+ * CHECK A4 &#8212; Orphaned supp_allocations rows where either the from-transaction
  * or to-transaction no longer exists in supp_trans.
  *
  * @return resource
@@ -929,7 +1216,7 @@ function check_alloc_orphaned_supplier_allocs()
 // ---------------------------------------------------------------------------
 
 /**
- * CHECK A5 — Orphaned cust_allocations rows where either the from-transaction
+ * CHECK A5 &#8212; Orphaned cust_allocations rows where either the from-transaction
  * or to-transaction no longer exists in debtor_trans.
  *
  * @return resource
@@ -967,7 +1254,7 @@ function check_alloc_orphaned_customer_allocs()
 }
 
 /**
- * CHECK A6 — Supplier payments with no allocation record (orphaned payments).
+ * CHECK A6 &#8212; Supplier payments with no allocation record (orphaned payments).
  *
  * Returns one row per unallocated payment with match_count indicating how
  * many unpaid invoices from the same supplier have a balance matching the
@@ -1010,7 +1297,7 @@ function check_alloc_unallocated_supplier_payments()
 /**
  * Quick-allocate ONE supplier payment against its single matching invoice.
  *
- * Called per-row from the A6 tab — never bulk.  Returns a status string
+ * Called per-row from the A6 tab &#8212; never bulk.  Returns a status string
  * for the caller to display as a notification.
  *
  * @param  int    $payment_no  supp_trans.trans_no where type=22
@@ -1021,7 +1308,7 @@ function quick_allocate_supplier_payment($payment_no)
     $payment_no = (int)$payment_no;
     $d = INTEG_DELTA;
 
-    // — 1. Load the payment record —
+    // &#8212; 1. Load the payment record &#8212;
     $sql = "SELECT supplier_id, ov_amount, alloc
             FROM &TB_PREF&supp_trans
             WHERE trans_no = $payment_no AND type = 22";
@@ -1035,7 +1322,7 @@ function quick_allocate_supplier_payment($payment_no)
     $amount    = -1 * (float)$pay['ov_amount'];
     $person_id = (int)$pay['supplier_id'];
 
-    // — 2. Check it's not already allocated —
+    // &#8212; 2. Check it's not already allocated &#8212;
     $sql = "SELECT COUNT(*) AS cnt
             FROM &TB_PREF&supp_allocations
             WHERE trans_no_from = $payment_no AND trans_type_from = 22";
@@ -1045,7 +1332,7 @@ function quick_allocate_supplier_payment($payment_no)
         return 'already_allocated';
     }
 
-    // — 3. Find matching unpaid invoices from the same supplier —
+    // &#8212; 3. Find matching unpaid invoices from the same supplier &#8212;
     $sql = "SELECT trans_no, ov_amount, alloc,
                    ov_amount - alloc AS balance
             FROM &TB_PREF&supp_trans
@@ -1071,7 +1358,7 @@ function quick_allocate_supplier_payment($payment_no)
         return 'multiple_matches';
     }
 
-    // — 4. Exactly one match — create the allocation —
+    // &#8212; 4. Exactly one match &#8212; create the allocation &#8212;
     $inv = $invoices[0];
     $inv_no = (int)$inv['trans_no'];
     $today  = date('Y-m-d');
@@ -1091,28 +1378,28 @@ function quick_allocate_supplier_payment($payment_no)
 
 /**
  * Classify every purchase order by how far it has progressed through the
- * purchase chain (PO → GRN → Supplier Invoice → Payment) and whether any
+ * purchase chain (PO &#8594; GRN &#8594; Supplier Invoice &#8594; Payment) and whether any
  * counter values disagree.
  *
  * Categories (mutually exclusive, collectively exhaustive):
- *   open_po                     — PO exists, no GRN, no invoice, no payment
- *   received_not_invoiced       — GRN exists, no invoice (includes the
+ *   open_po                     &#8212; PO exists, no GRN, no invoice, no payment
+ *   received_not_invoiced       &#8212; GRN exists, no invoice (includes the
  *                                  Direct-Invoice-timeout bug scenario)
- *   invoiced_not_paid_clean     — invoice exists, no payment, counters OK
- *   invoiced_not_paid_corrupted — invoice exists, no payment, counter drift
- *   complete_clean              — invoice + payment exist, counters OK
- *   complete_corrupted          — invoice + payment exist, counter drift
- *   anomalous                   — payment exists but no invoice (data error)
- *   total                       — sum of all categories
+ *   invoiced_not_paid_clean     &#8212; invoice exists, no payment, counters OK
+ *   invoiced_not_paid_corrupted &#8212; invoice exists, no payment, counter drift
+ *   complete_clean              &#8212; invoice + payment exist, counters OK
+ *   complete_corrupted          &#8212; invoice + payment exist, counter drift
+ *   anomalous                   &#8212; payment exists but no invoice (data error)
+ *   total                       &#8212; sum of all categories
  *
- * "Has GRN"     — at least one grn_batch row references this PO.
- * "Has invoice" — at least one non-voided supp_trans (type 20) is linked to
+ * "Has GRN"     &#8212; at least one grn_batch row references this PO.
+ * "Has invoice" &#8212; at least one non-voided supp_trans (type 20) is linked to
  *                 a purch_order_details line for this PO.
- * "Has payment" — at least one supp_allocations row references an invoice
+ * "Has payment" &#8212; at least one supp_allocations row references an invoice
  *                 on this PO (partially or fully paid).
- * "Has mismatch"— any P1/P2/P3-style counter drift detected on this PO.
+ * "Has mismatch"&#8212; any P1/P2/P3-style counter drift detected on this PO.
  *
- * PHP 5.6 / MySQL 5.5 compatible (no CTEs — uses derived-table UNION).
+ * PHP 5.6 / MySQL 5.5 compatible (no CTEs &#8212; uses derived-table UNION).
  *
  * @return array  Associative array of integer counts keyed as above.
  * @since  1.0.0
@@ -1247,18 +1534,18 @@ function get_purchase_pipeline_counts()
 
 /**
  * Classify every sales order by how far it has progressed through the
- * sales chain (SO → Delivery → Customer Invoice → Customer Payment) and
+ * sales chain (SO &#8594; Delivery &#8594; Customer Invoice &#8594; Customer Payment) and
  * whether any counter values disagree.
  *
  * Categories mirror get_purchase_pipeline_counts() with:
- *   open_order              → SO, no delivery, no invoice, no payment
- *   delivered_not_invoiced  → delivery exists, no invoice
+ *   open_order              &#8594; SO, no delivery, no invoice, no payment
+ *   delivered_not_invoiced  &#8594; delivery exists, no invoice
  *   (plus the same invoiced/complete/corrupted/anomalous buckets)
  *
- * "Has delivery" — any debtor_trans type 13 with order_ = so.order_no.
- * "Has invoice"  — any debtor_trans type 10 with order_ = so.order_no.
- * "Has payment"  — any cust_allocations row referencing an invoice on this SO.
- * "Has mismatch" — S1 (sod.qty_sent drift) or S2 (sod.invoiced drift).
+ * "Has delivery" &#8212; any debtor_trans type 13 with order_ = so.order_no.
+ * "Has invoice"  &#8212; any debtor_trans type 10 with order_ = so.order_no.
+ * "Has payment"  &#8212; any cust_allocations row referencing an invoice on this SO.
+ * "Has mismatch" &#8212; S1 (sod.qty_sent drift) or S2 (sod.invoiced drift).
  *
  * @return array
  * @since  1.0.0
@@ -1407,6 +1694,7 @@ function count_all_integrity_issues()
         'P8' => 'check_purchase_po_not_received',
         'P9' => 'check_purchase_grn_not_invoiced',
         'P10' => 'check_purchase_invoice_unpaid',
+        'P11' => 'check_purchase_voided_grn_items',
         'PCHAIN' => 'check_purchase_chain',
         'S1' => 'check_sales_sod_qty_sent_mismatch',
         'S2' => 'check_sales_sod_invoiced_mismatch',
@@ -1417,6 +1705,7 @@ function count_all_integrity_issues()
         'S7' => 'check_sales_delivery_not_invoiced',
         'S8' => 'check_sales_invoice_unpaid',
         'SCHAIN' => 'check_sales_chain',
+        'SCUST' => 'check_sales_customer_mismatch',
         'A1' => 'check_alloc_supplier_drift',
         'A2' => 'check_alloc_customer_drift',
         'A3' => 'check_alloc_over_allocated',
@@ -1458,6 +1747,7 @@ function get_check_labels()
         'P8' => _('Purchase orders not received (outstanding)'),
         'P9' => _('GRN items not invoiced'),
         'P10' => _('Supplier invoices not paid or credited'),
+        'P11' => _('Supplier invoices with zero-charged or voided GRN items but active GL entries'),
         'S1' => _('Sales order line qty_sent drift'),
         'S2' => _('Sales order line invoiced qty drift'),
         'S3' => _('Ghost customer invoices (no line items)'),
@@ -1466,8 +1756,9 @@ function get_check_labels()
         'S6' => _('Sales orders not delivered (outstanding)'),
         'S7' => _('Delivery items not invoiced'),
         'S8' => _('Customer invoices not paid or credited'),
-        'PCHAIN' => _('Purchase chain — broken links (replaces P5/P6/P7)'),
-        'SCHAIN' => _('Sales chain — broken links (replaces S3/S4/S5)'),
+        'PCHAIN' => _('Purchase chain &#8212; broken links (replaces P5/P6/P7)'),
+        'SCHAIN' => _('Sales chain &#8212; broken links (replaces S3/S4/S5)'),
+        'SCUST' => _('Sales transactions where charge-to customer/branch differs from the linked SO or branch owner'),
         'A1' => _('Supplier alloc drift (alloc vs supp_allocations)'),
         'A2' => _('Customer alloc drift (alloc vs cust_allocations)'),
         'A3' => _('Over-allocated transactions'),
@@ -1492,19 +1783,21 @@ function get_fix_functions()
         'P5' => null,  // orphaned invoice items: manual per-row fix (see PCHAIN)
         'P6' => null,  // orphaned GRN batches: manual per-row fix (see PCHAIN)
         'P7' => null,  // ghost invoices: manual per-row fix (see PCHAIN)
-        'P8' => null,  // view-only — no auto-fix (healthy in-progress chain)
-        'P9' => null,  // view-only — no auto-fix (healthy in-progress chain)
-        'P10' => null,  // view-only — no auto-fix (healthy in-progress chain)
+        'P8' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
+        'P9' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
+        'P10' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
+        'P11' => null,  // view-only &#8212; no auto-fix (credit note required)
         'PCHAIN' => null,  // per-row chain fix actions (no bulk)
         'S1' => 'fix_sales_sod_qty_sent',
         'S2' => 'fix_sales_sod_invoiced',
         'S3' => null,  // ghost invoices: manual per-row fix (see SCHAIN)
         'S4' => null,  // orphaned deliveries: manual per-row fix (see SCHAIN)
         'S5' => null,  // missing stock moves: manual per-row fix (see SCHAIN)
-        'S6' => null,  // view-only — no auto-fix (healthy in-progress chain)
-        'S7' => null,  // view-only — no auto-fix (healthy in-progress chain)
-        'S8' => null,  // view-only — no auto-fix (healthy in-progress chain)
+        'S6' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
+        'S7' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
+        'S8' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'SCHAIN' => null, // per-row chain fix actions (no bulk)
+        'SCUST' => null,  // per-row fix actions (no bulk)
         'A1' => 'fix_alloc_supplier_drift',
         'A2' => 'fix_alloc_customer_drift',
         'A3' => 'fix_alloc_over_allocated',
@@ -1532,19 +1825,20 @@ function get_fix_descriptions()
         'P5' => _('Supp invoice items whose grn_item_id references a GRN item that no longer exists. Use per-row fix actions on the PCHAIN tab.'),
         'P6' => _('GRN batches whose purch_order_no references a purchase order that no longer exists. Use per-row fix actions on the PCHAIN tab.'),
         'P7' => _('Supplier invoice headers with no line items (ghost invoices). Use per-row Void on the PCHAIN tab.'),
-        'P8' => _('Purchase orders with line items still awaiting delivery. These are healthy in-progress chains — no fix needed.'),
-        'P9' => _('Goods-received notes where the received quantity has not yet been fully invoiced. Healthy in-progress chains — no fix needed.'),
+        'P8' => _('Purchase orders with line items still awaiting delivery. These are healthy in-progress chains &#8212; no fix needed.'),
+        'P9' => _('Goods-received notes where the received quantity has not yet been fully invoiced. Healthy in-progress chains &#8212; no fix needed.'),
         'P10' => _('Supplier invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
-        'PCHAIN' => _('Consolidated purchase chain view (replaces P5/P6/P7). Each row shows PO → GRN → Invoice. Green cells are healthy. Orange cells have a candidate match — click Match to link. Yellow cells have an issue with an Add button. Red cells are orphaned with no candidate, or have item mismatches. Ghost invoices show a Void button.'),
+        'P11' => _('Supplier invoices where GRN-linked items have a total charge of $0 (voided lines where qty/price were zeroed, or zero-cost non-stock items) but GL entries remain. Voided lines likely need a credit note. Zero-cost lines may be legitimate &#8212; review each invoice\'s account coding.'),
+        'PCHAIN' => _('Consolidated purchase chain view (replaces P5/P6/P7). Each row shows PO &#8594; GRN &#8594; Invoice. Green cells are healthy. Orange cells have a candidate match &#8212; click Match to link. Yellow cells have an issue with an Add button. Red cells are orphaned with no candidate, or have item mismatches. Ghost invoices show a Void button.'),
         'S1' => _('Recalculates sales_order_details.qty_sent from delivery note detail quantities.'),
         'S2' => _('Recalculates sales_order_details.invoiced from customer invoice detail quantities.'),
         'S3' => _('Customer invoice headers with no line items (ghost invoices). Use per-row Void on the SCHAIN tab.'),
         'S4' => _('Delivery notes whose order_ references a sales order that no longer exists. Use per-row fix actions on the SCHAIN tab.'),
         'S5' => _('Delivery notes with no matching stock_moves entries. Use per-row fix actions on the SCHAIN tab.'),
-        'S6' => _('Sales orders with line items still awaiting delivery. These are healthy in-progress chains — no fix needed.'),
-        'S7' => _('Delivery-note items where the delivered quantity has not yet been fully invoiced. Healthy in-progress chains — no fix needed.'),
+        'S6' => _('Sales orders with line items still awaiting delivery. These are healthy in-progress chains &#8212; no fix needed.'),
+        'S7' => _('Delivery-note items where the delivered quantity has not yet been fully invoiced. Healthy in-progress chains &#8212; no fix needed.'),
         'S8' => _('Customer invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
-        'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO → Delivery → Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
+        'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO &#8594; Delivery &#8594; Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
         'A1' => _('Recalculates supp_trans.alloc from the sum of supp_allocations.'),
         'A2' => _('Recalculates debtor_trans.alloc from the sum of cust_allocations.'),
         'A3' => _('Runs both A1 (supplier) and A2 (customer) alloc recalculations. This resets alloc to the actual allocation total, correcting any over-allocated condition.'),

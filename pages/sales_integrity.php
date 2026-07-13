@@ -1,10 +1,10 @@
 <?php
 /**
- * sales_integrity.php — Sales chain integrity detail page
+ * sales_integrity.php &#8212; Sales chain integrity detail page
  *
- * Shows tabbed detail views for checks S1–S5 + SCHAIN.  Each tab runs only the active
- * check query.  S1–S2 have auto-fix functions (Recalculate/Fix button).
- * S3–S5 show raw SQL results (view-only, per-row fixes on SCHAIN tab).
+ * Shows tabbed detail views for checks S1&#8212;S5 + SCHAIN.  Each tab runs only the active
+ * check query.  S1&#8212;S2 have auto-fix functions (Recalculate/Fix button).
+ * S3&#8212;S5 show raw SQL results (view-only, per-row fixes on SCHAIN tab).
  * SCHAIN shows the consolidated chain view with per-row Add/Match/Void actions.
  *
  * PHP 5.6+ compatible.
@@ -26,18 +26,20 @@ include_once($module_root . "/includes/integrity_ui.inc");
 // ---- Handle fix POST before any HTML output ----
 $fix_result = integ_handle_fix_post();
 $chain_fix  = integ_handle_chain_fix_post('SCHAIN');
+$scust_fix  = integ_handle_scust_fix_post();
 
 // ---- Tab definitions ----
 $tabs = array(
-    'S1'     => _('S1 – SO qty_sent'),
-    'S2'     => _('S2 – SO invoiced'),
-    'S3'     => _('S3 – Ghost invoices'),
-    'S4'     => _('S4 – Orphaned deliveries'),
-    'S5'     => _('S5 – No stock moves'),
-    'S6'     => _('S6 – Undelivered SOs'),
-    'S7'     => _('S7 – Uninvoiced deliveries'),
-    'S8'     => _('S8 – Unpaid invoices'),
-    'SCHAIN' => _('SCHAIN – Broken chain'),
+    'S1'     => _('S1 &#8212; SO qty_sent'),
+    'S2'     => _('S2 &#8212; SO invoiced'),
+    'S3'     => _('S3 &#8212; Ghost invoices'),
+    'S4'     => _('S4 &#8212; Orphaned deliveries'),
+    'S5'     => _('S5 &#8212; No stock moves'),
+    'S6'     => _('S6 &#8212; Undelivered SOs'),
+    'S7'     => _('S7 &#8212; Uninvoiced deliveries'),
+    'S8'     => _('S8 &#8212; Unpaid invoices'),
+    'SCHAIN' => _('SCHAIN &#8212; Broken chain'),
+    'SCUST'  => _('SCUST &#8212; Customer mismatch'),
 );
 
 $check_funcs = array(
@@ -49,6 +51,7 @@ $check_funcs = array(
     'S6' => 'check_sales_so_not_delivered',
     'S7' => 'check_sales_delivery_not_invoiced',
     'S8' => 'check_sales_invoice_unpaid',
+    'SCUST' => 'check_sales_customer_mismatch',
 );
 
 $labels = get_check_labels();
@@ -65,7 +68,7 @@ integ_page_nav('sales');
 // ---- Show fix result notification ----
 if ($fix_result !== null) {
     if ($fix_result['rows_fixed'] < 0) {
-        display_warning(_('Fix not applied &mdash; you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
+        display_warning(_('Fix not applied &#8212; you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
     } else {
         display_notification(sprintf(
             _('Fix %s applied: %d row(s) recalculated.'),
@@ -91,7 +94,7 @@ $active = get_post('_sa_sel', 'S1');
 
 // ---- Check description ----
 if (isset($labels[$active])) {
-    echo "<p><em>" . htmlspecialchars($labels[$active]) . "</em></p>\n";
+    echo "<p><em>" . $labels[$active] . "</em></p>\n";
 }
 
 // ---- Run the active check and render its result table ----
@@ -112,6 +115,19 @@ if ($active === 'SCHAIN') {
     }
 
     integ_render_sales_chain($chainRows);
+} elseif ($active === 'SCUST') {
+    if ($scust_fix !== null) {
+        display_notification($scust_fix['message']);
+    }
+
+    $scustRows = check_sales_customer_mismatch();
+    $count = count($scustRows);
+
+    if ($count > 0) {
+        display_warning(sprintf(_('%d customer/branch mismatch(es) found.'), $count));
+    }
+
+    integ_render_sales_customer_mismatch($scustRows);
 } elseif (isset($check_funcs[$active])) {
     $result = call_user_func($check_funcs[$active]);
 

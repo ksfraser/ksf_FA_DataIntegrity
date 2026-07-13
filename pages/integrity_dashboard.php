@@ -1,15 +1,15 @@
 <?php
 /**
- * integrity_dashboard.php — Data Integrity overview dashboard
+ * integrity_dashboard.php &#8212; Data Integrity overview dashboard
  *
  * Two sections:
  *
- * 1. PIPELINE HEALTH — How many POs/SOs are at each stage of the chain, and
+ * 1. PIPELINE HEALTH &#8212; How many POs/SOs are at each stage of the chain, and
  *    of those that have all stages, how many have clean vs corrupted counters.
  *    Gives the business-level view: "of 100 POs, 50 complete & clean, 28 have
  *    data issues, 12 received but not yet invoiced ..."
  *
- * 2. INTEGRITY CHECKS — Per-check row counts (P1–P4 + PCHAIN, S1–S2 + SCHAIN, A1–A6) with
+ * 2. INTEGRITY CHECKS &#8212; Per-check row counts (P1&#8212;P4 + PCHAIN, S1&#8212;S2 + SCHAIN, A1&#8212;A6) with
  *    colour-coded counts and links to detail/fix pages.
  *
  * PHP 5.6+ compatible.
@@ -41,7 +41,7 @@ page(_('Data Integrity Dashboard'), false, false, '', $css);
 integ_page_nav('dashboard');
 
 // =========================================================================
-// SECTION 1 — Pipeline / funnel health
+// SECTION 1 &#8212; Pipeline / funnel health
 // =========================================================================
 
 echo "<p class='integ-section-title'>" . _('Pipeline Health') . "</p>\n";
@@ -49,26 +49,26 @@ echo "<p style='color:#555;font-size:0.9em'>"
     . _('How many transactions are at each stage of the chain, and of those that span all stages, how many have clean counter values versus data drift.')
     . "</p>\n";
 
-// Run pipeline queries (heavier — single-pass aggregation per chain)
+// Run pipeline queries (heavier &#8212; single-pass aggregation per chain)
 $pu_pipeline = get_purchase_pipeline_counts();
 $sa_pipeline = get_sales_pipeline_counts();
 
 integ_render_pipeline_summary(
     $pu_pipeline,
-    _('Purchase Chain  (PO → GRN → Supplier Invoice → Supplier Payment)'),
+    _('Purchase Chain  (PO &#8594; GRN &#8594; Supplier Invoice &#8594; Supplier Payment)'),
     integ_purchase_pipeline_rows()
 );
 
 integ_render_pipeline_summary(
     $sa_pipeline,
-    _('Sales Chain  (Sales Order → Delivery → Customer Invoice → Customer Payment)'),
+    _('Sales Chain  (Sales Order &#8594; Delivery &#8594; Customer Invoice &#8594; Customer Payment)'),
     integ_sales_pipeline_rows()
 );
 
 br();
 
 // =========================================================================
-// SECTION 2 — Individual integrity check counts
+// SECTION 2 &#8212; Individual integrity check counts
 // =========================================================================
 
 echo "<p class='integ-section-title'>" . _('Integrity Check Details') . "</p>\n";
@@ -105,9 +105,9 @@ start_table(TABLESTYLE, "width='85%'");
 table_header(array(_('Check'), _('Description'), _('Issues'), _('Auto-fix?'), _('Detail Page')));
 
 // Purchase chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1–P10, PCHAIN)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1&#8212;P11, PCHAIN)') . "</td></tr>\n";
 
-$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'PCHAIN');
+$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'PCHAIN');
 $k = 0;
 foreach ($purchase_checks as $id) {
     alt_table_row_color($k);
@@ -124,9 +124,9 @@ foreach ($purchase_checks as $id) {
 }
 
 // Sales chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1–S8, SCHAIN)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1&#8212;S8, SCHAIN, SCUST)') . "</td></tr>\n";
 
-$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'SCHAIN');
+$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'SCHAIN', 'SCUST');
 foreach ($sales_checks as $id) {
     alt_table_row_color($k);
     label_cell('<strong>' . $id . '</strong>');
@@ -142,7 +142,7 @@ foreach ($sales_checks as $id) {
 }
 
 // Allocation group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Allocations (A1–A6)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Allocations (A1&#8212;A6)') . "</td></tr>\n";
 
 $alloc_checks = array('A1', 'A2', 'A3', 'A4', 'A5', 'A6');
 foreach ($alloc_checks as $id) {

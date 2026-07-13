@@ -1,2 +1,2 @@
 <?php
-// KSF FA DataIntegrity module — blank gate
+// KSF FA DataIntegrity module &#8212; blank gate
