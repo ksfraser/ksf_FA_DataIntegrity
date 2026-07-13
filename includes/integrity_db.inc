@@ -384,28 +384,8 @@ function check_purchase_ghost_invoices()
  */
 function check_purchase_po_not_received()
 {
-    $sql = "
-        SELECT
-            pod.order_no              AS po_no,
-            po.reference              AS po_ref,
-            po.ord_date,
-            s.supplier_id,
-            s.supp_name,
-            pod.po_detail_item,
-            pod.item_code,
-            pod.description,
-            pod.quantity_ordered,
-            pod.quantity_received,
-            pod.quantity_ordered - pod.quantity_received AS qty_outstanding,
-            pod.unit_price,
-            pod.qty_invoiced
-        FROM &TB_PREF&purch_order_details pod
-        JOIN &TB_PREF&purch_orders po        ON po.order_no = pod.order_no
-        JOIN &TB_PREF&suppliers s            ON s.supplier_id = po.supplier_id
-        WHERE pod.quantity_ordered > pod.quantity_received + " . INTEG_DELTA . "
-        ORDER BY s.supp_name, po.order_no";
-
-    return db_query($sql, 'Check P8: Purchase orders not received');
+    $repo = new \FrontAccounting\Repository\PurchOrderDetailsRepository(integ_db_adapter());
+    return $repo->findUnreceivedLines();
 }
 
 /**
@@ -417,27 +397,8 @@ function check_purchase_po_not_received()
  */
 function check_purchase_grn_not_invoiced()
 {
-    $sql = "
-        SELECT
-            g.id                AS grn_item_id,
-            gb.id               AS grn_batch_id,
-            gb.delivery_date,
-            gb.reference        AS grn_ref,
-            gb.purch_order_no,
-            s.supplier_id,
-            s.supp_name,
-            g.item_code,
-            g.description,
-            g.qty_recd,
-            g.quantity_inv,
-            g.qty_recd - g.quantity_inv AS uninvoiced_qty
-        FROM &TB_PREF&grn_batch gb
-        JOIN &TB_PREF&grn_items g    ON g.grn_batch_id = gb.id
-        JOIN &TB_PREF&suppliers s    ON s.supplier_id = gb.supplier_id
-        WHERE g.qty_recd > g.quantity_inv + " . INTEG_DELTA . "
-        ORDER BY s.supp_name, gb.delivery_date";
-
-    return db_query($sql, 'Check P9: GRN items not invoiced');
+    $repo = new \FrontAccounting\Repository\GrnItemsRepository(integ_db_adapter());
+    return $repo->findUninvoicedLines();
 }
 
 /**
@@ -449,29 +410,8 @@ function check_purchase_grn_not_invoiced()
  */
 function check_purchase_invoice_unpaid()
 {
-    $sql = "
-        SELECT
-            st.trans_no            AS inv_no,
-            st.reference           AS inv_ref,
-            st.supp_reference,
-            st.tran_date,
-            st.due_date,
-            s.supplier_id,
-            s.supp_name,
-            st.ov_amount,
-            st.ov_gst,
-            st.ov_discount,
-            st.alloc,
-            st.ov_amount + st.ov_gst + st.ov_discount AS total,
-            st.ov_amount + st.ov_gst + st.ov_discount - st.alloc AS unpaid
-        FROM &TB_PREF&supp_trans st
-        JOIN &TB_PREF&suppliers s ON s.supplier_id = st.supplier_id
-        WHERE st.type = 20
-          AND st.ov_amount != 0
-          AND st.alloc < st.ov_amount + st.ov_gst + st.ov_discount - " . INTEG_DELTA . "
-        ORDER BY s.supp_name, st.tran_date";
-
-    return db_query($sql, 'Check P10: Supplier invoices unpaid');
+    $repo = new \FrontAccounting\Repository\SupplierTransactionRepository(integ_db_adapter());
+    return $repo->findUnpaidInvoices();
 }
 
 // ===========================================================================
@@ -708,34 +648,8 @@ function check_sales_delivery_missing_stock_moves()
  */
 function check_sales_so_not_delivered($debtorNo = null, $branchCode = null)
 {
-    $where  = " AND so.trans_type = 30\n";
-    $where .= $debtorNo   ? " AND so.debtor_no   = " . (int)$debtorNo   . "\n" : '';
-    $where .= $branchCode ? " AND so.branch_code = " . (int)$branchCode . "\n" : '';
-
-    $sql = "
-        SELECT
-            sod.order_no,
-            so.reference        AS so_ref,
-            so.ord_date,
-            dm.debtor_no,
-            dm.name             AS customer_name,
-            sod.stk_code,
-            sod.description,
-            sod.quantity        AS qty_ordered,
-            sod.qty_sent,
-            sod.quantity - sod.qty_sent AS qty_outstanding,
-            sod.unit_price
-        FROM &TB_PREF&sales_order_details sod
-        JOIN &TB_PREF&sales_orders so
-            ON so.order_no   = sod.order_no
-           AND so.trans_type = sod.trans_type
-        JOIN &TB_PREF&debtors_master dm
-            ON dm.debtor_no = so.debtor_no
-        WHERE sod.quantity > sod.qty_sent + " . INTEG_DELTA . "
-          $where
-        ORDER BY dm.name, so.reference";
-
-    return db_query($sql, 'Check S6: Sales orders not delivered');
+    $repo = new \FrontAccounting\Repository\SalesOrderDetailsRepository(integ_db_adapter());
+    return $repo->findUndeliveredLines($debtorNo, $branchCode);
 }
 
 /**
@@ -752,47 +666,8 @@ function check_sales_so_not_delivered($debtorNo = null, $branchCode = null)
  */
 function check_sales_delivery_not_invoiced($debtorNo = null, $branchCode = null)
 {
-    $where  = " AND dtd.debtor_trans_type = 13\n";
-    $where .= $debtorNo   ? " AND dt.debtor_no    = " . (int)$debtorNo   . "\n" : '';
-    $where .= $branchCode ? " AND dt.branch_code  = " . (int)$branchCode . "\n" : '';
-
-    $sql = "
-        SELECT
-            dt.trans_no           AS delivery_no,
-            dt.reference          AS delivery_ref,
-            dt.tran_date          AS delivery_date,
-            dt.order_             AS sales_order_no,
-            so.reference          AS so_ref,
-            dt.debtor_no,
-            dm.name               AS customer_name,
-            dtd.stock_id,
-            dtd.description,
-            dtd.qty_done          AS qty_delivered,
-            COALESCE(inv_sum.qty_invoiced, 0) AS qty_invoiced,
-            dtd.qty_done - COALESCE(inv_sum.qty_invoiced, 0) AS uninvoiced_qty,
-            dtd.unit_price
-        FROM &TB_PREF&debtor_trans_details dtd
-        JOIN &TB_PREF&debtor_trans dt
-            ON dt.trans_no = dtd.debtor_trans_no
-           AND dt.type     = dtd.debtor_trans_type
-        JOIN &TB_PREF&debtors_master dm
-            ON dm.debtor_no = dt.debtor_no
-        LEFT JOIN &TB_PREF&sales_orders so
-            ON so.order_no   = dt.order_
-           AND so.trans_type = 30
-        LEFT JOIN (
-            SELECT src_id, SUM(quantity) AS qty_invoiced
-            FROM &TB_PREF&debtor_trans_details
-            WHERE debtor_trans_type = 10
-            GROUP BY src_id
-        ) inv_sum ON inv_sum.src_id = dtd.src_id
-        WHERE dtd.debtor_trans_type = 13
-          AND dt.ov_amount != 0
-          AND dtd.qty_done > COALESCE(inv_sum.qty_invoiced, 0) + " . INTEG_DELTA . "
-          $where
-        ORDER BY dm.name, dt.tran_date";
-
-    return db_query($sql, 'Check S7: Delivery items not invoiced');
+    $repo = new \FrontAccounting\Repository\DebtorTransactionDetailRepository(integ_db_adapter());
+    return $repo->findUninvoicedDeliveries($debtorNo, $branchCode);
 }
 
 /**
@@ -808,39 +683,8 @@ function check_sales_delivery_not_invoiced($debtorNo = null, $branchCode = null)
  */
 function check_sales_invoice_unpaid($debtorNo = null, $branchCode = null)
 {
-    $where  = " AND dt.type = 10\n";
-    $where .= $debtorNo   ? " AND dt.debtor_no   = " . (int)$debtorNo   . "\n" : '';
-    $where .= $branchCode ? " AND dt.branch_code = " . (int)$branchCode . "\n" : '';
-
-    $sql = "
-        SELECT
-            dt.trans_no            AS inv_no,
-            dt.reference,
-            dt.tran_date,
-            dt.due_date,
-            dt.debtor_no,
-            dm.name                AS customer_name,
-            dt.ov_amount,
-            dt.ov_gst,
-            dt.ov_freight,
-            dt.ov_freight_tax,
-            dt.ov_discount,
-            dt.alloc,
-            dt.ov_amount + dt.ov_gst + dt.ov_freight
-                + dt.ov_freight_tax + dt.ov_discount  AS total,
-            dt.ov_amount + dt.ov_gst + dt.ov_freight
-                + dt.ov_freight_tax + dt.ov_discount - dt.alloc AS unpaid
-        FROM &TB_PREF&debtor_trans dt
-        JOIN &TB_PREF&debtors_master dm
-            ON dm.debtor_no = dt.debtor_no
-        WHERE dt.type = 10
-          AND dt.ov_amount != 0
-          AND dt.alloc < dt.ov_amount + dt.ov_gst + dt.ov_freight
-              + dt.ov_freight_tax + dt.ov_discount - " . INTEG_DELTA . "
-          $where
-        ORDER BY dm.name, dt.tran_date";
-
-    return db_query($sql, 'Check S8: Customer invoices unpaid');
+    $repo = new \FrontAccounting\Repository\DebtorTransactionRepository(integ_db_adapter());
+    return $repo->findUnpaidInvoices($debtorNo, $branchCode);
 }
 
 // ===========================================================================

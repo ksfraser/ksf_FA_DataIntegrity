@@ -770,8 +770,9 @@ function integ_render_p8($result)
     start_table(TABLESTYLE, "width='98%'");
     table_header($cols);
 
+    $rows = is_array($result) ? $result : array();
     $k = 0;
-    while ($row = db_fetch($result)) {
+    foreach ($rows as $row) {
         alt_table_row_color($k);
         label_cell(integ_edit_link(INTEG_ST_PURCHORDER, $row['po_no'], '#' . $row['po_no']));
         label_cell(htmlspecialchars($row['po_ref']));
@@ -785,6 +786,7 @@ function integ_render_p8($result)
         label_cell(number_format($row['unit_price'], 4));
         label_cell(integ_edit_link(INTEG_ST_PURCHORDER, $row['po_no']));
         end_row();
+        $k++;
     }
 
     if ($k === 0) {
@@ -810,8 +812,9 @@ function integ_render_p9($result)
     start_table(TABLESTYLE, "width='98%'");
     table_header($cols);
 
+    $rows = is_array($result) ? $result : array();
     $k = 0;
-    while ($row = db_fetch($result)) {
+    foreach ($rows as $row) {
         alt_table_row_color($k);
         label_cell(integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id'], '#' . $row['grn_batch_id']));
         label_cell($row['delivery_date']);
@@ -824,6 +827,7 @@ function integ_render_p9($result)
         label_cell(integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id']));
         label_cell(integ_view_link(INTEG_ST_PURCHORDER, $row['purch_order_no']));
         end_row();
+        $k++;
     }
 
     if ($k === 0) {
@@ -852,8 +856,9 @@ function integ_render_p10($result)
     start_table(TABLESTYLE, "width='98%'");
     table_header($cols);
 
+    $rows = is_array($result) ? $result : array();
     $k = 0;
-    while ($row = db_fetch($result)) {
+    foreach ($rows as $row) {
         $total  = (float)$row['total'];
         $unpaid = (float)$row['unpaid'];
         alt_table_row_color($k);
@@ -871,6 +876,7 @@ function integ_render_p10($result)
             . number_format($unpaid, 2) . '</span>');
         label_cell(integ_view_link(INTEG_ST_SUPPINVOICE, $row['inv_no']));
         end_row();
+        $k++;
     }
 
     if ($k === 0) {
@@ -1091,8 +1097,9 @@ function integ_render_s6($result)
     start_table(TABLESTYLE, "width='98%'");
     table_header($cols);
 
+    $rows = is_array($result) ? $result : array();
     $k = 0;
-    while ($row = db_fetch($result)) {
+    foreach ($rows as $row) {
         alt_table_row_color($k);
         label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['order_no'], '#' . $row['order_no']));
         label_cell(htmlspecialchars($row['so_ref']));
@@ -1106,6 +1113,7 @@ function integ_render_s6($result)
         label_cell(number_format($row['unit_price'], 4));
         label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['order_no']));
         end_row();
+        $k++;
     }
 
     if ($k === 0) {
@@ -1132,8 +1140,9 @@ function integ_render_s7($result)
     start_table(TABLESTYLE, "width='98%'");
     table_header($cols);
 
+    $rows = is_array($result) ? $result : array();
     $k = 0;
-    while ($row = db_fetch($result)) {
+    foreach ($rows as $row) {
         alt_table_row_color($k);
         label_cell(integ_view_link(INTEG_ST_CUSTDELIVERY, $row['delivery_no'], '#' . $row['delivery_no']));
         label_cell(htmlspecialchars($row['delivery_ref']));
@@ -1148,6 +1157,7 @@ function integ_render_s7($result)
         label_cell(integ_view_link(INTEG_ST_CUSTDELIVERY, $row['delivery_no']));
         label_cell(integ_view_link(INTEG_ST_SALESORDER, $row['sales_order_no']));
         end_row();
+        $k++;
     }
 
     if ($k === 0) {
@@ -1174,8 +1184,9 @@ function integ_render_s8($result)
     start_table(TABLESTYLE, "width='98%'");
     table_header($cols);
 
+    $rows = is_array($result) ? $result : array();
     $k = 0;
-    while ($row = db_fetch($result)) {
+    foreach ($rows as $row) {
         $total  = (float)$row['total'];
         $unpaid = (float)$row['unpaid'];
         alt_table_row_color($k);
@@ -1193,6 +1204,7 @@ function integ_render_s8($result)
             . number_format($unpaid, 2) . '</span>');
         label_cell(integ_view_link(INTEG_ST_SALESINVOICE, $row['inv_no']));
         end_row();
+        $k++;
     }
 
     if ($k === 0) {

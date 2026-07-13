@@ -121,14 +121,22 @@ if ($active === 'PCHAIN') {
     integ_render_purchase_chain($chainRows);
 } elseif (isset($check_funcs[$active])) {
     $result = call_user_func($check_funcs[$active]);
-    $count  = db_num_rows($result);
+
+    if (is_array($result)) {
+        $count = count($result);
+    } else {
+        $count = db_num_rows($result);
+    }
 
     if ($count > 0) {
         display_warning(sprintf(_('%d issue(s) found for check %s.'), $count, $active));
     }
 
     integ_render_check_result($active, $result);
-    db_free_result($result);
+
+    if (!is_array($result)) {
+        db_free_result($result);
+    }
 }
 
 tabbed_content_end();
