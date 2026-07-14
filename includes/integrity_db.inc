@@ -1693,8 +1693,8 @@ function check_sales_duplicate_docs()
     $result = db_query(
         "SELECT dt.type, dt.trans_no,
                 COUNT(*) AS cnt,
-                GROUP_CONCAT(DISTINCT dt.debtor_no ORDER BY dt.id) AS debtor_nos,
-                GROUP_CONCAT(DISTINCT dt.reference ORDER BY dt.id) AS refs
+                GROUP_CONCAT(DISTINCT dt.debtor_no ORDER BY dt.tran_date) AS debtor_nos,
+                GROUP_CONCAT(DISTINCT dt.reference ORDER BY dt.tran_date) AS refs
          FROM " . TB_PREF . "debtor_trans dt
          WHERE dt.type IN (" . ST_SALESINVOICE . "," . ST_CUSTCREDIT . ","
             . ST_CUSTPAYMENT . "," . ST_CUSTDELIVERY . ")
@@ -1760,8 +1760,8 @@ function check_purchase_duplicate_docs()
     $result = db_query(
         "SELECT st.type, st.trans_no,
                 COUNT(*) AS cnt,
-                GROUP_CONCAT(DISTINCT st.supplier_id ORDER BY st.id) AS supp_ids,
-                GROUP_CONCAT(DISTINCT st.reference ORDER BY st.id) AS refs
+                GROUP_CONCAT(DISTINCT st.supplier_id ORDER BY st.tran_date) AS supp_ids,
+                GROUP_CONCAT(DISTINCT st.reference ORDER BY st.tran_date) AS refs
          FROM " . TB_PREF . "supp_trans st
          WHERE st.type IN (" . ST_SUPPINVOICE . "," . ST_SUPPCREDIT . ","
             . ST_SUPPAYMENT . ")
