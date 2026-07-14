@@ -2286,7 +2286,9 @@ function integ_render_sales_customer_mismatch($rows)
             echo "<table class='tablestyle' style='width:98%'>\n";
             echo "<tr><th>" . _('Trans') . "</th><th>" . _('Date') . "</th><th>" . _('Charge To') . "</th><th>" . _('Branch') . "</th><th>" . _('Actions') . "</th></tr>\n";
             $typeLabel = ($lrRow['type'] == 13) ? 'DN' : (($lrRow['type'] == 10) ? 'INV' : '#' . $lrRow['type']);
-            $transText = $typeLabel . ' #' . $lrRow['trans_no'];
+            $lookupTypeConst = ($lrRow['type'] == 13) ? 'INTEG_ST_CUSTDELIVERY' : 'INTEG_ST_SALESINVOICE';
+            $transText = integ_edit_link(constant($lookupTypeConst), $lrRow['trans_no'],
+                $typeLabel . ' #' . $lrRow['trans_no']);
             if ($lrRow['reference']) {
                 $transText .= '<br><small>' . htmlspecialchars($lrRow['reference']) . '</small>';
             }
@@ -2325,7 +2327,9 @@ function integ_render_sales_customer_mismatch($rows)
         alt_table_row_color($k);
 
         // Trans
-        $transText = $typeLabel . ' #' . $r['trans_no'];
+        $transTypeConst = ($r['type'] == 13) ? 'INTEG_ST_CUSTDELIVERY' : 'INTEG_ST_SALESINVOICE';
+        $transText = integ_edit_link(constant($transTypeConst), $r['trans_no'],
+            $typeLabel . ' #' . $r['trans_no']);
         if ($r['reference']) {
             $transText .= '<br><small>' . htmlspecialchars($r['reference']) . '</small>';
         }
@@ -2353,7 +2357,8 @@ function integ_render_sales_customer_mismatch($rows)
 
         // SO
         if ($r['so_order_no']) {
-            $soText = '#' . $r['so_order_no'];
+            $soText = integ_edit_link(INTEG_ST_SALESORDER, $r['so_order_no'],
+                '#' . $r['so_order_no']);
             if ($r['so_ref']) {
                 $soText .= '<br><small>' . htmlspecialchars($r['so_ref']) . '</small>';
             }
