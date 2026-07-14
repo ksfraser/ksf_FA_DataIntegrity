@@ -1927,6 +1927,8 @@ function integ_render_sales_chain($rows)
         _('SO&#8596;Del'),
         _('Delivery'),
         _('Stock'),
+        _('Invoice'),
+        _('Payment'),
         _('Actions'),
     );
     start_table(TABLESTYLE, "width='98%'");
@@ -1964,6 +1966,14 @@ function integ_render_sales_chain($rows)
         $stockCell = _sales_cell_stock($row, $key);
         label_cell($stockCell);
 
+        // Invoice
+        $invCell = _sales_cell_invoice($row);
+        label_cell($invCell);
+
+        // Payment
+        $payCell = _sales_cell_payment($row);
+        label_cell($payCell);
+
         // Actions
         $actions = _sales_cell_actions($row, $key);
         label_cell($actions);
@@ -1999,7 +2009,7 @@ function _sales_cell_so_del_link($row, $key)
 
     if ($type === 'orphan_del' && $row['candidate_so_id']) {
         $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_so_del"'
-             . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+             . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
              . _('Match') . '</button>';
         $btn .= '<input type="hidden" name="_cand_so[' . $key . ']" value="' . (int)$row['candidate_so_id'] . '">';
         return $btn;
@@ -2048,6 +2058,87 @@ function _sales_cell_stock($row, $key)
     return '<span style="color:#999">&#8212;</span>';
 }
 
+/**
+ * Build the Invoice column content for a SCHAIN row.
+ */
+function _sales_cell_invoice($row)
+{
+    global $path_to_root;
+
+    // Ghost invoice rows already have inv_trans_no set
+    if ($row['inv_trans_no']) {
+        $text = integ_edit_link(INTEG_ST_SALESINVOICE, $row['inv_trans_no'],
+            sprintf(_('Edit INV #%d'), $row['inv_trans_no']));
+        if ($row['inv_date']) {
+            $text .= '<br><small>' . $row['inv_date'] . '</small>';
+        }
+        if ($row['inv_ref']) {
+            $text .= '<br><small>' . htmlspecialchars($row['inv_ref']) . '</small>';
+        }
+        if ($row['inv_total'] > 0) {
+            $text .= '<br><small>' . _('Total:') . ' ' . number_format($row['inv_total'], 2) . '</small>';
+        }
+        if ($row['row_type'] === 'ghost_inv') {
+            return "<div style='background:#fdd;padding:2px 4px'>$text</div>";
+        }
+        return "<div style='background:#dfd;padding:2px 4px'>$text</div>";
+    }
+
+    // No invoice — only show Create link if there's an SO to invoice from
+    if ($row['so_order_no']) {
+        $url = $path_to_root . '/sales/sales_invoice.php?New=1';
+        return '<a href="' . htmlspecialchars($url) . '" target="_blank"'
+             . ' style="padding:2px 8px;background:#080;color:#fff;'
+             . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
+             . 'font-size:11px;text-decoration:none">'
+             . _('Create Invoice') . '</a>';
+    }
+
+    return '<span style="color:#999">&#8212;</span>';
+}
+
+/**
+ * Build the Payment column content for a SCHAIN row.
+ */
+function _sales_cell_payment($row)
+{
+    global $path_to_root;
+
+    if (!$row['inv_trans_no']) {
+        return '<span style="color:#999">&#8212;</span>';
+    }
+
+    // Check allocation status
+    $alloc = (float)$row['inv_alloc'];
+    $total = (float)$row['inv_total'];
+    $parts = array();
+
+    if ($alloc > 0 && $alloc >= $total) {
+        $parts[] = '<span style="color:#080;font-size:1.1em">&#10003; ' . _('Paid') . '</span>';
+    } elseif ($alloc > 0) {
+        $parts[] = '<span style="color:#e80">' . _('Partial:') . ' '
+                 . number_format($alloc, 2) . ' / ' . number_format($total, 2) . '</span>';
+    } else {
+        $parts[] = '<span style="color:#c00">' . _('Unpaid') . '</span>';
+    }
+
+    $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/customer_payments.php?New=1') . '"'
+             . ' target="_blank" style="padding:2px 8px;background:#080;color:#fff;'
+             . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
+             . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
+             . _('Receive Payment') . '</a>';
+
+    if ($alloc < $total) {
+        $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/allocations/customer_allocate.php?New=1') . '"'
+                 . ' target="_blank" style="padding:2px 8px;background:#e80;color:#fff;'
+                 . 'border:1px solid #c60;border-radius:2px;cursor:pointer;'
+                 . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
+                 . _('Allocate') . '</a>';
+    }
+
+    return implode('<br>', $parts);
+}
+
 function _sales_cell_actions($row, $key)
 {
     $type = $row['row_type'];
@@ -2055,7 +2146,7 @@ function _sales_cell_actions($row, $key)
 
     if ($type === 'ghost_inv') {
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
-                 . ' style="padding:2px 6px;background:#c00;color:#fff;border:none"'
+                 . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
                  . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
                  . _('Void') . '</button>';
     }
@@ -2063,19 +2154,19 @@ function _sales_cell_actions($row, $key)
     if ($type === 'orphan_del') {
         if ($row['candidate_so_id']) {
             $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="match_so_del"'
-                     . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+                     . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
                      . _('Match SO') . '</button>';
             $parts[] = '<input type="hidden" name="_cand_so[' . $key . ']" value="' . (int)$row['candidate_so_id'] . '">';
         } else {
             $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_so"'
-                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
                      . _('Add SO') . '</button>';
         }
     }
 
     if ($type === 'missing_stock') {
         $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_stock_moves"'
-                 . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                 . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
                  . _('Create Stock Moves') . '</button>';
     }
 
@@ -2174,7 +2265,7 @@ function integ_render_sales_customer_mismatch($rows)
     echo "  <option value='13'" . (isset($_POST['_scust_lookup_type']) && $_POST['_scust_lookup_type'] == '13' ? ' selected' : '') . ">" . _('Delivery') . "</option>\n";
     echo "  <option value='10'" . (isset($_POST['_scust_lookup_type']) && $_POST['_scust_lookup_type'] == '10' ? ' selected' : '') . ">" . _('Invoice') . "</option>\n";
     echo " </select>\n";
-    echo " <button type='submit' name='_scust_lookup' value='1' style='padding:2px 6px'>" . _('Load') . "</button>\n";
+    echo " <button type='submit' name='_scust_lookup' value='1' style='padding:2px 8px;border:1px solid #999;border-radius:2px;cursor:pointer;font-size:11px'>" . _('Load') . "</button>\n";
     echo "</div>\n";
 
     // ---- Show looked-up trans for manual fix ----
@@ -2210,12 +2301,12 @@ function integ_render_sales_customer_mismatch($rows)
                 echo "<label>" . _('Customer:') . "<br><select name='_scust_new_debtor' style='width:180px'>$custOptions</select></label>";
                 echo "<br><label>" . _('Branch:') . "<br><select name='_scust_new_branch' style='width:80px'>$branchOptions</select></label>";
                 echo "<br><button type='submit' name='_fix_action[$lkKey]' value='apply_cust'"
-                    . " style='padding:2px 6px;background:#080;color:#fff;border:none;margin-top:3px'>" . _('Apply') . "</button>";
-                echo " <button type='submit' name='_scust_cancel' value='1' style='padding:2px 6px'>" . _('Cancel') . "</button>";
+                    . " style='padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;margin-top:3px'>" . _('Apply') . "</button>";
+                echo " <button type='submit' name='_scust_cancel' value='1' style='padding:2px 8px;border:1px solid #999;border-radius:2px;cursor:pointer;font-size:11px'>" . _('Cancel') . "</button>";
                 echo "</div>";
             } else {
                 echo "<button type='submit' name='_fix_action[$lkKey]' value='set_cust'"
-                    . " style='padding:2px 6px;background:#080;color:#fff;border:none'>" . _('Set Customer') . "</button>";
+                    . " style='padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px'>" . _('Set Customer') . "</button>";
             }
             echo "</td></tr></table>\n";
         } else {
@@ -2297,10 +2388,11 @@ function integ_render_sales_customer_mismatch($rows)
             $actionHtml .= '<select name="_scust_new_branch" style="width:80px">' . $branchOptions . '</select></label>';
             $actionHtml .= '<br>';
             $actionHtml .= '<button type="submit" name="_fix_action[' . $rowKey . ']" value="apply_cust"'
-                       . ' style="padding:2px 6px;background:#080;color:#fff;border:none;margin-top:3px">'
+                       . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;margin-top:3px">'
                        . _('Apply') . '</button>';
             $actionHtml .= ' <button type="submit" name="_scust_cancel" value="1"'
-                       . ' style="padding:2px 6px">' . _('Cancel') . '</button>';
+                       . ' style="padding:2px 8px;border:1px solid #999;border-radius:2px;cursor:pointer;font-size:11px">'
+                       . _('Cancel') . '</button>';
             $actionHtml .= '</div>';
             label_cell($actionHtml);
         } else {
@@ -2310,7 +2402,7 @@ function integ_render_sales_customer_mismatch($rows)
             if ($r['so_order_no'] && $r['so_debtor_no']
                 && (int)$r['so_debtor_no'] != (int)$r['charge_to_no']) {
                 $parts[] = '<button type="submit" name="_fix_action[' . $rowKey . ']" value="use_so_cust"'
-                         . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+                         . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
                          . _('Use SO') . '</button>';
             }
 
@@ -2318,13 +2410,13 @@ function integ_render_sales_customer_mismatch($rows)
             if ($r['branch_owner_no'] !== null
                 && (int)$r['branch_owner_no'] != (int)$r['charge_to_no']) {
                 $parts[] = '<button type="submit" name="_fix_action[' . $rowKey . ']" value="use_branch_cust"'
-                         . ' style="padding:2px 6px;background:#e80;color:#fff;border:none">'
+                         . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
                          . _('Use Branch') . '</button>';
             }
 
             // Set Customer button — triggers inline edit on reload
             $parts[] = '<button type="submit" name="_fix_action[' . $rowKey . ']" value="set_cust"'
-                     . ' style="padding:2px 6px;background:#080;color:#fff;border:none">'
+                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
                      . _('Set Customer') . '</button>';
 
             label_cell(implode('<br>', $parts));

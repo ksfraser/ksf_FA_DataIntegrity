@@ -618,20 +618,29 @@ function check_sales_chain()
             }
 
             $row = array(
-                'row_type'       => $rowType,
-                'row_key'        => 'del_' . $r['del_trans_no'] . '_' . ($r['del_detail_id'] ?: '0'),
-                'debtor_no'      => (int)$r['debtor_no'],
-                'customer_name'  => $r['customer_name'],
-                'so_order_no'    => $r['so_order_no'] ? (int)$r['so_order_no'] : null,
-                'so_ref'         => $r['so_ref'],
-                'so_item_code'   => $r['so_item_code'],
-                'del_trans_no'   => (int)$r['del_trans_no'],
-                'del_date'       => $r['del_date'],
-                'del_ref'        => $r['del_ref'],
-                'del_item_code'  => $r['del_item_code'],
-                'del_qty'        => (float)$r['del_qty'],
-                'candidate_so_id'  => null,
-                'candidate_so_ref' => null,
+                'row_type'        => $rowType,
+                'row_key'         => 'del_' . $r['del_trans_no'] . '_' . ($r['del_detail_id'] ?: '0'),
+                'debtor_no'       => (int)$r['debtor_no'],
+                'customer_name'   => $r['customer_name'],
+                'so_order_no'     => $r['so_order_no'] ? (int)$r['so_order_no'] : null,
+                'so_ref'          => $r['so_ref'],
+                'so_item_code'    => $r['so_item_code'],
+                'del_trans_no'    => (int)$r['del_trans_no'],
+                'del_date'        => $r['del_date'],
+                'del_ref'         => $r['del_ref'],
+                'del_item_code'   => $r['del_item_code'],
+                'del_qty'         => (float)$r['del_qty'],
+                'candidate_so_id'   => null,
+                'candidate_so_ref'  => null,
+                'inv_trans_no'      => null,
+                'inv_date'          => null,
+                'inv_ref'           => null,
+                'inv_total'         => 0.0,
+                'inv_alloc'         => 0.0,
+                'payment_trans_no'  => null,
+                'payment_date'      => null,
+                'payment_ref'       => null,
+                'payment_amount'    => 0.0,
             );
 
             if ($rowType === 'orphan_del' && $r['del_item_code']) {
@@ -683,14 +692,98 @@ function check_sales_chain()
                 'del_ref'        => null,
                 'del_item_code'  => null,
                 'del_qty'        => 0.0,
-                'inv_trans_no'   => (int)$r['trans_no'],
-                'inv_date'       => $r['tran_date'],
-                'inv_ref'        => $r['reference'],
-                'inv_total'      => (float)$r['total'],
-                'candidate_so_id'  => null,
-                'candidate_so_ref' => null,
+                'inv_trans_no'      => (int)$r['trans_no'],
+                'inv_date'          => $r['tran_date'],
+                'inv_ref'           => $r['reference'],
+                'inv_total'         => (float)$r['total'],
+                'inv_alloc'         => (float)$r['alloc'],
+                'payment_trans_no'  => null,
+                'payment_date'      => null,
+                'payment_ref'       => null,
+                'payment_amount'    => 0.0,
+                'candidate_so_id'   => null,
+                'candidate_so_ref'  => null,
             );
         }
+    }
+
+    // ---- Attach invoice data to delivery rows by matching SO ----
+    $soNos = array();
+    foreach ($rows as $r) {
+        if ($r['row_type'] !== 'ghost_inv' && $r['so_order_no']) {
+            $soNos[(int)$r['so_order_no']] = true;
+        }
+    }
+
+    if (!empty($soNos)) {
+        $soList = implode(',', array_keys($soNos));
+        $invSql = "SELECT order_ AS so_no, trans_no, tran_date, reference,
+                          ov_amount + ov_gst + ov_freight + ov_freight_tax AS total,
+                          alloc
+                   FROM " . TB_PREF . "debtor_trans
+                   WHERE type = 10 AND order_ IN ($soList)";
+        $invResult = db_query($invSql, 'Load invoices for SCHAIN');
+
+        $invBySO = array();
+        while ($inv = db_fetch($invResult)) {
+            $soNo = (int)$inv['so_no'];
+            unset($inv['so_no']);
+            $invBySO[$soNo][] = $inv;
+        }
+
+        foreach ($rows as &$r) {
+            if ($r['row_type'] !== 'ghost_inv' && $r['so_order_no'] && isset($invBySO[(int)$r['so_order_no']])) {
+                $invs = $invBySO[(int)$r['so_order_no']];
+                $r['inv_trans_no'] = (int)$invs[0]['trans_no'];
+                $r['inv_date']     = $invs[0]['tran_date'];
+                $r['inv_ref']      = $invs[0]['reference'];
+                $r['inv_total']    = (float)$invs[0]['total'];
+                $r['inv_alloc']    = (float)$invs[0]['alloc'];
+            }
+        }
+        unset($r);
+    }
+
+    // ---- Attach payment data for invoices ----
+    $invNos = array();
+    foreach ($rows as $r) {
+        if ($r['inv_trans_no']) {
+            $invNos[] = (int)$r['inv_trans_no'];
+        }
+    }
+    $invNos = array_unique($invNos);
+
+    if (!empty($invNos)) {
+        $invList = implode(',', $invNos);
+        $paySql = "SELECT ca.trans_no_from AS inv_no, ca.type_from,
+                          dt.trans_no AS pay_no, dt.tran_date AS pay_date,
+                          dt.reference AS pay_ref, dt.ov_amount AS pay_amt
+                   FROM " . TB_PREF . "cust_allocations ca
+                   JOIN " . TB_PREF . "debtor_trans dt
+                       ON dt.trans_no = ca.trans_no_to AND dt.type = ca.type_to
+                   WHERE ca.trans_no_from IN ($invList) AND ca.type_from = 10
+                   ORDER BY dt.tran_date";
+        $payResult = db_query($paySql, 'Load payments for SCHAIN invoices');
+
+        $payByInv = array();
+        while ($pay = db_fetch($payResult)) {
+            $invNo = (int)$pay['inv_no'];
+            if (!isset($payByInv[$invNo])) {
+                $payByInv[$invNo] = array();
+            }
+            $payByInv[$invNo][] = $pay;
+        }
+
+        foreach ($rows as &$r) {
+            if ($r['inv_trans_no'] && isset($payByInv[(int)$r['inv_trans_no']])) {
+                $pays = $payByInv[(int)$r['inv_trans_no']];
+                $r['payment_trans_no'] = (int)$pays[0]['pay_no'];
+                $r['payment_date']     = $pays[0]['pay_date'];
+                $r['payment_ref']      = $pays[0]['pay_ref'];
+                $r['payment_amount']   = (float)$pays[0]['pay_amt'];
+            }
+        }
+        unset($r);
     }
 
     $finalCount = count($rows);
