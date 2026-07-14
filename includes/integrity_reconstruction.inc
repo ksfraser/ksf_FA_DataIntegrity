@@ -755,13 +755,13 @@ function check_sales_chain()
 
     if (!empty($invNos)) {
         $invList = implode(',', $invNos);
-        $paySql = "SELECT ca.trans_no_from AS inv_no, ca.type_from,
+        $paySql = "SELECT ca.trans_no_from AS inv_no,
                           dt.trans_no AS pay_no, dt.tran_date AS pay_date,
                           dt.reference AS pay_ref, dt.ov_amount AS pay_amt
                    FROM " . TB_PREF . "cust_allocations ca
                    JOIN " . TB_PREF . "debtor_trans dt
-                       ON dt.trans_no = ca.trans_no_to AND dt.type = ca.type_to
-                   WHERE ca.trans_no_from IN ($invList) AND ca.type_from = 10
+                       ON dt.trans_no = ca.trans_no_to AND dt.type = ca.trans_type_to
+                   WHERE ca.trans_no_from IN ($invList) AND ca.trans_type_from = 10
                    ORDER BY dt.tran_date";
         $payResult = db_query($paySql, 'Load payments for SCHAIN invoices');
 
