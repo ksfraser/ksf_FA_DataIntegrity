@@ -148,6 +148,9 @@ function integ_edit_link($type, $trans_no, $label = '')
         case INTEG_ST_CUSTDELIVERY:
             $url = $path_to_root . '/sales/customer_delivery.php?ModifyDelivery=' . (int)$trans_no;
             break;
+        case INTEG_ST_CUSTPAYMENT:
+            $url = $path_to_root . '/sales/customer_payments.php?ModifyPayment=' . (int)$trans_no;
+            break;
         default:
             return '';
     }
@@ -2108,27 +2111,48 @@ function _sales_cell_payment($row)
         return '<span style="color:#999">&#8212;</span>';
     }
 
-    // Check allocation status
     $alloc = (float)$row['inv_alloc'];
     $total = (float)$row['inv_total'];
+    $paid  = ($alloc > 0 && $alloc >= $total);
     $parts = array();
 
-    if ($alloc > 0 && $alloc >= $total) {
+    if ($paid) {
         $parts[] = '<span style="color:#080;font-size:1.1em">&#10003; ' . _('Paid') . '</span>';
+
+        $pays = isset($row['payments']) ? $row['payments'] : array();
+        foreach ($pays as $p) {
+            $payNo = (int)$p['pay_no'];
+            $label = sprintf(_('Edit Pmt #%d'), $payNo);
+            $detail = integ_edit_link(INTEG_ST_CUSTPAYMENT, $payNo, $label);
+            if (!empty($p['pay_ref'])) {
+                $detail .= '<br><small>' . htmlspecialchars($p['pay_ref']) . '</small>';
+            }
+            if (!empty($p['pay_date'])) {
+                $detail .= '<br><small>' . $p['pay_date'] . '</small>';
+            }
+            if ((float)$p['pay_amt'] > 0) {
+                $detail .= '<br><small>' . number_format((float)$p['pay_amt'], 2) . '</small>';
+            }
+            $parts[] = "<div style='margin-top:2px'>$detail</div>";
+        }
     } elseif ($alloc > 0) {
         $parts[] = '<span style="color:#e80">' . _('Partial:') . ' '
                  . number_format($alloc, 2) . ' / ' . number_format($total, 2) . '</span>';
+        $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/customer_payments.php?New=1') . '"'
+                 . ' target="_blank" style="padding:2px 8px;background:#080;color:#fff;'
+                 . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
+                 . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
+                 . _('Receive Payment') . '</a>';
     } else {
         $parts[] = '<span style="color:#c00">' . _('Unpaid') . '</span>';
+        $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/customer_payments.php?New=1') . '"'
+                 . ' target="_blank" style="padding:2px 8px;background:#080;color:#fff;'
+                 . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
+                 . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
+                 . _('Receive Payment') . '</a>';
     }
 
-    $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/customer_payments.php?New=1') . '"'
-             . ' target="_blank" style="padding:2px 8px;background:#080;color:#fff;'
-             . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
-             . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
-             . _('Receive Payment') . '</a>';
-
-    if ($alloc < $total) {
+    if (!$paid && $alloc < $total) {
         $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/allocations/customer_allocate.php?New=1') . '"'
                  . ' target="_blank" style="padding:2px 8px;background:#e80;color:#fff;'
                  . 'border:1px solid #c60;border-radius:2px;cursor:pointer;'

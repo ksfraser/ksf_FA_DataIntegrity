@@ -775,12 +775,9 @@ function check_sales_chain()
         }
 
         foreach ($rows as &$r) {
+            $r['payments'] = array();
             if ($r['inv_trans_no'] && isset($payByInv[(int)$r['inv_trans_no']])) {
-                $pays = $payByInv[(int)$r['inv_trans_no']];
-                $r['payment_trans_no'] = (int)$pays[0]['pay_no'];
-                $r['payment_date']     = $pays[0]['pay_date'];
-                $r['payment_ref']      = $pays[0]['pay_ref'];
-                $r['payment_amount']   = (float)$pays[0]['pay_amt'];
+                $r['payments'] = $payByInv[(int)$r['inv_trans_no']];
             }
         }
         unset($r);
