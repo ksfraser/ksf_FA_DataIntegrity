@@ -1673,6 +1673,143 @@ function get_sales_pipeline_counts()
 // DASHBOARD SUMMARY COUNTS
 // ===========================================================================
 
+// ===========================================================================
+// DUPLICATE DOCUMENT CHECKS
+// ===========================================================================
+
+/**
+ * Check S9 — Duplicate sales documents.
+ *
+ * Detects duplicate (type,trans_no) in debtor_trans (invoices, credits,
+ * payments, deliveries) and duplicate order_no in sales_orders.
+ *
+ * @return array
+ */
+function check_sales_duplicate_docs()
+{
+    $rows = array();
+
+    // Duplicate (type, trans_no) in debtor_trans
+    $result = db_query(
+        "SELECT dt.type, dt.trans_no,
+                COUNT(*) AS cnt,
+                GROUP_CONCAT(DISTINCT dt.debtor_no ORDER BY dt.id) AS debtor_nos,
+                GROUP_CONCAT(DISTINCT dt.reference ORDER BY dt.id) AS refs
+         FROM " . TB_PREF . "debtor_trans dt
+         WHERE dt.type IN (" . ST_SALESINVOICE . "," . ST_CUSTCREDIT . ","
+            . ST_CUSTPAYMENT . "," . ST_CUSTDELIVERY . ")
+         GROUP BY dt.type, dt.trans_no
+         HAVING COUNT(*) > 1
+         ORDER BY dt.type, dt.trans_no",
+        'S9: duplicate debtor_trans'
+    );
+    while ($row = db_fetch($result)) {
+        $typeLabel = '';
+        switch ((int)$row['type']) {
+            case ST_SALESINVOICE: $typeLabel = _('Cust Invoice'); break;
+            case ST_CUSTCREDIT:   $typeLabel = _('Cust Credit');  break;
+            case ST_CUSTPAYMENT:  $typeLabel = _('Cust Payment'); break;
+            case ST_CUSTDELIVERY: $typeLabel = _('Delivery');     break;
+        }
+        $rows[] = array(
+            'doc_type'  => $typeLabel,
+            'trans_no'  => (int)$row['trans_no'],
+            'type'      => (int)$row['type'],
+            'count'     => (int)$row['cnt'],
+            'refs'      => $row['refs'],
+        );
+    }
+
+    // Duplicate (trans_type, order_no) in sales_orders
+    $result2 = db_query(
+        "SELECT so.trans_type, so.order_no,
+                COUNT(*) AS cnt,
+                GROUP_CONCAT(DISTINCT so.reference ORDER BY so.ord_date) AS refs
+         FROM " . TB_PREF . "sales_orders so
+         GROUP BY so.trans_type, so.order_no
+         HAVING COUNT(*) > 1
+         ORDER BY so.trans_type, so.order_no",
+        'S9: duplicate sales_orders'
+    );
+    while ($row = db_fetch($result2)) {
+        $rows[] = array(
+            'doc_type'  => _('Sales Order'),
+            'trans_no'  => (int)$row['order_no'],
+            'type'      => (int)$row['trans_type'],
+            'count'     => (int)$row['cnt'],
+            'refs'      => $row['refs'],
+        );
+    }
+
+    return $rows;
+}
+
+/**
+ * Check P12 — Duplicate purchase documents.
+ *
+ * Detects duplicate (type,trans_no) in supp_trans (invoices, credits,
+ * payments) and duplicate order_no in purch_orders.
+ *
+ * @return array
+ */
+function check_purchase_duplicate_docs()
+{
+    $rows = array();
+
+    // Duplicate (type, trans_no) in supp_trans
+    $result = db_query(
+        "SELECT st.type, st.trans_no,
+                COUNT(*) AS cnt,
+                GROUP_CONCAT(DISTINCT st.supplier_id ORDER BY st.id) AS supp_ids,
+                GROUP_CONCAT(DISTINCT st.reference ORDER BY st.id) AS refs
+         FROM " . TB_PREF . "supp_trans st
+         WHERE st.type IN (" . ST_SUPPINVOICE . "," . ST_SUPPCREDIT . ","
+            . ST_SUPPAYMENT . ")
+         GROUP BY st.type, st.trans_no
+         HAVING COUNT(*) > 1
+         ORDER BY st.type, st.trans_no",
+        'P12: duplicate supp_trans'
+    );
+    while ($row = db_fetch($result)) {
+        $typeLabel = '';
+        switch ((int)$row['type']) {
+            case ST_SUPPINVOICE: $typeLabel = _('Supp Invoice'); break;
+            case ST_SUPPCREDIT:  $typeLabel = _('Supp Credit');  break;
+            case ST_SUPPAYMENT:  $typeLabel = _('Supp Payment'); break;
+        }
+        $rows[] = array(
+            'doc_type'  => $typeLabel,
+            'trans_no'  => (int)$row['trans_no'],
+            'type'      => (int)$row['type'],
+            'count'     => (int)$row['cnt'],
+            'refs'      => $row['refs'],
+        );
+    }
+
+    // Duplicate order_no in purch_orders
+    $result2 = db_query(
+        "SELECT po.order_no,
+                COUNT(*) AS cnt,
+                GROUP_CONCAT(DISTINCT po.reference ORDER BY po.ord_date) AS refs
+         FROM " . TB_PREF . "purch_orders po
+         GROUP BY po.order_no
+         HAVING COUNT(*) > 1
+         ORDER BY po.order_no",
+        'P12: duplicate purch_orders'
+    );
+    while ($row = db_fetch($result2)) {
+        $rows[] = array(
+            'doc_type'  => _('Purch Order'),
+            'trans_no'  => (int)$row['order_no'],
+            'type'      => 18,
+            'count'     => (int)$row['cnt'],
+            'refs'      => $row['refs'],
+        );
+    }
+
+    return $rows;
+}
+
 /**
  * Run all checks and return an associative array of issue counts,
  * keyed by check ID.  Used by the dashboard page.
@@ -1695,6 +1832,7 @@ function count_all_integrity_issues()
         'P9' => 'check_purchase_grn_not_invoiced',
         'P10' => 'check_purchase_invoice_unpaid',
         'P11' => 'check_purchase_voided_grn_items',
+        'P12' => 'check_purchase_duplicate_docs',
         'PCHAIN' => 'check_purchase_chain',
         'S1' => 'check_sales_sod_qty_sent_mismatch',
         'S2' => 'check_sales_sod_invoiced_mismatch',
@@ -1704,6 +1842,7 @@ function count_all_integrity_issues()
         'S6' => 'check_sales_so_not_delivered',
         'S7' => 'check_sales_delivery_not_invoiced',
         'S8' => 'check_sales_invoice_unpaid',
+        'S9' => 'check_sales_duplicate_docs',
         'SCHAIN' => 'check_sales_chain',
         'SCUST' => 'check_sales_customer_mismatch',
         'A1' => 'check_alloc_supplier_drift',
@@ -1748,6 +1887,7 @@ function get_check_labels()
         'P9' => _('GRN items not invoiced'),
         'P10' => _('Supplier invoices not paid or credited'),
         'P11' => _('Supplier invoices with zero-charged or voided GRN items but active GL entries'),
+        'P12' => _('Duplicate purchase documents (supplier invoices/credits/payments, purchase orders)'),
         'S1' => _('Sales order line qty_sent drift'),
         'S2' => _('Sales order line invoiced qty drift'),
         'S3' => _('Ghost customer invoices (no line items)'),
@@ -1756,6 +1896,7 @@ function get_check_labels()
         'S6' => _('Sales orders not delivered (outstanding)'),
         'S7' => _('Delivery items not invoiced'),
         'S8' => _('Customer invoices not paid or credited'),
+        'S9' => _('Duplicate sales documents (invoices, credits, payments, deliveries, sales orders)'),
         'PCHAIN' => _('Purchase chain &#8212; broken links (replaces P5/P6/P7)'),
         'SCHAIN' => _('Sales chain &#8212; broken links (replaces S3/S4/S5)'),
         'SCUST' => _('Sales transactions where charge-to customer/branch differs from the linked SO or branch owner'),
@@ -1787,6 +1928,7 @@ function get_fix_functions()
         'P9' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'P10' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'P11' => null,  // view-only &#8212; no auto-fix (credit note required)
+        'P12' => null,  // view-only &#8212; manual DB cleanup required
         'PCHAIN' => null,  // per-row chain fix actions (no bulk)
         'S1' => 'fix_sales_sod_qty_sent',
         'S2' => 'fix_sales_sod_invoiced',
@@ -1796,6 +1938,7 @@ function get_fix_functions()
         'S6' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'S7' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'S8' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
+        'S9' => null,  // view-only &#8212; manual DB cleanup required
         'SCHAIN' => null, // per-row chain fix actions (no bulk)
         'SCUST' => null,  // per-row fix actions (no bulk)
         'A1' => 'fix_alloc_supplier_drift',
@@ -1839,6 +1982,8 @@ function get_fix_descriptions()
         'S7' => _('Delivery-note items where the delivered quantity has not yet been fully invoiced. Healthy in-progress chains &#8212; no fix needed.'),
         'S8' => _('Customer invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
         'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO &#8594; Delivery &#8594; Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
+        'S9' => _('Sales documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL — this tool cannot auto-fix duplicates.'),
+        'P12' => _('Purchase documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL — this tool cannot auto-fix duplicates.'),
         'A1' => _('Recalculates supp_trans.alloc from the sum of supp_allocations.'),
         'A2' => _('Recalculates debtor_trans.alloc from the sum of cust_allocations.'),
         'A3' => _('Runs both A1 (supplier) and A2 (customer) alloc recalculations. This resets alloc to the actual allocation total, correcting any over-allocated condition.'),

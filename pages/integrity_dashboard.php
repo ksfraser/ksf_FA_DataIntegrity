@@ -105,9 +105,9 @@ start_table(TABLESTYLE, "width='85%'");
 table_header(array(_('Check'), _('Description'), _('Issues'), _('Auto-fix?'), _('Detail Page')));
 
 // Purchase chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1&#8212;P11, PCHAIN)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Purchase Chain (P1&#8212;P12, PCHAIN)') . "</td></tr>\n";
 
-$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'PCHAIN');
+$purchase_checks = array('P1', 'P2', 'P3', 'P4', 'P5', 'P6', 'P7', 'P8', 'P9', 'P10', 'P11', 'P12', 'PCHAIN');
 $k = 0;
 foreach ($purchase_checks as $id) {
     alt_table_row_color($k);
@@ -124,9 +124,9 @@ foreach ($purchase_checks as $id) {
 }
 
 // Sales chain group
-echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1&#8212;S8, SCHAIN, SCUST)') . "</td></tr>\n";
+echo "<tr class='integ-group-header'><td colspan='5'>" . _('Sales Chain (S1&#8212;S9, SCHAIN, SCUST)') . "</td></tr>\n";
 
-$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'SCHAIN', 'SCUST');
+$sales_checks = array('S1', 'S2', 'S3', 'S4', 'S5', 'S6', 'S7', 'S8', 'S9', 'SCHAIN', 'SCUST');
 foreach ($sales_checks as $id) {
     alt_table_row_color($k);
     label_cell('<strong>' . $id . '</strong>');

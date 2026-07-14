@@ -38,6 +38,7 @@ $tabs = array(
     'S6'     => _('S6 &#8212; Undelivered SOs'),
     'S7'     => _('S7 &#8212; Uninvoiced deliveries'),
     'S8'     => _('S8 &#8212; Unpaid invoices'),
+    'S9'     => _('S9 &#8212; Duplicate docs'),
     'SCHAIN' => _('SCHAIN &#8212; Broken chain'),
     'SCUST'  => _('SCUST &#8212; Customer mismatch'),
 );

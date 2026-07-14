@@ -40,6 +40,7 @@ $tabs = array(
     'P9'     => _('P9 &#8212; Uninvoiced GRNs'),
     'P10'    => _('P10 &#8212; Unpaid invoices'),
     'P11'    => _('P11 &#8212; Zero-charged GRN items'),
+    'P12'    => _('P12 &#8212; Duplicate docs'),
     'PCHAIN' => _('PCHAIN &#8212; Broken chain'),
 );
 

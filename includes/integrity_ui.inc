@@ -259,6 +259,7 @@ function integ_render_check_result($check_id, $result)
         'P9' => 'integ_render_p9',
         'P10' => 'integ_render_p10',
         'P11' => 'integ_render_p11',
+        'P12' => 'integ_render_p12',
         'S1' => 'integ_render_s1',
         'S2' => 'integ_render_s2',
         'S3' => 'integ_render_s3',
@@ -267,6 +268,7 @@ function integ_render_check_result($check_id, $result)
         'S6' => 'integ_render_s6',
         'S7' => 'integ_render_s7',
         'S8' => 'integ_render_s8',
+        'S9' => 'integ_render_s9',
         'A1' => 'integ_render_a1',
         'A2' => 'integ_render_a2',
         'A3' => 'integ_render_a3',
@@ -1309,6 +1311,91 @@ function integ_render_s8($result)
         label_cell(integ_view_link(INTEG_ST_SALESINVOICE, $row['inv_no']));
         end_row();
         $k++;
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render S9 &#8212; Duplicate sales documents.
+ *
+ * @param array $result  Array from check_sales_duplicate_docs()
+ */
+function integ_render_s9($result)
+{
+    $cols = array(
+        _('Document Type'),
+        _('Document #'),
+        _('Copies'),
+        _('References'),
+        _('View'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $rows = is_array($result) ? $result : array();
+    $k = 0;
+    foreach ($rows as $row) {
+        alt_table_row_color($k);
+        label_cell(htmlspecialchars($row['doc_type']));
+        label_cell((int)$row['trans_no']);
+        label_cell('<span style="color:red;font-weight:bold">' . (int)$row['count'] . '</span>');
+        label_cell(htmlspecialchars($row['refs']));
+        // View link
+        $type = (int)$row['type'];
+        $no   = (int)$row['trans_no'];
+        $v    = integ_view_link($type, $no, '#' . $no);
+        $e    = integ_edit_link($type, $no, '');
+        if ($e) {
+            $v .= '<br>' . $e;
+        }
+        label_cell($v);
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render P12 &#8212; Duplicate purchase documents.
+ *
+ * @param array $result  Array from check_purchase_duplicate_docs()
+ */
+function integ_render_p12($result)
+{
+    $cols = array(
+        _('Document Type'),
+        _('Document #'),
+        _('Copies'),
+        _('References'),
+        _('View'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $rows = is_array($result) ? $result : array();
+    $k = 0;
+    foreach ($rows as $row) {
+        alt_table_row_color($k);
+        label_cell(htmlspecialchars($row['doc_type']));
+        label_cell((int)$row['trans_no']);
+        label_cell('<span style="color:red;font-weight:bold">' . (int)$row['count'] . '</span>');
+        label_cell(htmlspecialchars($row['refs']));
+        $type = (int)$row['type'];
+        $no   = (int)$row['trans_no'];
+        $v    = integ_view_link($type, $no, '#' . $no);
+        $e    = integ_edit_link($type, $no, '');
+        if ($e) {
+            $v .= '<br>' . $e;
+        }
+        label_cell($v);
+        end_row();
     }
 
     if ($k === 0) {
