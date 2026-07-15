@@ -217,6 +217,58 @@ function integ_get_create_doc_def($docType)
 }
 
 /**
+ * Render the integPost() JavaScript once per page.
+ * @return string HTML <script> block or empty if already rendered
+ */
+function _integ_post_js()
+{
+    static $jsRendered = false;
+    if ($jsRendered) {
+        return '';
+    }
+    $jsRendered = true;
+    return "<script>\n"
+         . "function integPost(u,p){\n"
+         . "var w=window.open('','integ_post_win','width=1024,height=768,scrollbars=yes');\n"
+         . "if(!w||w.closed||typeof w.closed==='undefined'){alert('"
+         . htmlspecialchars(_('Please allow popups for this site.'), ENT_QUOTES)
+         . "');return false;}\n"
+         . "var f=document.createElement('form');f.method='POST';f.action=u;f.target='integ_post_win';\n"
+         . "for(var k in p){if(p.hasOwnProperty(k)){\n"
+         . "var h=document.createElement('input');h.type='hidden';h.name=k;h.value=p[k];f.appendChild(h);\n"
+         . "}}document.body.appendChild(f);f.submit();f.remove();}\n"
+         . "</script>\n";
+}
+
+/**
+ * Render a JavaScript-driven POST link that opens in a new window.
+ *
+ * Uses integPost() JS to POST params to $url, avoiding nested <form>
+ * elements inside FA's form wrapper. The browser shows $url on hover.
+ *
+ * @param  string $url        Target URL
+ * @param  array  $postParams POST params (name => value)
+ * @param  string $label      Link text
+ * @param  string $style      CSS style
+ * @param  string $confirmMsg Optional confirm message
+ * @return string HTML
+ */
+function integ_render_post_link($url, $postParams, $label, $style, $confirmMsg = '')
+{
+    $html = _integ_post_js();
+    $postData = json_encode((object)$postParams);
+
+    $onclick = 'integPost(' . json_encode($url) . ',' . $postData . ');return false;';
+    if ($confirmMsg) {
+        $onclick = 'if(!confirm(' . json_encode($confirmMsg) . ')){return false;}' . $onclick;
+    }
+
+    $html .= '<a href="' . htmlspecialchars($url) . '" onclick="' . htmlspecialchars($onclick, ENT_QUOTES) . '" style="' . $style . '">'
+           . htmlspecialchars($label) . '</a>';
+    return $html;
+}
+
+/**
  * Render a link or POST form to create a new FA document, pre-populated with
  * context from the given row.
  *
@@ -225,8 +277,8 @@ function integ_get_create_doc_def($docType)
  *
  * Values not found in $row are used as literals.
  *
- * When POST params are present, uses JavaScript to submit a temporary form
- * (avoids nested <form> inside FA's own form wrapper).
+ * When POST params are present, uses integ_render_post_link() to avoid
+ * nested <form> inside FA's own form wrapper.
  *
  * @param  int    $docType  INTEG_ST_* constant
  * @param  array  $row      Row data (from DB query)
@@ -252,25 +304,6 @@ function integ_render_create_link($docType, $row, $label, $style = '')
     }
 
     if (!empty($def['post'])) {
-        // Use JavaScript to POST — HTML forms cannot nest inside FA's form.
-        // window.open() must be called synchronously from user click to
-        // avoid popup blockers; the form then targets that window.
-        static $jsRendered = false;
-        $html = '';
-        if (!$jsRendered) {
-            $jsRendered = true;
-            $html .= "<script>\n"
-                   . "function integPost(u,p){\n"
-                   . "var w=window.open('','integ_post_win','width=1024,height=768,scrollbars=yes');\n"
-                   . "if(!w||w.closed||typeof w.closed==='undefined'){alert('"
-                   . htmlspecialchars(_('Please allow popups for this site.'), ENT_QUOTES)
-                   . "');return false;}\n"
-                   . "var f=document.createElement('form');f.method='POST';f.action=u;f.target='integ_post_win';\n"
-                   . "for(var k in p){if(p.hasOwnProperty(k)){\n"
-                   . "var h=document.createElement('input');h.type='hidden';h.name=k;h.value=p[k];f.appendChild(h);\n"
-                   . "}}document.body.appendChild(f);f.submit();f.remove();}\n"
-                   . "</script>\n";
-        }
         $postData = array();
         foreach ($def['post'] as $k => $v) {
             if ($v === '=TODAY') {
@@ -279,10 +312,7 @@ function integ_render_create_link($docType, $row, $label, $style = '')
                 $postData[$k] = (is_string($v) && isset($row[$v])) ? $row[$v] : $v;
             }
         }
-        $onclick = 'integPost(' . json_encode($url) . ',' . json_encode((object)$postData) . ');return false;';
-        $html .= '<a href="#" onclick="' . htmlspecialchars($onclick, ENT_QUOTES) . '" style="' . $style . '">'
-               . htmlspecialchars($label) . '</a>';
-        return $html;
+        return integ_render_post_link($url, $postData, $label, $style);
     } else {
         return '<a href="' . htmlspecialchars($url) . '" target="_blank" style="' . $style . '">'
              . htmlspecialchars($label) . '</a>';
@@ -2204,23 +2234,29 @@ function _chain_cell_grn_inv_link($row, $key)
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
 
-    // Item mismatch &#8212; red with Disassociate button
+    // Item mismatch &#8212; red with Disassociate link
     if ($code === 'item_mismatch') {
-        $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="disassociate"'
-             . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
-             . ' onclick="return confirm(\'' . _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.') . '\')">'
-             . _('Disassociate') . '</button>';
-        return $btn;
+        return integ_render_post_link(
+            htmlspecialchars($_SERVER['SCRIPT_NAME']),
+            array('_fix_action[' . $key . ']' => 'disassociate'),
+            _('Disassociate'),
+            'padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px',
+            _('Disassociate this invoice from its GRN? It will be moved to its own orphaned row.')
+        );
     }
 
-    // Orphaned invoice with candidate GRN &#8212; orange Match button
+    // Orphaned invoice with candidate GRN &#8212; orange Match link
     if ($code === 'orphan_inv' && $row['candidate_grn_batch_id']) {
-        $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_grn_inv"'
-             . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
-             . _('Match') . '</button>';
-        $btn .= '<input type="hidden" name="_cand_grn_batch[' . $key . ']" value="' . (int)$row['candidate_grn_batch_id'] . '">';
-        $btn .= '<input type="hidden" name="_cand_grn_item[' . $key . ']" value="' . (int)$row['candidate_grn_item_id'] . '">';
-        return $btn;
+        return integ_render_post_link(
+            htmlspecialchars($_SERVER['SCRIPT_NAME']),
+            array(
+                '_fix_action[' . $key . ']' => 'match_grn_inv',
+                '_cand_grn_batch[' . $key . ']' => (int)$row['candidate_grn_batch_id'],
+                '_cand_grn_item[' . $key . ']' => (int)$row['candidate_grn_item_id'],
+            ),
+            _('Match'),
+            'padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px'
+        );
     }
 
     // Orphaned invoice with no candidate &#8212; red
@@ -2302,32 +2338,54 @@ function _chain_cell_actions($row, $key)
 {
     $code = $row['row_type'];
     $parts = array();
+    $pageUrl = htmlspecialchars($_SERVER['SCRIPT_NAME']);
 
     if ($code === 'ghost_inv') {
-        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
-                 . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
-                 . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
-                 . _('Void') . '</button>';
+        $parts[] = integ_render_post_link(
+            $pageUrl,
+            array('_fix_action[' . $key . ']' => 'void_ghost'),
+            _('Void'),
+            'padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px',
+            _('Void this ghost invoice? Amounts will be zeroed.')
+        );
     }
 
     if ($code === 'orphan_grn') {
-        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po"'
-                 . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                 . _('Add PO') . '</button>';
+        $parts[] = integ_render_post_link(
+            $pageUrl,
+            array('_fix_action[' . $key . ']' => 'add_po'),
+            _('Add PO'),
+            'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px'
+        );
     }
 
     if ($code === 'orphan_inv') {
         if ($row['candidate_po_id']) {
-            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po"'
-                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                     . _('Add GRN (Assoc PO)') . '</button>';
-            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_grn_assoc_po_inv"'
-                     . ' style="padding:2px 8px;background:#060;color:#fff;border:1px solid #040;border-radius:2px;cursor:pointer;font-size:11px">'
-                     . _('Add GRN (Assoc PO/Inv)') . '</button>';
+            $parts[] = integ_render_post_link(
+                $pageUrl,
+                array(
+                    '_fix_action[' . $key . ']' => 'add_grn_assoc_po',
+                    '_cand_po[' . $key . ']' => (int)$row['candidate_po_id'],
+                ),
+                _('Add GRN (Assoc PO)'),
+                'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px'
+            );
+            $parts[] = integ_render_post_link(
+                $pageUrl,
+                array(
+                    '_fix_action[' . $key . ']' => 'add_grn_assoc_po_inv',
+                    '_cand_po[' . $key . ']' => (int)$row['candidate_po_id'],
+                ),
+                _('Add GRN (Assoc PO/Inv)'),
+                'padding:2px 8px;background:#060;color:#fff;border:1px solid #040;border-radius:2px;cursor:pointer;font-size:11px'
+            );
         } else {
-            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_po_grn"'
-                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                     . _('Add PO + GRN') . '</button>';
+            $parts[] = integ_render_post_link(
+                $pageUrl,
+                array('_fix_action[' . $key . ']' => 'add_po_grn'),
+                _('Add PO + GRN'),
+                'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px'
+            );
         }
     }
 
@@ -2429,17 +2487,22 @@ function _sales_cell_so($row)
 function _sales_cell_so_del_link($row, $key)
 {
     $type = $row['row_type'];
+    $pageUrl = htmlspecialchars($_SERVER['SCRIPT_NAME']);
 
     if ($row['so_order_no'] && $row['del_trans_no']) {
         return '<span style="color:#080;font-size:1.2em">&#10003;</span>';
     }
 
     if ($type === 'orphan_del' && $row['candidate_so_id']) {
-        $btn = '<button type="submit" name="_fix_action[' . $key . ']" value="match_so_del"'
-             . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
-             . _('Match') . '</button>';
-        $btn .= '<input type="hidden" name="_cand_so[' . $key . ']" value="' . (int)$row['candidate_so_id'] . '">';
-        return $btn;
+        return integ_render_post_link(
+            $pageUrl,
+            array(
+                '_fix_action[' . $key . ']' => 'match_so_del',
+                '_cand_so[' . $key . ']' => (int)$row['candidate_so_id'],
+            ),
+            _('Match'),
+            'padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px'
+        );
     }
 
     if ($type === 'orphan_del') {
@@ -2579,31 +2642,46 @@ function _sales_cell_actions($row, $key)
 {
     $type = $row['row_type'];
     $parts = array();
+    $pageUrl = htmlspecialchars($_SERVER['SCRIPT_NAME']);
 
     if ($type === 'ghost_inv') {
-        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="void_ghost"'
-                 . ' style="padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px"'
-                 . ' onclick="return confirm(\'' . _('Void this ghost invoice? Amounts will be zeroed.') . '\')">'
-                 . _('Void') . '</button>';
+        $parts[] = integ_render_post_link(
+            $pageUrl,
+            array('_fix_action[' . $key . ']' => 'void_ghost'),
+            _('Void'),
+            'padding:2px 8px;background:#c00;color:#fff;border:1px solid #800;border-radius:2px;cursor:pointer;font-size:11px',
+            _('Void this ghost invoice? Amounts will be zeroed.')
+        );
     }
 
     if ($type === 'orphan_del') {
         if ($row['candidate_so_id']) {
-            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="match_so_del"'
-                     . ' style="padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px">'
-                     . _('Match SO') . '</button>';
-            $parts[] = '<input type="hidden" name="_cand_so[' . $key . ']" value="' . (int)$row['candidate_so_id'] . '">';
+            $parts[] = integ_render_post_link(
+                $pageUrl,
+                array(
+                    '_fix_action[' . $key . ']' => 'match_so_del',
+                    '_cand_so[' . $key . ']' => (int)$row['candidate_so_id'],
+                ),
+                _('Match SO'),
+                'padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px'
+            );
         } else {
-            $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_so"'
-                     . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                     . _('Add SO') . '</button>';
+            $parts[] = integ_render_post_link(
+                $pageUrl,
+                array('_fix_action[' . $key . ']' => 'add_so'),
+                _('Add SO'),
+                'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px'
+            );
         }
     }
 
     if ($type === 'missing_stock') {
-        $parts[] = '<button type="submit" name="_fix_action[' . $key . ']" value="add_stock_moves"'
-                 . ' style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px">'
-                 . _('Create Stock Moves') . '</button>';
+        $parts[] = integ_render_post_link(
+            $pageUrl,
+            array('_fix_action[' . $key . ']' => 'add_stock_moves'),
+            _('Create Stock Moves'),
+            'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px'
+        );
     }
 
     return implode('<br>', $parts);
