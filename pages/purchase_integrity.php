@@ -41,6 +41,7 @@ $tabs = array(
     'P10'    => _('P10 &#8212; Unpaid invoices'),
     'P11'    => _('P11 &#8212; Zero-charged GRN items'),
     'P12'    => _('P12 &#8212; Duplicate docs'),
+    'P13'    => _('P13 &#8212; Edit vs drift diagnostic'),
     'PCHAIN' => _('PCHAIN &#8212; Broken chain'),
 );
 
@@ -56,6 +57,7 @@ $check_funcs = array(
     'P9' => 'check_purchase_grn_not_invoiced',
     'P10' => 'check_purchase_invoice_unpaid',
     'P11' => 'check_purchase_voided_grn_items',
+    'P13' => 'check_purchase_po_edit_diagnostic',
 );
 
 $labels = get_check_labels();

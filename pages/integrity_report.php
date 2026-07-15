@@ -118,8 +118,8 @@ h3          { font-size: 12px; margin-top: 16px; }
     <tbody>
         <?php
         $groups = array(
-            _('Purchase Chain (P1&#8212;P12, PCHAIN)') => array('P1','P2','P3','P4','P5','P6','P7','P8','P9','P10','P11','P12','PCHAIN'),
-            _('Sales Chain (S1&#8212;S9, SCHAIN, SCUST)') => array('S1','S2','S3','S4','S5','S6','S7','S8','S9','SCHAIN','SCUST'),
+            _('Purchase Chain (P1&#8212;P13, PCHAIN)') => array('P1','P2','P3','P4','P5','P6','P7','P8','P9','P10','P11','P12','P13','PCHAIN'),
+            _('Sales Chain (S1&#8212;S10, SCHAIN, SCUST)') => array('S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','SCHAIN','SCUST'),
             _('Allocations (A1&#8212;A6)')              => array('A1','A2','A3','A4','A5','A6'),
         );
         foreach ($groups as $group_name => $ids) {
@@ -182,6 +182,7 @@ $check_funcs = array(
     'P10' => 'check_purchase_invoice_unpaid',
     'P11' => 'check_purchase_voided_grn_items',
     'P12' => 'check_purchase_duplicate_docs',
+    'P13' => 'check_purchase_po_edit_diagnostic',
     'S1' => 'check_sales_sod_qty_sent_mismatch',
     'S2' => 'check_sales_sod_invoiced_mismatch',
     'S3' => 'check_sales_ghost_invoices',
@@ -191,6 +192,7 @@ $check_funcs = array(
     'S7' => 'check_sales_delivery_not_invoiced',
     'S8' => 'check_sales_invoice_unpaid',
     'S9' => 'check_sales_duplicate_docs',
+    'S10' => 'check_sales_so_edit_diagnostic',
     'A1' => 'check_alloc_supplier_drift',
     'A2' => 'check_alloc_customer_drift',
     'A3' => 'check_alloc_over_allocated',

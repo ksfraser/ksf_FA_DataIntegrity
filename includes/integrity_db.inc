@@ -1810,6 +1810,166 @@ function check_purchase_duplicate_docs()
     return $rows;
 }
 
+// ===========================================================================
+// P13 / S10 &#8212; Edit vs Drift Diagnostic
+// ===========================================================================
+
+/**
+ * CHECK P13 &#8212; PO edit vs qty_invoiced drift correlation diagnostic.
+ *
+ * For every purchase order, shows whether it was edited (audit_trail
+ * "Updated." entries for type=18) and whether its qty_invoiced has drifted
+ * (i.e. P2 condition).  Helps confirm whether FA's update_po() bug is the
+ * root cause of P2 drift.
+ *
+ * @return array  Each element: order_no, edited, has_drift, discrepancy
+ */
+function check_purchase_po_edit_diagnostic()
+{
+    $sql = "SELECT pod.order_no,
+                   SUM(pod.qty_invoiced) AS qty_inv_stored,
+                   COALESCE(inv_sum.qty_invoiced, 0) AS qty_inv_actual,
+                   SUM(pod.qty_invoiced) - COALESCE(inv_sum.qty_invoiced, 0) AS discrepancy
+            FROM " . TB_PREF . "purch_order_details pod
+            LEFT JOIN (
+                SELECT si.po_detail_item_id, SUM(si.quantity) AS qty_invoiced
+                FROM " . TB_PREF . "supp_invoice_items si
+                JOIN " . TB_PREF . "supp_trans st
+                    ON st.trans_no = si.supp_trans_no
+                   AND st.type = si.supp_trans_type
+                WHERE si.supp_trans_type = 20 AND st.ov_amount != 0
+                GROUP BY si.po_detail_item_id
+            ) inv_sum ON inv_sum.po_detail_item_id = pod.po_detail_item
+            GROUP BY pod.order_no
+            ORDER BY pod.order_no";
+
+    $result = db_query($sql, 'P13: PO drift summary per order');
+
+    $poDrift = array();
+    while ($row = db_fetch($result)) {
+        $disc = (float)$row['discrepancy'];
+        $poDrift[(int)$row['order_no']] = array(
+            'drift'       => abs($disc) > INTEG_DELTA,
+            'discrepancy' => $disc,
+            'stored'      => (float)$row['qty_inv_stored'],
+            'actual'      => (float)$row['qty_inv_actual'],
+        );
+    }
+
+    $editSql = "SELECT DISTINCT trans_no
+                FROM " . TB_PREF . "audit_trail
+                WHERE type = 18 AND description = 'Updated.'";
+    $editResult = db_query($editSql, 'P13: PO edit audit trail');
+    $editedPos = array();
+    while ($row = db_fetch($editResult)) {
+        $editedPos[(int)$row['trans_no']] = true;
+    }
+
+    $rows = array();
+    $allOrderNos = array_unique(array_merge(array_keys($poDrift), array_keys($editedPos)));
+    sort($allOrderNos);
+
+    foreach ($allOrderNos as $orderNo) {
+        $driftInfo = isset($poDrift[$orderNo])
+            ? $poDrift[$orderNo]
+            : array('drift' => false, 'discrepancy' => 0, 'stored' => 0, 'actual' => 0);
+        $rows[] = array(
+            'order_no'    => (int)$orderNo,
+            'edited'      => isset($editedPos[$orderNo]),
+            'has_drift'   => $driftInfo['drift'],
+            'discrepancy' => $driftInfo['discrepancy'],
+            'stored'      => $driftInfo['stored'],
+            'actual'      => $driftInfo['actual'],
+        );
+    }
+
+    return $rows;
+}
+
+/**
+ * CHECK S10 &#8212; SO edit vs drift correlation diagnostic.
+ *
+ * For every sales order, shows whether it was edited (audit_trail "Updated."
+ * entries for type=30), whether any of its lines have qty_sent drift (S1),
+ * and whether any lines have invoiced drift (S2).
+ *
+ * @return array  Each element: order_no, so_type, edited, s1_drift, s2_drift
+ */
+function check_sales_so_edit_diagnostic()
+{
+    $sql = "SELECT
+                sod.order_no,
+                sod.trans_type AS so_type,
+                COUNT(*) AS total_lines,
+                SUM(ABS(sod.qty_sent - COALESCE(del_sum.qty_sent, 0))) AS s1_total_disc,
+                SUM(ABS(sod.invoiced - COALESCE(inv_sum.qty_inv, 0))) AS s2_total_disc
+            FROM " . TB_PREF . "sales_order_details sod
+            LEFT JOIN (
+                SELECT dtd.src_id,
+                       SUM(CASE WHEN dt.ov_amount != 0 THEN dtd.qty_done ELSE 0 END) AS qty_sent
+                FROM " . TB_PREF . "debtor_trans_details dtd
+                JOIN " . TB_PREF . "debtor_trans dt
+                    ON dt.trans_no = dtd.debtor_trans_no
+                   AND dt.type = dtd.debtor_trans_type
+                WHERE dtd.debtor_trans_type = 13
+                GROUP BY dtd.src_id
+            ) del_sum ON del_sum.src_id = sod.id
+            LEFT JOIN (
+                SELECT dtd.src_id,
+                       SUM(CASE WHEN dt.ov_amount != 0 THEN dtd.quantity ELSE 0 END) AS qty_inv
+                FROM " . TB_PREF . "debtor_trans_details dtd
+                JOIN " . TB_PREF . "debtor_trans dt
+                    ON dt.trans_no = dtd.debtor_trans_no
+                   AND dt.type = dtd.debtor_trans_type
+                WHERE dtd.debtor_trans_type = 10
+                GROUP BY dtd.src_id
+            ) inv_sum ON inv_sum.src_id = sod.id
+            WHERE sod.trans_type = 30
+            GROUP BY sod.order_no, sod.trans_type
+            ORDER BY sod.order_no";
+
+    $result = db_query($sql, 'S10: SO drift summary per order');
+
+    $soDrift = array();
+    while ($row = db_fetch($result)) {
+        $soDrift[(int)$row['order_no']] = array(
+            's1_drift'    => (float)$row['s1_total_disc'] > INTEG_DELTA,
+            's2_drift'    => (float)$row['s2_total_disc'] > INTEG_DELTA,
+            'so_type'     => (int)$row['so_type'],
+            'total_lines' => (int)$row['total_lines'],
+        );
+    }
+
+    $editSql = "SELECT DISTINCT trans_no
+                FROM " . TB_PREF . "audit_trail
+                WHERE type = 30 AND description = 'Updated.'";
+    $editResult = db_query($editSql, 'S10: SO edit audit trail');
+    $editedSos = array();
+    while ($row = db_fetch($editResult)) {
+        $editedSos[(int)$row['trans_no']] = true;
+    }
+
+    $rows = array();
+    $allOrderNos = array_unique(array_merge(array_keys($soDrift), array_keys($editedSos)));
+    sort($allOrderNos);
+
+    foreach ($allOrderNos as $orderNo) {
+        $driftInfo = isset($soDrift[$orderNo])
+            ? $soDrift[$orderNo]
+            : array('s1_drift' => false, 's2_drift' => false, 'so_type' => 30, 'total_lines' => 0);
+        $rows[] = array(
+            'order_no'    => (int)$orderNo,
+            'so_type'     => $driftInfo['so_type'],
+            'total_lines' => $driftInfo['total_lines'],
+            'edited'      => isset($editedSos[$orderNo]),
+            's1_drift'    => $driftInfo['s1_drift'],
+            's2_drift'    => $driftInfo['s2_drift'],
+        );
+    }
+
+    return $rows;
+}
+
 /**
  * Run all checks and return an associative array of issue counts,
  * keyed by check ID.  Used by the dashboard page.
@@ -1833,6 +1993,7 @@ function count_all_integrity_issues()
         'P10' => 'check_purchase_invoice_unpaid',
         'P11' => 'check_purchase_voided_grn_items',
         'P12' => 'check_purchase_duplicate_docs',
+        'P13' => 'check_purchase_po_edit_diagnostic',
         'PCHAIN' => 'check_purchase_chain',
         'S1' => 'check_sales_sod_qty_sent_mismatch',
         'S2' => 'check_sales_sod_invoiced_mismatch',
@@ -1843,6 +2004,7 @@ function count_all_integrity_issues()
         'S7' => 'check_sales_delivery_not_invoiced',
         'S8' => 'check_sales_invoice_unpaid',
         'S9' => 'check_sales_duplicate_docs',
+        'S10' => 'check_sales_so_edit_diagnostic',
         'SCHAIN' => 'check_sales_chain',
         'SCUST' => 'check_sales_customer_mismatch',
         'A1' => 'check_alloc_supplier_drift',
@@ -1888,6 +2050,7 @@ function get_check_labels()
         'P10' => _('Supplier invoices not paid or credited'),
         'P11' => _('Supplier invoices with zero-charged or voided GRN items but active GL entries'),
         'P12' => _('Duplicate purchase documents (supplier invoices/credits/payments, purchase orders)'),
+        'P13' => _('PO edit vs qty_invoiced drift correlation diagnostic'),
         'S1' => _('Sales order line qty_sent drift'),
         'S2' => _('Sales order line invoiced qty drift'),
         'S3' => _('Ghost customer invoices (no line items)'),
@@ -1897,6 +2060,7 @@ function get_check_labels()
         'S7' => _('Delivery items not invoiced'),
         'S8' => _('Customer invoices not paid or credited'),
         'S9' => _('Duplicate sales documents (invoices, credits, payments, deliveries, sales orders)'),
+        'S10' => _('SO edit vs drift correlation diagnostic (S1 qty_sent + S2 invoiced)'),
         'PCHAIN' => _('Purchase chain &#8212; broken links (replaces P5/P6/P7)'),
         'SCHAIN' => _('Sales chain &#8212; broken links (replaces S3/S4/S5)'),
         'SCUST' => _('Sales transactions where charge-to customer/branch differs from the linked SO or branch owner'),
@@ -1929,6 +2093,7 @@ function get_fix_functions()
         'P10' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'P11' => null,  // view-only &#8212; no auto-fix (credit note required)
         'P12' => null,  // view-only &#8212; manual DB cleanup required
+        'P13' => null,  // diagnostic only &#8212; no auto-fix
         'PCHAIN' => null,  // per-row chain fix actions (no bulk)
         'S1' => 'fix_sales_sod_qty_sent',
         'S2' => 'fix_sales_sod_invoiced',
@@ -1939,6 +2104,7 @@ function get_fix_functions()
         'S7' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'S8' => null,  // view-only &#8212; no auto-fix (healthy in-progress chain)
         'S9' => null,  // view-only &#8212; manual DB cleanup required
+        'S10' => null, // diagnostic only &#8212; no auto-fix
         'SCHAIN' => null, // per-row chain fix actions (no bulk)
         'SCUST' => null,  // per-row fix actions (no bulk)
         'A1' => 'fix_alloc_supplier_drift',
@@ -1981,9 +2147,11 @@ function get_fix_descriptions()
         'S6' => _('Sales orders with line items still awaiting delivery. These are healthy in-progress chains &#8212; no fix needed.'),
         'S7' => _('Delivery-note items where the delivered quantity has not yet been fully invoiced. Healthy in-progress chains &#8212; no fix needed.'),
         'S8' => _('Customer invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
+        'S10' => _('Diagnostic: correlates SO edits (audit_trail "Updated." entries) with qty_sent drift (S1) and invoiced drift (S2) in sales_order_details. Shows each SO, whether it was edited, and whether its qty_sent or invoiced differs from delivery note / customer invoice totals. Use this to assess whether the FA update_sales_order() bug is the root cause of S1 and S2 drift.'),
         'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO &#8594; Delivery &#8594; Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
         'S9' => _('Sales documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL — this tool cannot auto-fix duplicates.'),
         'P12' => _('Purchase documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL — this tool cannot auto-fix duplicates.'),
+        'P13' => _('Diagnostic: correlates PO edits (audit_trail "Updated." entries) with qty_invoiced drift in purch_order_details. Shows each PO, whether it was edited, and whether its invoiced qty differs from actual supplier invoice line totals. Use this to assess whether the FA update_po() reset-on-edit bug is the root cause of P2 drift.'),
         'A1' => _('Recalculates supp_trans.alloc from the sum of supp_allocations.'),
         'A2' => _('Recalculates debtor_trans.alloc from the sum of cust_allocations.'),
         'A3' => _('Runs both A1 (supplier) and A2 (customer) alloc recalculations. This resets alloc to the actual allocation total, correcting any over-allocated condition.'),

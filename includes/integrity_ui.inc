@@ -260,6 +260,7 @@ function integ_render_check_result($check_id, $result)
         'P10' => 'integ_render_p10',
         'P11' => 'integ_render_p11',
         'P12' => 'integ_render_p12',
+        'P13' => 'integ_render_p13',
         'S1' => 'integ_render_s1',
         'S2' => 'integ_render_s2',
         'S3' => 'integ_render_s3',
@@ -269,6 +270,7 @@ function integ_render_check_result($check_id, $result)
         'S7' => 'integ_render_s7',
         'S8' => 'integ_render_s8',
         'S9' => 'integ_render_s9',
+        'S10' => 'integ_render_s10',
         'A1' => 'integ_render_a1',
         'A2' => 'integ_render_a2',
         'A3' => 'integ_render_a3',
@@ -1395,6 +1397,210 @@ function integ_render_p12($result)
             $v .= '<br>' . $e;
         }
         label_cell($v);
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render P13 &#8212; PO edit vs drift correlation diagnostic.
+ *
+ * @param array $result  Array from check_purchase_po_edit_diagnostic()
+ */
+function integ_render_p13($result)
+{
+    $rows = is_array($result) ? $result : array();
+
+    // Compute summary statistics
+    $total      = count($rows);
+    $edited     = 0;
+    $drifted    = 0;
+    $edited_drift = 0;
+    $edited_clean = 0;
+    $not_edited_drift = 0;
+    $not_edited_clean = 0;
+
+    foreach ($rows as $row) {
+        if ($row['edited'])   $edited++;
+        if ($row['has_drift']) $drifted++;
+        if ($row['edited'] && $row['has_drift'])   $edited_drift++;
+        if ($row['edited'] && !$row['has_drift'])  $edited_clean++;
+        if (!$row['edited'] && $row['has_drift'])  $not_edited_drift++;
+        if (!$row['edited'] && !$row['has_drift']) $not_edited_clean++;
+    }
+
+    // Summary box
+    echo '<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;background:#f9f9f9">';
+    echo '<h3>' . _('Summary') . '</h3>';
+    echo '<table>';
+    echo '<tr><td>' . _('Total POs analyzed:') . "</td><td><strong>$total</strong></td></tr>";
+    echo '<tr><td>' . _('Edited:') . "</td><td><strong>$edited</strong> (" . ($total > 0 ? round($edited/$total*100) : 0) . '%)</td></tr>';
+    echo '<tr><td>' . _('With drift (P2):') . "</td><td><strong>$drifted</strong> (" . ($total > 0 ? round($drifted/$total*100) : 0) . '%)</td></tr>';
+    echo '<tr><td colspan="2">&nbsp;</td></tr>';
+    echo '<tr><td>' . _('Edited + drifted:') . "</td><td><strong>$edited_drift</strong></td></tr>";
+    echo '<tr><td>' . _('Edited, clean (no drift):') . "</td><td><strong>$edited_clean</strong></td></tr>";
+    echo '<tr><td>' . _('Not edited, drifted:') . "</td><td><strong>$not_edited_drift</strong></td></tr>";
+    echo '<tr><td>' . _('Not edited, clean:') . "</td><td><strong>$not_edited_clean</strong></td></tr>";
+
+    if ($edited > 0) {
+        $pct_of_edited = round($edited_drift / $edited * 100);
+        echo '<tr><td colspan="2">&nbsp;</td></tr>';
+        echo '<tr><td>' . _('% of edited POs that drifted:') . "</td><td><strong>{$pct_of_edited}%</strong></td></tr>";
+    }
+    if ($drifted > 0) {
+        $pct_of_drift = round($edited_drift / $drifted * 100);
+        echo '<tr><td>' . _('% of drifted POs that were edited:') . "</td><td><strong>{$pct_of_drift}%</strong></td></tr>";
+    }
+    echo '</table>';
+    echo '</div>';
+
+    // Detail table
+    $cols = array(
+        _('PO #'),
+        _('Edited?'),
+        _('Has Drift?'),
+        _('Discrepancy'),
+        _('Qty Inv (Stored)'),
+        _('Qty Inv (Actual)'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    foreach ($rows as $row) {
+        alt_table_row_color($k);
+
+        label_cell((int)$row['order_no']);
+
+        if ($row['edited']) {
+            label_cell('<span style="color:#c00;font-weight:bold">' . _('Yes') . '</span>');
+        } else {
+            label_cell('<span style="color:#080">' . _('No') . '</span>');
+        }
+
+        if ($row['has_drift']) {
+            label_cell('<span style="color:#c00;font-weight:bold">' . _('Yes') . '</span>');
+        } else {
+            label_cell('<span style="color:#080">' . _('No') . '</span>');
+        }
+
+        label_cell((float)$row['discrepancy']);
+        label_cell((float)$row['stored']);
+        label_cell((float)$row['actual']);
+
+        end_row();
+    }
+
+    if ($k === 0) {
+        integ_no_issues_row(count($cols));
+    }
+    end_table(1);
+}
+
+/**
+ * Render S10 &#8212; SO edit vs drift correlation diagnostic.
+ *
+ * @param array $result  Array from check_sales_so_edit_diagnostic()
+ */
+function integ_render_s10($result)
+{
+    $rows = is_array($result) ? $result : array();
+
+    // Compute summary statistics
+    $total      = count($rows);
+    $edited     = 0;
+    $s1_drift   = 0;
+    $s2_drift   = 0;
+    $edited_s1  = 0;
+    $edited_s2  = 0;
+    $edited_any = 0;
+    $not_edited_s1 = 0;
+    $not_edited_s2 = 0;
+
+    foreach ($rows as $row) {
+        $e = $row['edited'];
+        $s1 = $row['s1_drift'];
+        $s2 = $row['s2_drift'];
+
+        if ($e) $edited++;
+        if ($s1) $s1_drift++;
+        if ($s2) $s2_drift++;
+        if ($e && $s1) $edited_s1++;
+        if ($e && $s2) $edited_s2++;
+        if ($e && ($s1 || $s2)) $edited_any++;
+        if (!$e && $s1) $not_edited_s1++;
+        if (!$e && $s2) $not_edited_s2++;
+    }
+
+    // Summary box
+    echo '<div style="border:1px solid #ccc;padding:10px;margin-bottom:10px;background:#f9f9f9">';
+    echo '<h3>' . _('Summary') . '</h3>';
+    echo '<table>';
+    echo '<tr><td>' . _('Total SOs analyzed:') . "</td><td><strong>$total</strong></td></tr>";
+    echo '<tr><td>' . _('Edited:') . "</td><td><strong>$edited</strong> (" . ($total > 0 ? round($edited/$total*100) : 0) . '%)</td></tr>';
+    echo '<tr><td>' . _('With S1 drift (qty_sent):') . "</td><td><strong>$s1_drift</strong></td></tr>";
+    echo '<tr><td>' . _('With S2 drift (invoiced):') . "</td><td><strong>$s2_drift</strong></td></tr>";
+    echo '<tr><td colspan="2">&nbsp;</td></tr>';
+    echo '<tr><td>' . _('Edited + S1 drift:') . "</td><td><strong>$edited_s1</strong></td></tr>";
+    echo '<tr><td>' . _('Edited + S2 drift:') . "</td><td><strong>$edited_s2</strong></td></tr>";
+    echo '<tr><td>' . _('Edited + any drift:') . "</td><td><strong>$edited_any</strong></td></tr>";
+    echo '<tr><td>' . _('Not edited, S1 drift:') . "</td><td><strong>$not_edited_s1</strong></td></tr>";
+    echo '<tr><td>' . _('Not edited, S2 drift:') . "</td><td><strong>$not_edited_s2</strong></td></tr>";
+
+    if ($edited > 0) {
+        $pct = round($edited_any / $edited * 100);
+        echo '<tr><td colspan="2">&nbsp;</td></tr>';
+        echo '<tr><td>' . _('% of edited SOs with any drift:') . "</td><td><strong>{$pct}%</strong></td></tr>";
+    }
+    $any_drift = $s1_drift + $s2_drift;
+    if ($any_drift > 0 && $edited_any > 0) {
+        $pct = round($edited_any / $any_drift * 100);
+        echo '<tr><td>' . _('% of drifted SOs that were edited:') . "</td><td><strong>{$pct}%</strong></td></tr>";
+    }
+    echo '</table>';
+    echo '</div>';
+
+    // Detail table
+    $cols = array(
+        _('SO #'),
+        _('Edited?'),
+        _('S1 Drift?'),
+        _('S2 Drift?'),
+        _('Lines'),
+    );
+    start_table(TABLESTYLE, "width='98%'");
+    table_header($cols);
+
+    $k = 0;
+    foreach ($rows as $row) {
+        alt_table_row_color($k);
+
+        label_cell((int)$row['order_no']);
+
+        if ($row['edited']) {
+            label_cell('<span style="color:#c00;font-weight:bold">' . _('Yes') . '</span>');
+        } else {
+            label_cell('<span style="color:#080">' . _('No') . '</span>');
+        }
+
+        if ($row['s1_drift']) {
+            label_cell('<span style="color:#c00;font-weight:bold">' . _('Yes') . '</span>');
+        } else {
+            label_cell('<span style="color:#080">' . _('No') . '</span>');
+        }
+
+        if ($row['s2_drift']) {
+            label_cell('<span style="color:#c00;font-weight:bold">' . _('Yes') . '</span>');
+        } else {
+            label_cell('<span style="color:#080">' . _('No') . '</span>');
+        }
+
+        label_cell((int)$row['total_lines']);
+
         end_row();
     }
 

@@ -39,6 +39,7 @@ $tabs = array(
     'S7'     => _('S7 &#8212; Uninvoiced deliveries'),
     'S8'     => _('S8 &#8212; Unpaid invoices'),
     'S9'     => _('S9 &#8212; Duplicate docs'),
+    'S10'    => _('S10 &#8212; Edit vs drift diagnostic'),
     'SCHAIN' => _('SCHAIN &#8212; Broken chain'),
     'SCUST'  => _('SCUST &#8212; Customer mismatch'),
 );
@@ -52,6 +53,7 @@ $check_funcs = array(
     'S6' => 'check_sales_so_not_delivered',
     'S7' => 'check_sales_delivery_not_invoiced',
     'S8' => 'check_sales_invoice_unpaid',
+    'S10' => 'check_sales_so_edit_diagnostic',
     'SCUST' => 'check_sales_customer_mismatch',
 );
 
