@@ -314,7 +314,7 @@ function integ_render_pipeline_summary($data, $title, $rows)
 {
     $total = (int)$data['total'];
 
-    echo "<h3 style='margin-top:14px;margin-bottom:4px'>" . htmlspecialchars($title) . "</h3>\n";
+    echo "<h3 style='margin-top:14px;margin-bottom:4px'>" . $title . "</h3>\n";
 
     // colour mapping
     $colours = array(
@@ -333,10 +333,10 @@ function integ_render_pipeline_summary($data, $title, $rows)
         $count  = isset($data[$row['key']]) ? (int)$data[$row['key']] : 0;
         $pct    = $total > 0 ? round($count / $total * 100, 1) : 0;
         $colour = isset($colours[$row['style']]) ? $colours[$row['style']] : '#333';
-        $note   = isset($row['note']) ? htmlspecialchars($row['note']) : '';
+        $note   = isset($row['note']) ? $row['note'] : '';
 
         alt_table_row_color($k);
-        label_cell(htmlspecialchars($row['label']));
+        label_cell($row['label']);
         label_cell(
             '<span style="font-weight:bold;color:' . $colour . '">' . $count . '</span>'
         );
