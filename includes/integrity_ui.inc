@@ -253,13 +253,19 @@ function integ_render_create_link($docType, $row, $label, $style = '')
 
     if (!empty($def['post'])) {
         // Use JavaScript to POST — HTML forms cannot nest inside FA's form.
+        // window.open() must be called synchronously from user click to
+        // avoid popup blockers; the form then targets that window.
         static $jsRendered = false;
         $html = '';
         if (!$jsRendered) {
             $jsRendered = true;
             $html .= "<script>\n"
                    . "function integPost(u,p){\n"
-                   . "var f=document.createElement('form');f.method='POST';f.action=u;f.target='_blank';\n"
+                   . "var w=window.open('','integ_post_win','width=1024,height=768,scrollbars=yes');\n"
+                   . "if(!w||w.closed||typeof w.closed==='undefined'){alert('"
+                   . htmlspecialchars(_('Please allow popups for this site.'), ENT_QUOTES)
+                   . "');return false;}\n"
+                   . "var f=document.createElement('form');f.method='POST';f.action=u;f.target='integ_post_win';\n"
                    . "for(var k in p){if(p.hasOwnProperty(k)){\n"
                    . "var h=document.createElement('input');h.type='hidden';h.name=k;h.value=p[k];f.appendChild(h);\n"
                    . "}}document.body.appendChild(f);f.submit();f.remove();}\n"
@@ -273,10 +279,8 @@ function integ_render_create_link($docType, $row, $label, $style = '')
                 $postData[$k] = (is_string($v) && isset($row[$v])) ? $row[$v] : $v;
             }
         }
-        $html .= '<a href="#" onclick="integPost('
-               . json_encode($url) . ','
-               . json_encode((object)$postData)
-               . ');return false;" style="' . $style . '">'
+        $onclick = 'integPost(' . json_encode($url) . ',' . json_encode((object)$postData) . ');return false;';
+        $html .= '<a href="#" onclick="' . htmlspecialchars($onclick, ENT_QUOTES) . '" style="' . $style . '">'
                . htmlspecialchars($label) . '</a>';
         return $html;
     } else {
