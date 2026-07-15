@@ -7,7 +7,7 @@
  * helpers (start_table, table_header, label_cell, alt_table_row_color, etc.)
  * so theming and CSS class conventions remain consistent.
  *
- * PHP 5.6+ compatible (no short arrays, no null-coalescing, no typed props).
+ * PHP 7.3+ compatible.
  *
  * @package  Ksfraser\FA\DataIntegrity
  * @since    1.0.0

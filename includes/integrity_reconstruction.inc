@@ -6,7 +6,7 @@
  * tabs.  Each row in the chain table represents one broken link; per-row
  * Match / Add / Disassociate buttons execute the targeted fix.
  *
- * PHP 5.6+ compatible.
+ * PHP 7.3+.
  *
  * @package  Ksfraser\FA\DataIntegrity
  * @since    2.5.0

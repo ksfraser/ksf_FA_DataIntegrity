@@ -12,7 +12,7 @@
  *   fix_<area>_<issue>()     &#8212; applies a recalculation; returns rows affected
  *   count_<area>_issues()    &#8212; returns integer count for dashboard summary
  *
- * PHP 5.6+ compatible (no short closures, no null-coalescing, no typed props).
+ * PHP 7.3+.
  *
  * @package  Ksfraser\FA\DataIntegrity
  * @since    1.0.0
@@ -1412,7 +1412,7 @@ function quick_allocate_supplier_payment($payment_no)
  *                 on this PO (partially or fully paid).
  * "Has mismatch"&#8212; any P1/P2/P3-style counter drift detected on this PO.
  *
- * PHP 5.6 / MySQL 5.5 compatible (no CTEs &#8212; uses derived-table UNION).
+ * PHP 7.3 / MySQL 5.7+ compatible.
  *
  * @return array  Associative array of integer counts keyed as above.
  * @since  1.0.0
