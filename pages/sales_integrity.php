@@ -36,6 +36,14 @@ if ($chain_fix !== null) {
     // same _fix_action POST field but is handled separately).
     $rowKey = !empty($_POST['_fix_action']) ? key($_POST['_fix_action']) : '';
     if (strpos($rowKey, 'scust_') !== 0) {
+        // FA starts an output buffer with a callback in session.inc
+        // (ob_start('output_html',0)).  Even an empty buffer triggers
+        // the callback on flush (exit), corrupting the redirect body.
+        // Clear all buffers first so header() + exit sends a clean
+        // 302 with no body.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
         $msg = urlencode($chain_fix['message']);
         header('Location: ' . htmlspecialchars($_SERVER['SCRIPT_NAME'])
              . '?tab=SCHAIN&msg=' . $msg);
