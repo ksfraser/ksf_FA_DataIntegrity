@@ -225,6 +225,9 @@ function integ_get_create_doc_def($docType)
  *
  * Values not found in $row are used as literals.
  *
+ * When POST params are present, uses JavaScript to submit a temporary form
+ * (avoids nested <form> inside FA's own form wrapper).
+ *
  * @param  int    $docType  INTEG_ST_* constant
  * @param  array  $row      Row data (from DB query)
  * @param  string $label    Button/link text
@@ -249,16 +252,32 @@ function integ_render_create_link($docType, $row, $label, $style = '')
     }
 
     if (!empty($def['post'])) {
-        $html  = '<form method="post" action="' . htmlspecialchars($url) . '" target="_blank" style="display:inline">';
+        // Use JavaScript to POST — HTML forms cannot nest inside FA's form.
+        static $jsRendered = false;
+        $html = '';
+        if (!$jsRendered) {
+            $jsRendered = true;
+            $html .= "<script>\n"
+                   . "function integPost(u,p){\n"
+                   . "var f=document.createElement('form');f.method='POST';f.action=u;f.target='_blank';\n"
+                   . "for(var k in p){if(p.hasOwnProperty(k)){\n"
+                   . "var h=document.createElement('input');h.type='hidden';h.name=k;h.value=p[k];f.appendChild(h);\n"
+                   . "}}document.body.appendChild(f);f.submit();f.remove();}\n"
+                   . "</script>\n";
+        }
+        $postData = array();
         foreach ($def['post'] as $k => $v) {
             if ($v === '=TODAY') {
-                $val = Today();
+                $postData[$k] = Today();
             } else {
-                $val = (is_string($v) && isset($row[$v])) ? $row[$v] : $v;
+                $postData[$k] = (is_string($v) && isset($row[$v])) ? $row[$v] : $v;
             }
-            $html .= '<input type="hidden" name="' . htmlspecialchars($k) . '" value="' . htmlspecialchars((string)$val) . '">';
         }
-        $html .= '<button type="submit" style="' . $style . '">' . htmlspecialchars($label) . '</button></form>';
+        $html .= '<a href="#" onclick="integPost('
+               . json_encode($url) . ','
+               . json_encode((object)$postData)
+               . ');return false;" style="' . $style . '">'
+               . htmlspecialchars($label) . '</a>';
         return $html;
     } else {
         return '<a href="' . htmlspecialchars($url) . '" target="_blank" style="' . $style . '">'
