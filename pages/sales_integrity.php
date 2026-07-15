@@ -28,6 +28,21 @@ $fix_result = integ_handle_fix_post();
 $chain_fix  = integ_handle_chain_fix_post('SCHAIN');
 $scust_fix  = integ_handle_scust_fix_post();
 
+// Chain-fix actions POST via JS to a new tab.  Redirect so the
+// new tab shows just the result message on the appropriate tab
+// instead of re-rendering the full Data Integrity page.
+if ($chain_fix !== null) {
+    // Only redirect for chain actions, not SCUST (which uses the
+    // same _fix_action POST field but is handled separately).
+    $rowKey = !empty($_POST['_fix_action']) ? key($_POST['_fix_action']) : '';
+    if (strpos($rowKey, 'scust_') !== 0) {
+        $msg = urlencode($chain_fix['message']);
+        header('Location: ' . htmlspecialchars($_SERVER['SCRIPT_NAME'])
+             . '?tab=SCHAIN&msg=' . $msg);
+        exit;
+    }
+}
+
 // ---- Tab definitions ----
 $tabs = array(
     'S1'     => _('S1 &#8212; SO qty_sent'),
@@ -84,6 +99,11 @@ if ($fix_result !== null) {
 // ---- Back to dashboard link ----
 echo "<p><a href='integrity_dashboard.php'>&laquo; " . _('Back to Dashboard') . "</a></p>\n";
 
+// ---- Show chain-fix result from redirect ----
+if (isset($_GET['msg'])) {
+    display_notification(htmlspecialchars(urldecode($_GET['msg'])));
+}
+
 start_form();
 
 // Respect incoming ?tab= GET parameter for dashboard links
@@ -104,14 +124,6 @@ if (isset($labels[$active])) {
 if ($active === 'SCHAIN') {
     $chainRows = check_sales_chain();
     $count = count($chainRows);
-
-    if ($chain_fix !== null) {
-        if ($chain_fix['popup_url']) {
-            display_notification($chain_fix['message'] . ' &ndash; <a href="' . htmlspecialchars($chain_fix['popup_url']) . '" target="_blank">' . _('Edit Delivery') . '</a>');
-        } else {
-            display_notification($chain_fix['message']);
-        }
-    }
 
     if ($count > 0) {
         display_warning(sprintf(_('%d chain issue(s) found.'), $count));
