@@ -368,7 +368,7 @@ function integ_purchase_pipeline_rows()
     return array(
         array(
             'key'   => 'complete_clean',
-            'label' => _('Complete & clean (PO → GRN → Invoice → Payment → Credit, counters agree)'),
+            'label' => _('Complete & clean (PO &#8594; GRN &#8594; Invoice &#8594; Payment &#8594; Credit, counters agree)'),
             'style' => 'good',
             'note'  => _('All stages present, all counter values verified'),
         ),
@@ -423,7 +423,7 @@ function integ_sales_pipeline_rows()
     return array(
         array(
             'key'   => 'complete_clean',
-            'label' => _('Complete & clean (SO → Delivery → Invoice → Payment → Credit, counters agree)'),
+            'label' => _('Complete & clean (SO &#8594; Delivery &#8594; Invoice &#8594; Payment &#8594; Credit, counters agree)'),
             'style' => 'good',
             'note'  => _('All stages present, all counter values verified'),
         ),

@@ -34,6 +34,19 @@ if (file_exists($reconFile)) {
 define('INTEG_DELTA', 0.005);
 
 /**
+ * Chain arrow symbol for pipeline descriptions.
+ * Use HTML entity &#8594; (→) rather than raw UTF-8 to avoid encoding
+ * issues on FA's Latin-1 output.
+ */
+define('INTEG_ARROW', '&#8594;');
+
+/**
+ * Em dash symbol for labels and descriptions.
+ * Use HTML entity &#8212; (—) for same encoding-safety reason.
+ */
+define('INTEG_EMDASH', '&#8212;');
+
+/**
  * Helper: create a FrontAccountingDbAdapter for the current company.
  * @return \Ksfraser\ModulesDAO\Db\FrontAccountingDbAdapter
  */
@@ -1678,7 +1691,7 @@ function get_sales_pipeline_counts()
 // ===========================================================================
 
 /**
- * Check S9 — Duplicate sales documents.
+ * Check S9 &#8212; Duplicate sales documents.
  *
  * Detects duplicate (type,trans_no) in debtor_trans (invoices, credits,
  * payments, deliveries) and duplicate order_no in sales_orders.
@@ -1745,7 +1758,7 @@ function check_sales_duplicate_docs()
 }
 
 /**
- * Check P12 — Duplicate purchase documents.
+ * Check P12 &#8212; Duplicate purchase documents.
  *
  * Detects duplicate (type,trans_no) in supp_trans (invoices, credits,
  * payments) and duplicate order_no in purch_orders.
@@ -2061,8 +2074,8 @@ function get_check_labels()
         'S8' => _('Customer invoices not paid or credited'),
         'S9' => _('Duplicate sales documents (invoices, credits, payments, deliveries, sales orders)'),
         'S10' => _('SO edit vs drift correlation diagnostic (S1 qty_sent + S2 invoiced)'),
-        'PCHAIN' => _('Purchase chain — broken links (replaces P5/P6/P7)'),
-        'SCHAIN' => _('Sales chain — broken links (replaces S3/S4/S5)'),
+        'PCHAIN' => _('Purchase chain &#8212; broken links (replaces P5/P6/P7)'),
+        'SCHAIN' => _('Sales chain &#8212; broken links (replaces S3/S4/S5)'),
         'SCUST' => _('Sales transactions where charge-to customer/branch differs from the linked SO or branch owner'),
         'A1' => _('Supplier alloc drift (alloc vs supp_allocations)'),
         'A2' => _('Customer alloc drift (alloc vs cust_allocations)'),
@@ -2134,23 +2147,23 @@ function get_fix_descriptions()
         'P5' => _('Supp invoice items whose grn_item_id references a GRN item that no longer exists. Use per-row fix actions on the PCHAIN tab.'),
         'P6' => _('GRN batches whose purch_order_no references a purchase order that no longer exists. Use per-row fix actions on the PCHAIN tab.'),
         'P7' => _('Supplier invoice headers with no line items (ghost invoices). Use per-row Void on the PCHAIN tab.'),
-        'P8' => _('Purchase orders with line items still awaiting delivery. These are healthy in-progress chains — no fix needed.'),
-        'P9' => _('Goods-received notes where the received quantity has not yet been fully invoiced. Healthy in-progress chains — no fix needed.'),
+        'P8' => _('Purchase orders with line items still awaiting delivery. These are healthy in-progress chains &#8212; no fix needed.'),
+        'P9' => _('Goods-received notes where the received quantity has not yet been fully invoiced. Healthy in-progress chains &#8212; no fix needed.'),
         'P10' => _('Supplier invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
-        'P11' => _('Supplier invoices where GRN-linked items have a total charge of $0 (voided lines where qty/price were zeroed, or zero-cost non-stock items) but GL entries remain. Voided lines likely need a credit note. Zero-cost lines may be legitimate — review each invoice\'s account coding.'),
-        'PCHAIN' => _('Consolidated purchase chain view (replaces P5/P6/P7). Each row shows PO → GRN → Invoice. Green cells are healthy. Orange cells have a candidate match — click Match to link. Yellow cells have an issue with an Add button. Red cells are orphaned with no candidate, or have item mismatches. Ghost invoices show a Void button.'),
+        'P11' => _('Supplier invoices where GRN-linked items have a total charge of $0 (voided lines where qty/price were zeroed, or zero-cost non-stock items) but GL entries remain. Voided lines likely need a credit note. Zero-cost lines may be legitimate &#8212; review each invoice\'s account coding.'),
+        'PCHAIN' => _('Consolidated purchase chain view (replaces P5/P6/P7). Each row shows PO &#8594; GRN &#8594; Invoice. Green cells are healthy. Orange cells have a candidate match &#8212; click Match to link. Yellow cells have an issue with an Add button. Red cells are orphaned with no candidate, or have item mismatches. Ghost invoices show a Void button.'),
         'S1' => _('Recalculates sales_order_details.qty_sent from delivery note detail quantities.'),
         'S2' => _('Recalculates sales_order_details.invoiced from customer invoice detail quantities.'),
         'S3' => _('Customer invoice headers with no line items (ghost invoices). Use per-row Void on the SCHAIN tab.'),
         'S4' => _('Delivery notes whose order_ references a sales order that no longer exists. Use per-row fix actions on the SCHAIN tab.'),
         'S5' => _('Delivery notes with no matching stock_moves entries. Use per-row fix actions on the SCHAIN tab.'),
-        'S6' => _('Sales orders with line items still awaiting delivery. These are healthy in-progress chains — no fix needed.'),
-        'S7' => _('Delivery-note items where the delivered quantity has not yet been fully invoiced. Healthy in-progress chains — no fix needed.'),
+        'S6' => _('Sales orders with line items still awaiting delivery. These are healthy in-progress chains &#8212; no fix needed.'),
+        'S7' => _('Delivery-note items where the delivered quantity has not yet been fully invoiced. Healthy in-progress chains &#8212; no fix needed.'),
         'S8' => _('Customer invoices with an outstanding unpaid balance (alloc < total). View the invoice in FA to record payment or allocate a credit note.'),
         'S10' => _('Diagnostic: correlates SO edits (audit_trail "Updated." entries) with qty_sent drift (S1) and invoiced drift (S2) in sales_order_details. Shows each SO, whether it was edited, and whether its qty_sent or invoiced differs from delivery note / customer invoice totals. Use this to assess whether the FA update_sales_order() bug is the root cause of S1 and S2 drift.'),
-        'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO → Delivery → Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
-        'S9' => _('Sales documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL — this tool cannot auto-fix duplicates.'),
-        'P12' => _('Purchase documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL — this tool cannot auto-fix duplicates.'),
+        'SCHAIN' => _('Consolidated sales chain view (replaces S3/S4/S5). Each row shows SO &#8594; Delivery &#8594; Stock Moves. Orange cells have a candidate match. Yellow cells have an Add button. Red cells are orphaned or missing stock moves. Ghost invoices show a Void button.'),
+        'S9' => _('Sales documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL &#8212; this tool cannot auto-fix duplicates.'),
+        'P12' => _('Purchase documents that appear more than once in the database. The row count indicates how many copies exist for each document number. Review the duplicate rows in FA and manually delete or void the extras via phpMyAdmin or direct SQL &#8212; this tool cannot auto-fix duplicates.'),
         'P13' => _('Diagnostic: correlates PO edits (audit_trail "Updated." entries) with qty_invoiced drift in purch_order_details. Shows each PO, whether it was edited, and whether its invoiced qty differs from actual supplier invoice line totals. Use this to assess whether the FA update_po() reset-on-edit bug is the root cause of P2 drift.'),
         'A1' => _('Recalculates supp_trans.alloc from the sum of supp_allocations.'),
         'A2' => _('Recalculates debtor_trans.alloc from the sum of cust_allocations.'),
