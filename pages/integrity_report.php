@@ -147,12 +147,12 @@ h3          { font-size: 12px; margin-top: 16px; }
 <?php
 integ_render_pipeline_summary(
     $pu_pipeline,
-    _('Purchase Chain (PO &#8594; GRN &#8594; Invoice &#8594; Payment)'),
+    _('Purchase Chain (PO → GRN → Invoice → Payment → Credit)'),
     integ_purchase_pipeline_rows()
 );
 integ_render_pipeline_summary(
     $sa_pipeline,
-    _('Sales Chain (SO &#8594; Delivery &#8594; Invoice &#8594; Payment)'),
+    _('Sales Chain (SO → Delivery → Invoice → Payment → Credit)'),
     integ_sales_pipeline_rows()
 );
 ?>

@@ -55,13 +55,13 @@ $sa_pipeline = get_sales_pipeline_counts();
 
 integ_render_pipeline_summary(
     $pu_pipeline,
-    _('Purchase Chain  (PO &#8594; GRN &#8594; Supplier Invoice &#8594; Supplier Payment)'),
+    _('Purchase Chain  (PO → GRN → Supplier Invoice → Supplier Payment → Supplier Credit)'),
     integ_purchase_pipeline_rows()
 );
 
 integ_render_pipeline_summary(
     $sa_pipeline,
-    _('Sales Chain  (Sales Order &#8594; Delivery &#8594; Customer Invoice &#8594; Customer Payment)'),
+    _('Sales Chain  (Sales Order → Delivery → Customer Invoice → Customer Payment → Customer Credit)'),
     integ_sales_pipeline_rows()
 );
 
