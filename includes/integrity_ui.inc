@@ -25,6 +25,11 @@ if (!defined('INTEG_ST_SUPPAYMENT'))    define('INTEG_ST_SUPPAYMENT',    22);
 if (!defined('INTEG_ST_SUPPRECEIVE'))   define('INTEG_ST_SUPPRECEIVE',   25);
 if (!defined('INTEG_ST_SALESORDER'))    define('INTEG_ST_SALESORDER',    30);
 
+// Button/link style presets
+define('INTEG_BTN_GREEN', 'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none');
+define('INTEG_BTN_GREEN_SM', 'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none;display:inline-block;margin-top:2px');
+define('INTEG_BTN_ORANGE_SM', 'padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none;display:inline-block;margin-top:2px');
+
 // ---------------------------------------------------------------------------
 // Link helpers
 // ---------------------------------------------------------------------------
@@ -155,6 +160,110 @@ function integ_edit_link($type, $trans_no, $label = '')
             return '';
     }
     return '<a href="' . htmlspecialchars($url) . '">' . htmlspecialchars($label) . '</a>';
+}
+
+/**
+ * Definition of how to create each FA document type — which URL, which GET
+ * params, and which POST params are needed to pre-populate the form.
+ *
+ * GET params go in the query string; POST params get hidden <input> fields
+ * (required when FA's page only reads from $_POST).
+ *
+ * Each param value is either a literal string or (if it exists as a key in
+ * the row data passed to integ_render_create_link()) a column reference.
+ *
+ * @param  int $docType  INTEG_ST_* constant
+ * @return array|null    Array with keys 'path', 'get', 'post' or null
+ * @since  1.0.0
+ */
+function integ_get_create_doc_def($docType)
+{
+    $defs = array(
+        INTEG_ST_SUPPINVOICE => array(
+            'path' => '/purchasing/supplier_invoice.php',
+            'get'  => array('New' => '1'),
+            'post' => array(
+                'supplier_id' => 'supplier_id',
+                'tran_date'   => '=TODAY',
+                'due_date'    => '=TODAY',
+            ),
+        ),
+        INTEG_ST_SUPPCREDIT => array(
+            'path' => '/purchasing/supplier_credit.php',
+            'get'  => array('NewCredit' => '1'),
+            'post' => array(
+                'supplier_id' => 'supplier_id',
+                'tran_date'   => '=TODAY',
+                'due_date'    => '=TODAY',
+            ),
+        ),
+        INTEG_ST_SALESINVOICE => array(
+            'path' => '/sales/customer_invoice.php',
+            'get'  => array('DeliveryNumber' => 'del_trans_no'),
+            'post' => array(),
+        ),
+        INTEG_ST_CUSTPAYMENT => array(
+            'path' => '/sales/customer_payments.php',
+            'get'  => array('New' => '1'),
+            'post' => array(),
+        ),
+        INTEG_ST_CUSTCREDIT => array(
+            'path' => '/sales/credit_note_entry.php',
+            'get'  => array('New' => '1'),
+            'post' => array(),
+        ),
+    );
+    return isset($defs[$docType]) ? $defs[$docType] : null;
+}
+
+/**
+ * Render a link or POST form to create a new FA document, pre-populated with
+ * context from the given row.
+ *
+ * POST-param values starting with '=' are treated as special directives:
+ *   =TODAY   → Today() (FA's current-date helper)
+ *
+ * Values not found in $row are used as literals.
+ *
+ * @param  int    $docType  INTEG_ST_* constant
+ * @param  array  $row      Row data (from DB query)
+ * @param  string $label    Button/link text
+ * @param  string $style    Inline CSS for the anchor/button
+ * @return string           HTML
+ * @since  1.0.0
+ */
+function integ_render_create_link($docType, $row, $label, $style = '')
+{
+    global $path_to_root;
+    $def = integ_get_create_doc_def($docType);
+    if (!$def) {
+        return '';
+    }
+
+    $url = $path_to_root . $def['path'];
+    $sep = '?';
+    foreach ($def['get'] as $k => $v) {
+        $val = (is_string($v) && isset($row[$v])) ? $row[$v] : $v;
+        $url .= $sep . urlencode($k) . '=' . urlencode((string)$val);
+        $sep = '&';
+    }
+
+    if (!empty($def['post'])) {
+        $html  = '<form method="post" action="' . htmlspecialchars($url) . '" target="_blank" style="display:inline">';
+        foreach ($def['post'] as $k => $v) {
+            if ($v === '=TODAY') {
+                $val = Today();
+            } else {
+                $val = (is_string($v) && isset($row[$v])) ? $row[$v] : $v;
+            }
+            $html .= '<input type="hidden" name="' . htmlspecialchars($k) . '" value="' . htmlspecialchars((string)$val) . '">';
+        }
+        $html .= '<button type="submit" style="' . $style . '">' . htmlspecialchars($label) . '</button></form>';
+        return $html;
+    } else {
+        return '<a href="' . htmlspecialchars($url) . '" target="_blank" style="' . $style . '">'
+             . htmlspecialchars($label) . '</a>';
+    }
 }
 
 /**
@@ -630,10 +739,9 @@ function integ_render_p4($result)
         label_cell('<span style="color:red">' . number_format($row['over_by'], 4) . '</span>');
 
         // Credit-note link: open FA supplier credit with supplier pre-filled
-        $cnUrl = $path_to_root . '/purchasing/supplier_credit.php?NewCredit=1'
-            . '&supplier_id=' . (int)$row['supplier_id'];
-        label_cell('<a href="' . htmlspecialchars($cnUrl) . '">'
-            . htmlspecialchars(_('Credit Note')) . '</a>');
+        label_cell(integ_render_create_link(INTEG_ST_SUPPCREDIT, $row,
+            _('Credit Note'),
+            'padding:2px 6px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none'));
 
         label_cell(integ_view_link(INTEG_ST_SUPPRECEIVE, $row['grn_batch_id']));
         label_cell(integ_view_link(INTEG_ST_PURCHORDER, $row['purch_order_no']));
@@ -2098,11 +2206,11 @@ function _chain_cell_grn_inv_link($row, $key)
     }
 
     // Standalone GRN (valid PO, no invoice) &#8212; Create Invoice link
+    //   POST supplier_id so FA's supplier_invoice.php reads it from $_POST
+    //   and pre-selects the supplier, showing the supplier's outstanding GRNs.
     if ($code === 'standalone_grn') {
-        global $path_to_root;
-        $url = $path_to_root . '/purchasing/supplier_invoice.php?New=1';
-        return '<a href="' . htmlspecialchars($url) . '" target="_blank" style="padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none">'
-             . _('Create Invoice') . '</a>';
+        return integ_render_create_link(INTEG_ST_SUPPINVOICE, $row,
+            _('Create Invoice'), INTEG_BTN_GREEN);
     }
 
     return '<span style="color:#999">&#8212;</span>';
@@ -2382,12 +2490,8 @@ function _sales_cell_invoice($row)
 
     // No invoice — only show Create link if there's an SO to invoice from
     if ($row['so_order_no']) {
-        $url = $path_to_root . '/sales/sales_invoice.php?New=1';
-        return '<a href="' . htmlspecialchars($url) . '" target="_blank"'
-             . ' style="padding:2px 8px;background:#080;color:#fff;'
-             . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
-             . 'font-size:11px;text-decoration:none">'
-             . _('Create Invoice') . '</a>';
+        return integ_render_create_link(INTEG_ST_SALESINVOICE, $row,
+            _('Create Invoice'), INTEG_BTN_GREEN);
     }
 
     return '<span style="color:#999">&#8212;</span>';
@@ -2431,25 +2535,17 @@ function _sales_cell_payment($row)
     } elseif ($alloc > 0) {
         $parts[] = '<span style="color:#e80">' . _('Partial:') . ' '
                  . number_format($alloc, 2) . ' / ' . number_format($total, 2) . '</span>';
-        $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/customer_payments.php?New=1') . '"'
-                 . ' target="_blank" style="padding:2px 8px;background:#080;color:#fff;'
-                 . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
-                 . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
-                 . _('Receive Payment') . '</a>';
+        $parts[] = integ_render_create_link(INTEG_ST_CUSTPAYMENT, $row,
+            _('Receive Payment'), INTEG_BTN_GREEN_SM);
     } else {
         $parts[] = '<span style="color:#c00">' . _('Unpaid') . '</span>';
-        $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/customer_payments.php?New=1') . '"'
-                 . ' target="_blank" style="padding:2px 8px;background:#080;color:#fff;'
-                 . 'border:1px solid #060;border-radius:2px;cursor:pointer;'
-                 . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
-                 . _('Receive Payment') . '</a>';
+        $parts[] = integ_render_create_link(INTEG_ST_CUSTPAYMENT, $row,
+            _('Receive Payment'), INTEG_BTN_GREEN_SM);
     }
 
     if (!$paid && $alloc < $total) {
         $parts[] = '<a href="' . htmlspecialchars($path_to_root . '/sales/allocations/customer_allocate.php?New=1') . '"'
-                 . ' target="_blank" style="padding:2px 8px;background:#e80;color:#fff;'
-                 . 'border:1px solid #c60;border-radius:2px;cursor:pointer;'
-                 . 'font-size:11px;text-decoration:none;display:inline-block;margin-top:2px">'
+                 . ' target="_blank" style="' . INTEG_BTN_ORANGE_SM . '">'
                  . _('Allocate') . '</a>';
     }
 
