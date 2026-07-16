@@ -1004,9 +1004,10 @@ function _chain_do_add_po_from_grn($db, $grnBatchId)
 {
     // Load GRN batch + items
     $sql = "SELECT gb.*, gi.id AS grn_item_id, gi.item_code, gi.description,
-                   gi.qty_recd, gi.unit_cost
+                   gi.qty_recd, COALESCE(sm.purchase_cost, 0) AS unit_cost
             FROM " . TB_PREF . "grn_batch gb
             JOIN " . TB_PREF . "grn_items gi ON gi.grn_batch_id = gb.id
+            JOIN " . TB_PREF . "stock_master sm ON sm.stock_id = gi.item_code
             WHERE gb.id = $grnBatchId";
     $r = db_query($sql, 'Load GRN for add_po');
     if (!$r || !($grn = db_fetch($r))) {
@@ -1553,7 +1554,6 @@ function _integ_create_grn_item($db, $grnBatchId, $poDetailItem, $itemCode, $des
         'description' => $description,
         'qty_recd' => (float)$qty,
         'quantity_inv' => 0,
-        'unit_cost' => (float)$price,
     ));
 }
 
