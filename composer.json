@@ -12,7 +12,7 @@
     "require": {
         "php": ">=7.3",
         "ksfraser/fa-classes": "dev-php73",
-        "ksfraser/ksf-modules-dao": "^0.5"
+        "ksfraser/ksf-modules-dao": "0.5.0"
     },
     "repositories": [
         {
