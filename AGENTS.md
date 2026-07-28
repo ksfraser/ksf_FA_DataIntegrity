@@ -120,8 +120,13 @@ page(_("Data Integrity Dashboard"));
 ## Dependencies
 
 - FrontAccounting 2.4.3
-- PHP 7.4 (no PHP 8+ syntax)
+- PHP 7.3+ (no PHP 8+ syntax)
 - No Composer dependencies at runtime (no vendor/ in hooks.php load path)
+
+### PHP 7.3 Branch
+This module uses the `dev-php73` branch of `ksfraser/fa-classes` for PHP 7.3 compatibility.
+**IMPORTANT**: Any changes made to the `php73` branch MUST also be merged back to the `main` branch (PHP 7.4+).
+This ensures both PHP versions stay in sync.
 
 ## Development Workflow
 
