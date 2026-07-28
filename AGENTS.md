@@ -148,6 +148,19 @@ All development is done in the **devel tree** (`~/Documents/ksf_FA_DataIntegrity
    git stash pop
    ```
 
+### Container Deployment (critical)
+
+After deploying files to the container, always run `composer install --no-dev`:
+
+```bash
+podman exec ksf-fa composer install --no-dev --working-dir=/var/www/html/modules/ksf_FA_DataIntegrity
+```
+
+**WHY**: The `require-dev` section includes `phpunit/phpunit ^10` which has PHP 8+ union types
+(`array|ArrayAccess` in `Functions.php`). Composer's eager `files` autoloader tries to `require`
+this file on every page load. On PHP 7.4 this causes a fatal parse error that kills the page
+before `page()` runs — resulting in white screens on all DataIntegrity pages.
+
 ### UAT Bind Point
 | Path | Purpose |
 |------|---------|
