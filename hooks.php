@@ -15,7 +15,7 @@
  *
  * PHP 7.4 compatible &#8212; no PHP 8+ syntax.
  *
- * @package  Ksfraser\FA\DataIntegrity
+ * @package  ksfraser\FrontAccounting\DataIntegrity
  * @since    1.0.0
  */
 

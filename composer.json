@@ -34,12 +34,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Ksfraser\\FA\\DataIntegrity\\": "src/Ksfraser/FA/DataIntegrity/"
+            "ksfraser\\FrontAccounting\\DataIntegrity\\": "src/Ksfraser/FA/DataIntegrity/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Ksfraser\\FA\\DataIntegrity\\Tests\\": "tests/"
+            "ksfraser\\FrontAccounting\\DataIntegrity\\Tests\\": "tests/"
         }
     },
     "minimum-stability": "dev",

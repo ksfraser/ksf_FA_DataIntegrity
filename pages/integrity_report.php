@@ -8,7 +8,7 @@
  *
  * PHP 5.6+ compatible.
  *
- * @package  Ksfraser\FA\DataIntegrity
+ * @package  ksfraser\FrontAccounting\DataIntegrity
  * @since    1.0.0
  */
 
