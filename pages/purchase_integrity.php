@@ -140,10 +140,10 @@ if (isset($labels[$active])) {
 // ---- Run the active check and render its result table ----
 if ($active === 'PCHAIN') {
     // Consolidated chain view &#8212; returns array, not db result
-    error_log('PCHAIN: about to call check_purchase_chain()');
+    integ_debug('PCHAIN: about to call check_purchase_chain()');
     $chainRows = check_purchase_chain();
     $count = count($chainRows);
-    error_log('PCHAIN: check_purchase_chain returned ' . $count . ' rows');
+    integ_debug('PCHAIN: check_purchase_chain returned ' . $count . ' rows');
 
     if ($count > 0) {
         display_warning(sprintf(_('%d chain issue(s) found.'), $count));

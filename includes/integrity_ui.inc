@@ -30,6 +30,27 @@ define('INTEG_BTN_GREEN', 'padding:2px 8px;background:#080;color:#fff;border:1px
 define('INTEG_BTN_GREEN_SM', 'padding:2px 8px;background:#080;color:#fff;border:1px solid #060;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none;display:inline-block;margin-top:2px');
 define('INTEG_BTN_ORANGE_SM', 'padding:2px 8px;background:#e80;color:#fff;border:1px solid #c60;border-radius:2px;cursor:pointer;font-size:11px;text-decoration:none;display:inline-block;margin-top:2px');
 
+// Debug-trace toggle.  Flip to true (e.g. in _init/config) only while
+// troubleshooting; the check/reconstruction code calls integ_debug() so traces
+// stay in-tree but are no-ops by default.
+if (!defined('DATAINTEGRITY_DEBUG')) define('DATAINTEGRITY_DEBUG', false);
+
+/**
+ * Emit a module debug trace, gated by DATAINTEGRITY_DEBUG.
+ *
+ * @param string $msg  Human-readable trace message
+ * @param mixed  $ctx  Optional context value (var_exported when provided)
+ * @return void
+ * @since  2.5.2
+ */
+function integ_debug($msg, $ctx = null)
+{
+    if (!DATAINTEGRITY_DEBUG) {
+        return;
+    }
+    error_log('[DataIntegrity] ' . $msg . ($ctx !== null ? ' ' . var_export($ctx, true) : ''));
+}
+
 // ---------------------------------------------------------------------------
 // Link helpers
 // ---------------------------------------------------------------------------

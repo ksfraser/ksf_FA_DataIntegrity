@@ -218,7 +218,7 @@ function _integ_candidate_so($debtorNo, $stockId, $delDate)
 function check_purchase_chain()
 {
     $rows = array();
-    error_log('PCHAIN_FUNC: entered check_purchase_chain()');
+    integ_debug('PCHAIN_FUNC: entered check_purchase_chain()');
 
     // ---- Part 1: Orphaned invoice items (P5) + item mismatches ----
     $sql = "SELECT
@@ -271,14 +271,14 @@ function check_purchase_chain()
               )
             ORDER BY s.supp_name, st.tran_date";
 
-    error_log('PCHAIN_FUNC: Part 1 SQL: ' . $sql);
+    integ_debug('PCHAIN_FUNC: Part 1 SQL: ' . $sql);
     $result = db_query($sql, 'Check purchase chain &#8212; orphaned items');
-    error_log('PCHAIN_FUNC: Part 1 result=' . ($result ? 'OK' : 'FAIL'));
+    integ_debug('PCHAIN_FUNC: Part 1 result=' . ($result ? 'OK' : 'FAIL'));
     if ($result) {
         $part1_count = 0;
         while ($r = db_fetch($result)) {
             $part1_count++;
-            error_log('PCHAIN_FUNC: Part1 row#' . $part1_count . ' item_id=' . $r['invoice_item_id'] . ' grn_id=' . ($r['grn_item_id'] ?? 'null') . ' stock=' . $r['inv_stock_id']);
+            integ_debug('PCHAIN_FUNC: Part1 row#' . $part1_count . ' item_id=' . $r['invoice_item_id'] . ' grn_id=' . ($r['grn_item_id'] ?? 'null') . ' stock=' . $r['inv_stock_id']);
 
             $grnExists = ($r['grn_item_id'] !== null);
             $poExists  = ($r['po_order_no'] !== null);
@@ -345,10 +345,10 @@ function check_purchase_chain()
             $rows[] = $row;
         }
         $added = count($rows);
-        error_log('PCHAIN_FUNC: Part 1 produced ' . $part1_count . ' rows from query, ' . $added . ' added to array');
+        integ_debug('PCHAIN_FUNC: Part 1 produced ' . $part1_count . ' rows from query, ' . $added . ' added to array');
     }
 
-    error_log('PCHAIN_FUNC: rows count before Part 2 = ' . count($rows));
+    integ_debug('PCHAIN_FUNC: rows count before Part 2 = ' . count($rows));
 
     // ---- Part 2: Ghost invoices (no line items) ----
     $sql2 = "SELECT
@@ -554,7 +554,7 @@ function check_purchase_chain()
 function check_sales_chain()
 {
     $rows = array();
-    error_log('SCHAIN: entered check_sales_chain()');
+    integ_debug('SCHAIN: entered check_sales_chain()');
 
     // ---- Part 1: Orphaned deliveries (S4) + missing stock moves (S5) + ghost deliveries ----
     $sql = "SELECT
@@ -597,14 +597,14 @@ function check_sales_chain()
               )
             ORDER BY dm.name, dt.tran_date, dtd.id";
 
-    error_log('SCHAIN: Part 1 SQL prepared');
+    integ_debug('SCHAIN: Part 1 SQL prepared');
     $result = db_query($sql, 'Check sales chain &#8212; deliveries');
-    error_log('SCHAIN: Part 1 result=' . ($result ? 'OK' : 'FAIL'));
+    integ_debug('SCHAIN: Part 1 result=' . ($result ? 'OK' : 'FAIL'));
     if ($result) {
         $part1_count = 0;
         while ($r = db_fetch($result)) {
             $part1_count++;
-            error_log('SCHAIN: Part1 row#' . $part1_count . ' del=' . $r['del_trans_no'] . ' order_=' . var_export($r['so_order_no'], true) . ' stock_move=' . var_export($r['stock_move_id'], true) . ' del_detail=' . var_export($r['del_detail_id'], true));
+            integ_debug('SCHAIN: Part1 row#' . $part1_count . ' del=' . $r['del_trans_no'] . ' order_=' . var_export($r['so_order_no'], true) . ' stock_move=' . var_export($r['stock_move_id'], true) . ' del_detail=' . var_export($r['del_detail_id'], true));
 
             $soMissing  = ($r['so_order_no'] < 1 || $r['so_order_no'] === null || $r['so_ref'] === null);
             $stkMissing = ($r['stock_move_id'] === null);
