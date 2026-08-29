@@ -93,7 +93,13 @@ integ_page_nav('sales');
 
 // ---- Show fix result notification ----
 if ($fix_result !== null) {
-    if ($fix_result['rows_fixed'] < 0) {
+    if (!empty($fix_result['error'])) {
+        display_error(sprintf(
+            _('Fix %s failed: %s'),
+            $fix_result['check_id'],
+            $fix_result['error']
+        ));
+    } elseif ($fix_result['rows_fixed'] == -1) {
         display_warning(_('Fix not applied &#8212; you do not have the SA_DATAINTEGRITY_FIX permission. Contact an administrator to assign this security area to your role.'));
     } else {
         display_notification(sprintf(

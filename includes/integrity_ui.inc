@@ -163,6 +163,27 @@ function integ_edit_link($type, $trans_no, $label = '')
 }
 
 /**
+ * Return an HTML link to FA's supplier allocation screen for a payment.
+ *
+ * @param  int    $payment_no   supp_trans.trans_no (type=22)
+ * @param  int    $supplier_id  Supplier ID
+ * @return string  HTML anchor
+ * @since  1.0.0
+ */
+function integ_alloc_link($payment_no, $supplier_id)
+{
+    global $path_to_root;
+
+    $url = $path_to_root . '/purchasing/allocations/supplier_allocate.php'
+        . '?trans_no=' . (int)$payment_no
+        . '&trans_type=22'
+        . '&supplier_id=' . (int)$supplier_id;
+
+    return '<a href="' . htmlspecialchars($url) . '" target="_blank">'
+        . _('Allocate') . '</a>';
+}
+
+/**
  * Definition of how to create each FA document type — which URL, which GET
  * params, and which POST params are needed to pre-populate the form.
  *
@@ -361,7 +382,14 @@ function integ_handle_fix_post()
     }
 
     $func  = $fix_funcs[$check_id];
-    $fixed = call_user_func($func);
+
+    try {
+        $fixed = call_user_func($func);
+    } catch (\Throwable $e) {
+        error_log('DataIntegrity fix exception: ' . $e->getMessage()
+            . ' in ' . $e->getFile() . ':' . $e->getLine());
+        return array('check_id' => $check_id, 'rows_fixed' => -2, 'error' => $e->getMessage());
+    }
 
     return array('check_id' => $check_id, 'rows_fixed' => (int)$fixed);
 }
