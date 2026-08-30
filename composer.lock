@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "49ec7bf6e3ada08b9f647dd755c873a2",
+    "content-hash": "8a85c41f33e5a1e8c5f3f2905e730048",
     "packages": [
         {
             "name": "ksfraser/fa-classes",
@@ -77,16 +77,7 @@
                     "Ksfraser\\ModulesDAO\\": "src/Ksfraser/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Ksfraser\\ModulesDAO\\Test\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -97,8 +88,8 @@
             ],
             "description": "Cross-platform DAO abstraction (DB, WordPress, SuiteCRM, FrontAccounting, CSV, XML)",
             "support": {
-                "source": "https://github.com/ksfraser/ksf_ModulesDAO/tree/v0.5.0",
-                "issues": "https://github.com/ksfraser/ksf_ModulesDAO/issues"
+                "issues": "https://github.com/ksfraser/ksf_ModulesDAO/issues",
+                "source": "https://github.com/ksfraser/ksf_ModulesDAO/tree/v0.5.0"
             },
             "time": "2026-07-08T19:26:37+00:00"
         },
@@ -128,23 +119,14 @@
                     "Ksfraser\\Validation\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Ksfraser\\Validation\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "Small validation helpers and traits (PHP 7.3+) for KS Fraser modules migration.",
             "support": {
-                "source": "https://github.com/ksfraser/Validation/tree/v0.1.0",
-                "issues": "https://github.com/ksfraser/Validation/issues"
+                "issues": "https://github.com/ksfraser/Validation/issues",
+                "source": "https://github.com/ksfraser/Validation/tree/v0.1.0"
             },
             "time": "2026-02-09T23:07:13+00:00"
         }

@@ -14,16 +14,6 @@
         "ksfraser/fa-classes": "^1.0",
         "ksfraser/ksf-modules-dao": "0.5.0"
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/ksfraser/ksf_ModulesDAO.git"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/ksfraser/Validation.git"
-        }
-    ],
     "require-dev": {
         "phpunit/phpunit": "^9",
         "ksfraser/famock": "*"
