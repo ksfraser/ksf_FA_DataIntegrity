@@ -4,26 +4,26 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c5eaea3c227f6a25a17fd12f6e67f09d",
+    "content-hash": "49ec7bf6e3ada08b9f647dd755c873a2",
     "packages": [
         {
             "name": "ksfraser/fa-classes",
-            "version": "dev-php73",
+            "version": "v1.6.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/ksfraser/fa_classes.git",
-                "reference": "d14aa24ae23767f46491f09c29649dbd0668c566"
+                "reference": "1eaf2a0ce41ae98d6fafdaa026eeea1db8958860"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/ksfraser/fa_classes/zipball/d14aa24ae23767f46491f09c29649dbd0668c566",
-                "reference": "d14aa24ae23767f46491f09c29649dbd0668c566",
+                "url": "https://api.github.com/repos/ksfraser/fa_classes/zipball/1eaf2a0ce41ae98d6fafdaa026eeea1db8958860",
+                "reference": "1eaf2a0ce41ae98d6fafdaa026eeea1db8958860",
                 "shasum": ""
             },
             "require": {
                 "ksfraser/ksf-modules-dao": "^0.5",
                 "ksfraser/validation": "^0.1",
-                "php": ">=7.3"
+                "php": ">=7.4"
             },
             "require-dev": {
                 "ksfraser/famock": "*",
@@ -32,8 +32,8 @@
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "FrontAccounting\\": "src/FrontAccounting/",
-                    "Ksfraser\\FA\\": "src/Ksfraser/FA/"
+                    "Ksfraser\\FA\\": "src/Ksfraser/FA/",
+                    "FrontAccounting\\": "src/FrontAccounting/"
                 },
                 "classmap": [
                     "legacy/"
@@ -43,23 +43,13 @@
                     "legacy/class.fa_bank_transfer.php"
                 ]
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "FrontAccounting\\Tests\\": "tests/",
-                    "Ksfraser\\FA\\Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "@php vendor/bin/phpunit"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "description": "FrontAccounting-specific table classes and related data access helpers.",
             "support": {
-                "source": "https://github.com/ksfraser/fa_classes/tree/php73",
-                "issues": "https://github.com/ksfraser/fa_classes/issues"
+                "issues": "https://github.com/ksfraser/fa_classes/issues",
+                "source": "https://github.com/ksfraser/fa_classes/tree/v1.6.0"
             },
-            "time": "2026-07-28T05:56:09+00:00"
+            "time": "2026-07-13T00:01:30+00:00"
         },
         {
             "name": "ksfraser/ksf-modules-dao",
@@ -1991,9 +1981,7 @@
     ],
     "aliases": [],
     "minimum-stability": "dev",
-    "stability-flags": {
-        "ksfraser/fa-classes": 20
-    },
+    "stability-flags": [],
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
